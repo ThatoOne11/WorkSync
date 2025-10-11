@@ -3,6 +3,12 @@
     <mat-icon>menu</mat-icon>
   </button>
   <span>{{ title }}</span>
+  <span class="spacer"></span>
+  <button mat-icon-button (click)="themeService.toggleTheme()">
+    <mat-icon>{{
+      themeService.isDarkTheme() ? "dark_mode" : "light_mode"
+    }}</mat-icon>
+  </button>
 </mat-toolbar>
 
 <mat-sidenav-container class="sidenav-container">

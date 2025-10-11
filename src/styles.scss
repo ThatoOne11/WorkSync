@@ -1,1 +1,61 @@
-/* You can add global styles to this file, and also import other style files */
+// 1. Import the Angular Material theming module.
+@use "@angular/material" as mat;
+
+// 2. Include the core styles.
+@include mat.core();
+
+// 3. Define the color palettes using the correct `m2-define-palette` function.
+$worksync-light-primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+$worksync-light-accent: mat.m2-define-palette(
+  mat.$m2-pink-palette,
+  A200,
+  100,
+  400
+);
+$worksync-light-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+// 4. Create the light theme object using the correct `m2-define-light-theme` function.
+$worksync-light-theme: mat.m2-define-light-theme(
+  (
+    color: (
+      primary: $worksync-light-primary,
+      accent: $worksync-light-accent,
+      warn: $worksync-light-warn,
+    ),
+  )
+);
+
+// 5. Define the color palettes for the dark theme.
+$worksync-dark-primary: mat.m2-define-palette(
+  mat.$m2-pink-palette,
+  700,
+  500,
+  900
+);
+$worksync-dark-accent: mat.m2-define-palette(
+  mat.$m2-blue-grey-palette,
+  A200,
+  A100,
+  A400
+);
+$worksync-dark-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+// 6. Create the dark theme object using the correct `m2-define-dark-theme` function.
+$worksync-dark-theme: mat.m2-define-dark-theme(
+  (
+    color: (
+      primary: $worksync-dark-primary,
+      accent: $worksync-dark-accent,
+      warn: $worksync-dark-warn,
+    ),
+  )
+);
+
+// 7. Apply the themes to CSS classes using the correct `all-component-themes` mixin.
+.light-theme {
+  @include mat.all-component-themes($worksync-light-theme);
+}
+
+.dark-theme {
+  @include mat.all-component-themes($worksync-dark-theme);
+}
