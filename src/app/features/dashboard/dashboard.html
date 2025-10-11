@@ -1,0 +1,21 @@
+<h2>Dashboard</h2>
+<p>Dashboard component is rendering!</p> <!-- Added for debugging -->
+
+@if (projects().length > 0) {
+  <div class="project-cards-container">
+    @for (project of projects(); track project.id) {
+      <mat-card [class.positive-balance]="project.balance >= 0" [class.negative-balance]="project.balance < 0">
+        <mat-card-header>
+          <mat-card-title>{{ project.name }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>Target Hours: {{ project.target_hours }}</p>
+          <p>Logged Hours: {{ project.loggedHours }}</p>
+          <h3>Balance: {{ project.balance }}</h3>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+} @else {
+  <p>No projects found, or settings are not configured.</p>
+}

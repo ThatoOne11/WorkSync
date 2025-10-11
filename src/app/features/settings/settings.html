@@ -1,0 +1,32 @@
+<h2>Settings</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-form-field appearance="fill">
+    <mat-label>Clockify API Key</mat-label>
+    <input matInput type="text" formControlName="apiKey">
+    @if (form.controls['apiKey'].hasError('required') && form.controls['apiKey'].touched) {
+      <mat-error>API Key is required</mat-error>
+    }
+  </mat-form-field>
+
+  <button mat-raised-button color="accent" (click)="fetchUserId()" [disabled]="!form.get('apiKey')?.value">
+    Fetch User ID
+  </button>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Clockify Workspace ID</mat-label>
+    <input matInput type="text" formControlName="workspaceId">
+    @if (form.controls['workspaceId'].hasError('required') && form.controls['workspaceId'].touched) {
+      <mat-error>Workspace ID is required</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <mat-label>Clockify User ID</mat-label>
+    <input matInput type="text" formControlName="userId">
+    @if (form.controls['userId'].hasError('required') && form.controls['userId'].touched) {
+      <mat-error>User ID is required</mat-error>
+    }
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Save Settings</button>
+</form>

@@ -1,0 +1,17 @@
+<h2>Projects</h2>
+
+<button mat-raised-button color="primary" (click)="onNewProject()">
+  <mat-icon>add</mat-icon> Add New Project
+</button>
+
+<app-project-form
+  [project]="selectedProject()"
+  [clockifyProjects]="clockifyProjects()"
+  (save)="onSaveProject($event)"
+/>
+
+<app-project-list
+  [projects]="projects()"
+  (edit)="onEditProject($event)"
+  (delete)="onDeleteProject($event)"
+/>

@@ -1,0 +1,11 @@
+.sidenav-container {
+  height: calc(100vh - 64px); // Adjust for toolbar height
+}
+
+main {
+  padding: 20px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
