@@ -1,7 +1,6 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { supabaseAdmin } from '../_shared/supabase-client.ts';
-import { createJsonResponse, createErrorResponse } from '../_shared/utils.ts';
 
 function parseISO8601Duration(duration: string): number {
   if (!duration) return 0;
@@ -25,11 +24,14 @@ async function sendSummaryEmail(
   const { notificationEmail, enableEmailNotifications } = settings;
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
+  // Fixed Check
   if (
-    enableEmailNotifications !== 'true' ||
-    !notificationEmail ||
-    !resendApiKey
+    enableEmailNotifications === 'true' &&
+    notificationEmail &&
+    resendApiKey
   ) {
+    // ... proceed with sending email ...
+  } else {
     return 'Email notifications are disabled or not configured. Skipping email.';
   }
 
@@ -100,7 +102,12 @@ serve(async (req) => {
   }
 
   try {
-    const { data: settingsData, error: settingsError } = await supabaseAdmin
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
       .select('key, value');
 
@@ -114,10 +121,18 @@ serve(async (req) => {
     const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
 
     if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
-      return createErrorResponse('Clockify settings are not configured.', 400);
+      return new Response(
+        JSON.stringify({
+          error: 'Clockify settings are not configured in the database.',
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
-    const { data: projects, error: projectsError } = await supabaseAdmin
+    const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('id, name, clockify_project_id, target_hours');
 
@@ -172,7 +187,7 @@ serve(async (req) => {
       ({ project_name, balance, ...rest }) => rest
     );
 
-    const { error: insertError } = await supabaseAdmin
+    const { error: insertError } = await supabase
       .from('weekly_summaries')
       .upsert(summariesToInsert, { onConflict: 'project_id,week_ending_on' });
 
@@ -184,10 +199,19 @@ serve(async (req) => {
       endOfLastWeek
     );
 
-    return createJsonResponse({
-      message: `Successfully created ${summaries.length} summaries. ${emailResult}`,
-    });
+    return new Response(
+      JSON.stringify({
+        message: `Successfully created ${summaries.length} summaries. ${emailResult}`,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
   } catch (error) {
-    return createErrorResponse(error.message);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });

@@ -18,8 +18,8 @@ export class TodayFocusService {
       .invoke('get-todays-focus')
       .then(({ data, error }) => {
         if (error) throw error;
-        // The function now returns { focusList: [...] }
-        return (data.focusList as FocusProject[]) ?? [];
+        // The function returns { focusList: [...] }
+        return data.focusList as FocusProject[];
       });
 
     return from(promise);

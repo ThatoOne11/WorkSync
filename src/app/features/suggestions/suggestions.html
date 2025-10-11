@@ -6,11 +6,11 @@
     </mat-card-title>
   </mat-card-header>
   <mat-card-content>
-    @if (isLoading()) {
+    @if (isLoading) {
     <mat-spinner diameter="30"></mat-spinner>
-    } @else if (suggestions().length > 0) {
+    } @else if (suggestions.length > 0) {
     <mat-list role="list">
-      @for (suggestion of suggestions(); track suggestion) {
+      @for (suggestion of suggestions; track suggestion) {
       <mat-list-item role="listitem" class="suggestion-item">{{
         suggestion
       }}</mat-list-item>

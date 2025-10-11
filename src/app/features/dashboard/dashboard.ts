@@ -1,20 +1,17 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  inject,
-  signal,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatGridListModule } from '@angular/material/grid-list';
 import { Subscription, interval } from 'rxjs';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Project } from '../../core/models/project.model';
-import { AppStateService } from '../../core/state/app.state';
-import { ClockifyService } from '../../core/services/clockify.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { SuggestionsComponent } from '../suggestions/suggestions';
+import { ProjectService } from '../../core/services/project.service';
+import { ClockifyService } from '../../core/services/clockify.service';
+import {
+  AppSettings,
+  SettingsService,
+} from '../../core/services/settings.service';
 import { TodayFocusComponent } from '../today-focus/today-focus';
 
 interface TimeEntry {
@@ -29,15 +26,21 @@ interface ProjectWithTime extends Project {
   balance: number;
 }
 
+// Helper function to parse ISO 8601 duration (e.g., "PT2H6M17S") to seconds
 function parseISO8601Duration(duration: string): number {
-  if (!duration) return 0;
-  const regex = /P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)/;
+  const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
   const matches = duration.match(regex);
-  if (!matches) return 0;
-  const hours = parseFloat(matches[1] || '0');
-  const minutes = parseFloat(matches[2] || '0');
-  const seconds = parseFloat(matches[3] || '0');
-  return hours * 3600 + minutes * 60 + seconds;
+
+  if (!matches) {
+    return 0;
+  }
+
+  const days = parseInt(matches[1] || '0', 10);
+  const hours = parseInt(matches[2] || '0', 10);
+  const minutes = parseInt(matches[3] || '0', 10);
+  const seconds = parseInt(matches[4] || '0', 10);
+
+  return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
 }
 
 @Component({
@@ -46,16 +49,16 @@ function parseISO8601Duration(duration: string): number {
   imports: [
     CommonModule,
     MatCardModule,
-    MatProgressBarModule,
+    MatGridListModule,
     SuggestionsComponent,
+    MatProgressBarModule,
     TodayFocusComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard implements OnInit, OnDestroy {
-  private state = inject(AppStateService);
+  private projectService = inject(ProjectService);
   private clockifyService = inject(ClockifyService);
   private settingsService = inject(SettingsService);
 
@@ -66,86 +69,82 @@ export class Dashboard implements OnInit, OnDestroy {
     this.loadData();
 
     this.pollingSubscription = interval(120000).subscribe(() => {
+      console.log('Polling for new Clockify data...');
       this.loadData();
     });
   }
 
   ngOnDestroy() {
-    this.pollingSubscription?.unsubscribe();
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+    }
   }
 
   loadData() {
-    const settings = this.state.settings();
-    if (
-      settings &&
-      settings.apiKey &&
-      settings.workspaceId &&
-      settings.userId
-    ) {
-      this.fetchProjectsAndEntries(settings);
-    } else {
-      // Fetch settings if not available in state
-      this.settingsService.getSettings().subscribe((settings) => {
-        if (
-          settings &&
-          settings.apiKey &&
-          settings.workspaceId &&
-          settings.userId
-        ) {
-          this.fetchProjectsAndEntries(settings);
-        }
-      });
-    }
+    this.settingsService.getSettings().subscribe((settings) => {
+      if (
+        settings &&
+        settings.apiKey &&
+        settings.workspaceId &&
+        settings.userId
+      ) {
+        this.fetchProjectsAndEntries(settings);
+      } else {
+        console.log('Dashboard: Settings are not fully configured.');
+        this.projects.set([]);
+      }
+    });
   }
 
-  fetchProjectsAndEntries(settings: any) {
+  fetchProjectsAndEntries(settings: AppSettings) {
     const today = new Date();
-    const startOfMonth = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1
-    ).toISOString();
-    const endOfMonth = new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0
-    ).toISOString();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-    const currentProjects = this.state.projects();
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
 
-    if (currentProjects.length === 0) {
-      this.projects.set([]);
-      return;
-    }
+    const start = startOfMonth.toISOString();
+    const end = endOfMonth.toISOString();
 
-    this.clockifyService
-      .getTimeEntries(
-        settings.apiKey,
-        settings.workspaceId,
-        settings.userId,
-        startOfMonth,
-        endOfMonth
-      )
-      .subscribe((timeEntries: TimeEntry[] | null) => {
-        const entries = timeEntries ?? [];
-        const projectsWithTime: ProjectWithTime[] = currentProjects.map((p) => {
-          const filteredEntries = entries.filter(
-            (te) =>
-              p.clockify_project_id && te.projectId === p.clockify_project_id
-          );
-          const totalDurationSeconds = filteredEntries.reduce(
-            (acc, te) => acc + parseISO8601Duration(te.timeInterval.duration),
-            0
-          );
-          const loggedHours = totalDurationSeconds / 3600;
+    this.projectService.getProjects().subscribe((projects) => {
+      if (!projects || projects.length === 0) {
+        this.projects.set([]);
+        return;
+      }
 
-          return {
-            ...p,
-            loggedHours: Math.round(loggedHours * 100) / 100,
-            balance: Math.round((p.target_hours - loggedHours) * 100) / 100,
-          };
+      this.clockifyService
+        .getTimeEntries(
+          settings.apiKey,
+          settings.workspaceId,
+          settings.userId,
+          start,
+          end
+        )
+        .subscribe((timeEntries: TimeEntry[]) => {
+          if (!timeEntries) {
+            timeEntries = [];
+          }
+
+          const projectsWithTime: ProjectWithTime[] = projects.map((p) => {
+            const filteredTimeEntries = timeEntries.filter(
+              (te) =>
+                p.clockify_project_id && te.projectId === p.clockify_project_id
+            );
+            const totalDurationSeconds = filteredTimeEntries.reduce(
+              (acc, te) => acc + parseISO8601Duration(te.timeInterval.duration),
+              0
+            );
+            const loggedHours = totalDurationSeconds / 3600;
+
+            return {
+              ...p,
+              loggedHours: Math.round(loggedHours * 100) / 100,
+              balance: Math.round((p.target_hours - loggedHours) * 100) / 100,
+            };
+          });
+          this.projects.set(projectsWithTime);
         });
-        this.projects.set(projectsWithTime);
-      });
+    });
   }
 }
