@@ -56,9 +56,23 @@ html,
 body {
   height: 100%;
   font-family: "Roboto", sans-serif;
-  background-color: #f5f5f5;
+  margin: 0px;
 }
 
-.dark-theme {
-  background-color: #121212;
+// FIX: This more specific selector overrides Angular Material's default styles
+// to allow text wrapping in the smart suggestion list items.
+.suggestion-item.mat-mdc-list-item {
+  // 1. Allow the list item's container to grow vertically.
+  height: auto !important;
+
+  // 2. Override the primary text container styles that prevent wrapping.
+  .mdc-list-item__primary-text {
+    white-space: normal !important; // Allow text to wrap to the next line.
+    overflow: visible !important; // Ensure wrapped text is not hidden.
+  }
+
+  // 3. Ensure the content container also allows wrapping.
+  .mdc-list-item__content {
+    white-space: normal !important;
+  }
 }
