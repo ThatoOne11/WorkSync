@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -40,8 +40,10 @@ export class Settings implements OnInit {
   private settingsService = inject(SettingsService);
   private historicalDataService = inject(HistoricalDataService);
   private snackBar = inject(MatSnackBar);
+  private cdr = inject(ChangeDetectorRef);
 
   isBackfilling = false;
+  isTestingEmail = false;
 
   constructor(private fb: FormBuilder) {
     this.form = this.fb.group({
@@ -56,7 +58,12 @@ export class Settings implements OnInit {
   ngOnInit() {
     this.settingsService.getSettings().subscribe((settings) => {
       if (settings) {
-        this.form.patchValue(settings);
+        // --- THIS IS THE KEY FIX ---
+        // Use setTimeout to schedule the form update for the next change detection cycle.
+        setTimeout(() => {
+          this.form.patchValue(settings);
+        }, 0);
+        // --- END OF FIX ---
       }
     });
   }
@@ -119,6 +126,30 @@ export class Settings implements OnInit {
           { duration: 5000 }
         );
         this.isBackfilling = false;
+      },
+    });
+  }
+
+  // --- ADD THIS NEW FUNCTION ---
+  onTestEmail() {
+    this.isTestingEmail = true;
+    this.settingsService.runWeeklySummary().subscribe({
+      next: (response: any) => {
+        this.snackBar.open(
+          'Weekly summary function ran successfully. Check your email!',
+          'Close',
+          { duration: 5000 }
+        );
+        this.isTestingEmail = false;
+      },
+      error: (err) => {
+        console.error('Error running weekly summary:', err);
+        this.snackBar.open(
+          'An error occurred. Please check the console.',
+          'Close',
+          { duration: 5000 }
+        );
+        this.isTestingEmail = false;
       },
     });
   }

@@ -1,19 +1,21 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
-// Helper function to parse Clockify's duration format
 function parseISO8601Duration(duration: string): number {
-  const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+  if (!duration) return 0;
+  const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
   const matches = duration.match(regex);
   if (!matches) return 0;
-  const days = parseInt(matches[1] || '0', 10);
-  const hours = parseInt(matches[2] || '0', 10);
-  const minutes = parseInt(matches[3] || '0', 10);
-  const seconds = parseInt(matches[4] || '0', 10);
+
+  const days = parseFloat(matches[1] || '0');
+  const hours = parseFloat(matches[2] || '0');
+  const minutes = parseFloat(matches[3] || '0');
+  const seconds = parseFloat(matches[4] || '0');
+
   return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
 }
 
-// --- EMAIL SENDING LOGIC ---
 async function sendSummaryEmail(
   summaries: any[],
   settings: Record<string, string>,
@@ -22,11 +24,14 @@ async function sendSummaryEmail(
   const { notificationEmail, enableEmailNotifications } = settings;
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
+  // Fixed Check
   if (
-    enableEmailNotifications !== 'true' ||
-    !notificationEmail ||
-    !resendApiKey
+    enableEmailNotifications === 'true' &&
+    notificationEmail &&
+    resendApiKey
   ) {
+    // ... proceed with sending email ...
+  } else {
     return 'Email notifications are disabled or not configured. Skipping email.';
   }
 
@@ -36,7 +41,6 @@ async function sendSummaryEmail(
     day: 'numeric',
   });
 
-  // Create the HTML for the email body
   const tableRows = summaries
     .map(
       (s) => `
@@ -59,7 +63,7 @@ async function sendSummaryEmail(
       <thead>
         <tr>
           <th>Project</th>
-          <th style="text-align: center;">Allocated Hours</th>
+          <th style="text-align: center;">Target Hours</th>
           <th style="text-align: center;">Logged Hours</th>
           <th style="text-align: center;">Balance</th>
         </tr>
@@ -77,7 +81,7 @@ async function sendSummaryEmail(
       Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      from: 'WorkSync <onboarding@resend.dev>', // Resend requires this default for free tier
+      from: 'WorkSync <onboarding@resend.dev>',
       to: notificationEmail,
       subject: `WorkSync Weekly Summary: ${formattedDate}`,
       html: htmlBody,
@@ -93,13 +97,16 @@ async function sendSummaryEmail(
 }
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 1. Fetch settings from the database
     const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
       .select('key, value');
@@ -125,14 +132,12 @@ serve(async (req) => {
       );
     }
 
-    // 2. Fetch all projects, including their names for the email
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('id, name, clockify_project_id, target_hours');
 
     if (projectsError) throw projectsError;
 
-    // 3. Calculate date range for the previous week
     const today = new Date();
     const endOfLastWeek = new Date(
       today.setDate(today.getDate() - today.getDay())
@@ -147,7 +152,6 @@ serve(async (req) => {
     const end = endOfLastWeek.toISOString();
     const week_ending_on = endOfLastWeek.toISOString().split('T')[0];
 
-    // 4. Fetch time entries for the last week
     const clockifyUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${start}&end=${end}&page-size=1000`;
     const clockifyResponse = await fetch(clockifyUrl, {
       headers: { 'X-Api-Key': clockifyApiKey },
@@ -159,7 +163,6 @@ serve(async (req) => {
 
     const timeEntries = await clockifyResponse.json();
 
-    // 5. Process summaries
     const summaries = projects.map((project) => {
       const projectTimeEntries = timeEntries.filter(
         (te) => te.projectId === project.clockify_project_id
@@ -172,7 +175,7 @@ serve(async (req) => {
 
       return {
         project_id: project.id,
-        project_name: project.name, // Pass name for email
+        project_name: project.name,
         target_hours: project.target_hours,
         logged_hours: loggedHours,
         balance: project.target_hours - loggedHours,
@@ -190,7 +193,6 @@ serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // 6. Send the summary email
     const emailResult = await sendSummaryEmail(
       summaries,
       settings,
@@ -202,13 +204,13 @@ serve(async (req) => {
         message: `Successfully created ${summaries.length} summaries. ${emailResult}`,
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
   }

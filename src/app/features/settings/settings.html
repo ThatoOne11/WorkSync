@@ -79,14 +79,21 @@
             formControlName="notificationEmail"
             required
           />
-          @if (form.controls['notificationEmail'].hasError('required') &&
-          form.controls['notificationEmail'].touched) {
-          <mat-error>Email is required</mat-error>
-          } @if (form.controls['notificationEmail'].hasError('email') &&
-          form.controls['notificationEmail'].touched) {
-          <mat-error>Please enter a valid email address</mat-error>
-          }
         </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="accent"
+          type="button"
+          (click)="onTestEmail()"
+          [disabled]="isTestingEmail"
+        >
+          @if (isTestingEmail) {
+          <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+          <span>Send Test Email</span>
+          }
+        </button>
         }
 
         <div class="actions">

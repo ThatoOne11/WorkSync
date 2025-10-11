@@ -54,4 +54,14 @@ export class SettingsService {
     );
     return from(Promise.all(promises));
   }
+
+  runWeeklySummary() {
+    const promise = this.supabase.functions
+      .invoke('create-weekly-summaries')
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data;
+      });
+    return from(promise);
+  }
 }
