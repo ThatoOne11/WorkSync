@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar'; // Import MatSnackBar
 import { MatCardModule } from '@angular/material/card';
+import { SettingsService } from '../../core/services/settings.service';
 
 interface ClockifyProject {
   id: string;
@@ -30,7 +31,8 @@ interface ClockifyProject {
 export class Projects implements OnInit {
   private projectService = inject(ProjectService);
   private clockifyService = inject(ClockifyService);
-  private snackBar = inject(MatSnackBar); // Inject MatSnackBar
+  private snackBar = inject(MatSnackBar);
+  private settingsService = inject(SettingsService);
 
   projects = signal<Project[]>([]);
   clockifyProjects = signal<ClockifyProject[]>([]);
@@ -48,16 +50,22 @@ export class Projects implements OnInit {
   }
 
   loadClockifyProjects() {
-    const settings = JSON.parse(
-      localStorage.getItem('work-sync-settings') || 'null'
-    );
-    if (settings && settings.apiKey && settings.workspaceId) {
-      this.clockifyService
-        .getClockifyProjects(settings.apiKey, settings.workspaceId)
-        .subscribe((projects: ClockifyProject[]) => {
-          this.clockifyProjects.set(projects ?? []);
-        });
-    }
+    // 1. Fetch settings from the database (the correct source of truth)
+    this.settingsService.getSettings().subscribe((settings) => {
+      // 2. Check for credentials
+      if (settings && settings.apiKey && settings.workspaceId) {
+        // 3. Use the credentials to call ClockifyService
+        this.clockifyService
+          .getClockifyProjects(settings.apiKey, settings.workspaceId)
+          .subscribe((projects: ClockifyProject[]) => {
+            this.clockifyProjects.set(projects ?? []);
+          });
+      } else {
+        // If settings are missing, ensure the list is cleared
+        this.clockifyProjects.set([]);
+        // The router guard should prevent the user from seeing this, but this is a safe fallback
+      }
+    });
   }
 
   onEditProject(project: Project) {

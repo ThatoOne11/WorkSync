@@ -24,9 +24,19 @@ export class SettingsService {
         if (!data) return {} as AppSettings;
         // Convert array of key-value pairs to a settings object
         const settings = data.reduce((acc, { key, value }) => {
-          acc[
-            key.replace('clockify', '').charAt(0).toLowerCase() + key.slice(9)
-          ] = value;
+          let appKey = key;
+
+          if (key.startsWith('clockify')) {
+            // 1. Remove 'clockify' prefix: 'ApiKey', 'WorkspaceId', 'UserId'
+            let strippedKey = key.substring('clockify'.length);
+            // 2. Lowercase first letter: 'apiKey', 'workspaceId', 'userId'
+            appKey = strippedKey.charAt(0).toLowerCase() + strippedKey.slice(1);
+          }
+
+          // For keys like 'notificationEmail' and 'enableEmailNotifications',
+          // appKey remains unchanged, fixing the persistence bug.
+          acc[appKey] = value;
+
           return acc;
         }, {} as any);
         // Ensure boolean is correctly typed
