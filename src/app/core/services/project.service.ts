@@ -4,13 +4,19 @@ import { Project } from '../models/project.model';
 import { from } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProjectService {
   private supabase = inject(SupabaseService).supabase;
 
   getProjects() {
-    const promise = this.supabase.from('projects').select('*').then(({ data }) => data as Project[]);
+    // --- THIS IS THE KEY CHANGE: Only select projects that are NOT archived ---
+    const promise = this.supabase
+      .from('projects')
+      .select('*')
+      .eq('is_archived', false) // Add this filter
+      .then(({ data }) => data as Project[]);
+    // --- END OF CHANGE ---
     return from(promise);
   }
 
@@ -20,12 +26,26 @@ export class ProjectService {
   }
 
   updateProject(id: number, updates: Partial<Project>) {
-    const promise = this.supabase.from('projects').update(updates).eq('id', id).then();
+    const promise = this.supabase
+      .from('projects')
+      .update(updates)
+      .eq('id', id)
+      .then();
     return from(promise);
   }
 
   deleteProject(id: number) {
     const promise = this.supabase.from('projects').delete().eq('id', id).then();
+    return from(promise);
+  }
+
+  // --- NEW FUNCTION for Archiving ---
+  archiveAllProjects() {
+    const promise = this.supabase
+      .from('projects')
+      .update({ is_archived: true })
+      .eq('is_archived', false) // Only archive currently active projects
+      .then();
     return from(promise);
   }
 }

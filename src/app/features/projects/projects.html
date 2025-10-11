@@ -1,8 +1,16 @@
-<h2>Projects</h2>
-
-<button mat-raised-button color="primary" (click)="onNewProject()">
-  <mat-icon>add</mat-icon> Add New Project
-</button>
+<div class="header-actions">
+  <h2>Projects</h2>
+  <div>
+    <button mat-stroked-button color="warn" (click)="onMonthlyRollover()">
+      <mat-icon>archive</mat-icon>
+      Start New Month (Archive All)
+    </button>
+    <button mat-raised-button color="primary" (click)="onNewProject()">
+      <mat-icon>add</mat-icon>
+      Add New Project
+    </button>
+  </div>
+</div>
 
 <app-project-form
   [project]="selectedProject()"
