@@ -1,0 +1,12 @@
+<h2 mat-dialog-title>History for: {{ project?.name }}</h2>
+<mat-dialog-content>
+  @if (isLoading) {
+  <mat-spinner></mat-spinner>
+  } @else if (summaries.length > 0) {
+  <div style="position: relative; height: 40vh">
+    <canvas #historyChart></canvas>
+  </div>
+  } @else {
+  <p>No historical data found for this project.</p>
+  }
+</mat-dialog-content>
