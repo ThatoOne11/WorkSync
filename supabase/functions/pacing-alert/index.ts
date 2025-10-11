@@ -2,8 +2,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// --- HELPER FUNCTIONS (reused from other functions) ---
-
 function parseISO8601Duration(duration: string): number {
   if (!duration) return 0;
   const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
@@ -99,125 +97,153 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Cron jobs don't have a body, so we fetch settings from the DB.
-    // This is the one case where settings must live in the DB.
     const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
-      .select('key, value');
+      .select('key, value, user_id');
 
     if (settingsError) throw settingsError;
 
-    const settings = settingsData.reduce((acc, { key, value }) => {
-      acc[key] = value;
+    const users = settingsData.reduce((acc, { key, value, user_id }) => {
+      acc[user_id] = acc[user_id] || { user_id };
+      acc[user_id][key] = value;
       return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, any>);
 
-    // Exit if pacing alerts are not enabled by the user.
-    if (settings.enablePacingAlerts !== 'true') {
-      return new Response(
-        JSON.stringify({ message: 'Pacing alerts are disabled. Exiting.' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
+    let messages = [];
 
-    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
-    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
-      throw new Error('Clockify settings are not configured in the database.');
-    }
-
-    const { data: projects, error: projectsError } = await supabase
-      .from('projects')
-      .select('name, target_hours, clockify_project_id')
-      .eq('is_archived', false);
-
-    if (projectsError) throw projectsError;
-    if (!projects || projects.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No active projects to analyze.' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    const today = new Date();
-    const startOfMonth = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1
-    ).toISOString();
-
-    const timeEntriesUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth}&end=${today.toISOString()}&page-size=5000`;
-    const clockifyResponse = await fetch(timeEntriesUrl, {
-      headers: { 'X-Api-Key': clockifyApiKey },
-    });
-    const timeEntries = await clockifyResponse.json();
-
-    const totalWorkdays = getWorkdaysInMonth(
-      today.getFullYear(),
-      today.getMonth()
-    );
-    const passedWorkdays = getPassedWorkdays(today);
-
-    const projectAnalysis = projects.map((p) => {
-      const loggedSeconds = timeEntries
-        .filter((te: any) => te.projectId === p.clockify_project_id)
-        .reduce(
-          (sum: number, te: any) =>
-            sum + parseISO8601Duration(te.timeInterval.duration),
-          0
+    for (const user of Object.values(users)) {
+      if (user.enablePacingAlerts !== 'true') {
+        messages.push(
+          `Pacing alerts disabled for user ${user.user_id}. Skipping.`
         );
+        continue;
+      }
 
-      const loggedHours = loggedSeconds / 3600;
-      const dailyBurnRate = loggedHours / passedWorkdays;
-      const projectedHours = dailyBurnRate * totalWorkdays;
-      const variance = projectedHours - p.target_hours;
+      const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = user;
+      if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
+        messages.push(
+          `Clockify settings missing for user ${user.user_id}. Skipping.`
+        );
+        continue;
+      }
 
-      return { name: p.name, target: p.target_hours, variance };
-    });
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name, target_hours, clockify_project_id')
+        .eq('is_archived', false)
+        .eq('user_id', user.user_id);
 
-    const highVarianceProjects = projectAnalysis
-      .filter((p) => Math.abs(p.variance) > p.target * 0.1) // 10% threshold
-      .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance));
+      if (projectsError || !projects || projects.length === 0) {
+        continue;
+      }
 
-    if (highVarianceProjects.length === 0) {
-      return new Response(
-        JSON.stringify({
-          message: 'All projects are on pace. No alerts needed.',
-        }),
+      // --- FIX: Change from a rolling 24-hour window to a calendar day reset ---
+      const today = new Date();
+      const startOfTodayUTC = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate()
+        )
+      );
+
+      const { data: recentAlerts } = await supabase
+        .from('pacing_alerts')
+        .select('project_id')
+        .eq('user_id', user.user_id)
+        .gte('alert_sent_at', startOfTodayUTC.toISOString());
+
+      const recentlyAlertedProjectIds = new Set(
+        (recentAlerts || []).map((a) => a.project_id)
+      );
+      // --- END OF FIX ---
+
+      const startOfMonth = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+      ).toISOString();
+
+      const timeEntriesUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth}&end=${today.toISOString()}&page-size=5000`;
+      const clockifyResponse = await fetch(timeEntriesUrl, {
+        headers: { 'X-Api-Key': clockifyApiKey },
+      });
+      const timeEntries = await clockifyResponse.json();
+
+      const totalWorkdays = getWorkdaysInMonth(
+        today.getFullYear(),
+        today.getMonth()
+      );
+      const passedWorkdays = getPassedWorkdays(today);
+
+      const projectAnalysis = projects.map((p) => {
+        const loggedSeconds = timeEntries
+          .filter((te: any) => te.projectId === p.clockify_project_id)
+          .reduce(
+            (sum: number, te: any) =>
+              sum + parseISO8601Duration(te.timeInterval.duration),
+            0
+          );
+
+        const loggedHours = loggedSeconds / 3600;
+        const dailyBurnRate = loggedHours / passedWorkdays;
+        const projectedHours = dailyBurnRate * totalWorkdays;
+        const variance = projectedHours - p.target_hours;
+
+        return { id: p.id, name: p.name, target: p.target_hours, variance };
+      });
+
+      const highVarianceProjects = projectAnalysis.filter(
+        (p) => Math.abs(p.variance) > p.target * 0.1
+      );
+
+      const projectsToAlert = highVarianceProjects.filter(
+        (p) => !recentlyAlertedProjectIds.has(p.id)
+      );
+
+      if (projectsToAlert.length === 0) {
+        messages.push(
+          `All projects on pace or already alerted for user ${user.user_id}.`
+        );
+        continue;
+      }
+
+      const mostCriticalProject = projectsToAlert.sort(
+        (a, b) => Math.abs(b.variance) - Math.abs(a.variance)
+      )[0];
+
+      let recommendation = '';
+      if (mostCriticalProject.variance > 0) {
+        recommendation =
+          'Consider slowing down or shifting focus to other projects to avoid burnout and stay within budget.';
+      } else {
+        recommendation =
+          'Consider allocating more time here soon to catch up and meet your monthly target.';
+      }
+
+      const alert = {
+        projectName: mostCriticalProject.name,
+        variance: mostCriticalProject.variance,
+        recommendation,
+      };
+
+      const emailResult = await sendPacingAlertEmail(alert, user);
+      messages.push(emailResult);
+
+      await supabase.from('pacing_alerts').upsert(
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
+          project_id: mostCriticalProject.id,
+          user_id: user.user_id,
+          alert_sent_at: new Date().toISOString(),
+        },
+        { onConflict: 'project_id, user_id' }
       );
     }
-
-    const mostCriticalProject = highVarianceProjects[0];
-    let recommendation = '';
-    if (mostCriticalProject.variance > 0) {
-      recommendation =
-        'Consider slowing down or shifting focus to other projects to avoid burnout and stay within budget.';
-    } else {
-      recommendation =
-        'Consider allocating more time here soon to catch up and meet your monthly target.';
-    }
-
-    const alert = {
-      projectName: mostCriticalProject.name,
-      variance: mostCriticalProject.variance,
-      recommendation,
-    };
-
-    const emailResult = await sendPacingAlertEmail(alert, settings);
 
     return new Response(
       JSON.stringify({
-        message: 'Pacing analysis complete.',
-        result: emailResult,
+        message: 'Pacing analysis complete for all users.',
+        details: messages,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
