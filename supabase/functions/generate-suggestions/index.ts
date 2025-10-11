@@ -1,25 +1,21 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { supabaseAdmin, getUserClient } from '../_shared/supabase-client.ts';
+import { createJsonResponse, createErrorResponse } from '../_shared/utils.ts';
 
-// --- HELPER FUNCTIONS ---
-
-// CORRECT and ROBUST duration parser (reused from other functions)
 function parseISO8601Duration(duration: string): number {
   if (!duration) return 0;
   const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
   const matches = duration.match(regex);
   if (!matches) return 0;
-
   const days = parseFloat(matches[1] || '0');
   const hours = parseFloat(matches[2] || '0');
   const minutes = parseFloat(matches[3] || '0');
   const seconds = parseFloat(matches[4] || '0');
-
   return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
 }
 
-function getWorkdaysInMonth(year, month) {
+function getWorkdaysInMonth(year: number, month: number) {
   let workdays = 0;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   for (let day = 1; day <= daysInMonth; day++) {
@@ -33,7 +29,7 @@ function getWorkdaysInMonth(year, month) {
   return workdays;
 }
 
-function getPassedWorkdays(today) {
+function getPassedWorkdays(today: Date) {
   let passedWorkdays = 0;
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -53,17 +49,8 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    const { data: projects, error: projectsError } = await supabase
+    const userClient = getUserClient(req);
+    const { data: projects, error: projectsError } = await userClient
       .from('projects')
       .select('name, target_hours, clockify_project_id');
 
@@ -81,13 +68,11 @@ serve(async (req) => {
       0
     ).toISOString();
 
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-    const { data: settingsData } = await serviceClient
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from('settings')
       .select('key, value');
+    if (settingsError) throw settingsError;
+
     const settings = settingsData.reduce(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {}
@@ -110,16 +95,12 @@ serve(async (req) => {
     const passedWorkdays = getPassedWorkdays(today);
 
     const projectAnalysis = projects.map((p) => {
-      // --- THIS IS THE KEY FIX ---
-      // Use the correct parsing function to calculate total seconds
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
           (sum, te) => sum + parseISO8601Duration(te.timeInterval.duration),
           0
         );
-      // --- END OF FIX ---
-
       const loggedHours = loggedSeconds / 3600;
       const dailyBurnRate = loggedHours / passedWorkdays;
       const projectedHours = dailyBurnRate * totalWorkdays;
@@ -180,14 +161,8 @@ serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ suggestions }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return createJsonResponse({ suggestions });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return createErrorResponse(error.message);
   }
 });

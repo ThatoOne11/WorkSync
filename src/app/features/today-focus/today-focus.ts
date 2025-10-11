@@ -1,4 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -20,22 +26,20 @@ import {
     MatProgressSpinnerModule,
   ],
   templateUrl: './today-focus.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodayFocusComponent implements OnInit {
   private todayFocusService = inject(TodayFocusService);
-  focusList: FocusProject[] = [];
-  isLoading = true;
+  focusList = signal<FocusProject[]>([]);
+  isLoading = signal(true);
 
   ngOnInit() {
     this.todayFocusService.getTodaysFocus().subscribe({
       next: (data) => {
-        this.focusList = data;
-        this.isLoading = false;
+        this.focusList.set(data);
+        this.isLoading.set(false);
       },
-      error: (err) => {
-        console.error("Error fetching today's focus:", err);
-        this.isLoading = false;
-      },
+      error: () => this.isLoading.set(false),
     });
   }
 }

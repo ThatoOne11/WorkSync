@@ -1,6 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { supabaseAdmin } from '../_shared/supabase-client.ts';
+import { createJsonResponse, createErrorResponse } from '../_shared/utils.ts';
 
 function parseDuration(isoDuration: string): number {
   if (!isoDuration || !isoDuration.startsWith('PT')) return 0;
@@ -23,14 +24,12 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    const { data: settingsData } = await supabase
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from('settings')
       .select('key, value');
+
+    if (settingsError) throw settingsError;
+
     const settings = settingsData.reduce(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {}
@@ -41,21 +40,20 @@ serve(async (req) => {
       throw new Error('Clockify settings are not configured.');
     }
 
-    const { data: projects } = await supabase
+    const { data: projects, error: projectsError } = await supabaseAdmin
       .from('projects')
       .select('id, name, clockify_project_id, target_hours');
+    if (projectsError) throw projectsError;
     if (!projects) throw new Error('No projects found.');
 
     const allSummaries = [];
     const weeksToBackfill = 12;
 
     for (let i = 0; i < weeksToBackfill; i++) {
-      // --- THIS IS THE KEY FIX: Non-mutating date calculation ---
       const today = new Date();
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() - today.getDay() - 7 * i);
       endOfWeek.setHours(23, 59, 59, 999);
-      // --- END OF FIX ---
 
       const startOfWeek = new Date(endOfWeek);
       startOfWeek.setDate(startOfWeek.getDate() - 6);
@@ -80,9 +78,7 @@ serve(async (req) => {
             (sum, te) => sum + parseDuration(te.timeInterval.duration),
             0
           );
-
         const loggedHours = loggedSeconds / 3600;
-
         return {
           project_id: project.id,
           target_hours: project.target_hours,
@@ -94,25 +90,16 @@ serve(async (req) => {
       allSummaries.push(...weeklySummaries);
     }
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('weekly_summaries')
       .upsert(allSummaries, { onConflict: 'project_id,week_ending_on' });
 
     if (insertError) throw insertError;
 
-    return new Response(
-      JSON.stringify({
-        message: `Successfully backfilled ${allSummaries.length} historical records.`,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+    return createJsonResponse({
+      message: `Successfully backfilled ${allSummaries.length} historical records.`,
     });
+  } catch (error) {
+    return createErrorResponse(error.message);
   }
 });

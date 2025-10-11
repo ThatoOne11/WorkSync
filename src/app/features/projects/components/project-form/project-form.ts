@@ -1,74 +1,87 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  Component,
+  input,
+  output,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectionStrategy,
+  inject,
+} from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { Project } from '../../../../core/models/project.model';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select'; // Import MatSelectModule
+import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-project-form',
-  standalone: true, // Ensure standalone is true
-  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatSelectModule,
+  ],
   templateUrl: './project-form.html',
-  styleUrl: './project-form.scss'
+  styleUrl: './project-form.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectForm implements OnChanges {
-  @Input() project?: Project;
-  @Input() clockifyProjects: { id: string; name: string; }[] = []; // Re-added input for Clockify projects
-  @Output() save = new EventEmitter<Partial<Project>>();
+  project = input<Project | undefined>();
+  clockifyProjects = input<{ id: string; name: string }[]>([]);
+  save = output<Partial<Project>>();
 
   form: FormGroup;
+  private fb = inject(FormBuilder);
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
     this.form = this.fb.group({
       id: [null],
-      clockify_project_id: ['', Validators.required], // Corrected form control name
-      name: [{ value: '', disabled: true }, Validators.required], // Name will be derived
-      target_hours: [0, [Validators.required, Validators.min(1)]]
+      clockify_project_id: ['', Validators.required],
+      name: [{ value: '', disabled: true }, Validators.required],
+      target_hours: [0, [Validators.required, Validators.min(1)]],
     });
 
-    // Listen for changes in clockify_project_id to update the name
-    this.form.get('clockify_project_id')?.valueChanges.subscribe(clockify_project_id => {
-      const selectedProject = this.clockifyProjects.find(p => p.id === clockify_project_id);
-      if (selectedProject) {
-        this.form.get('name')?.setValue(selectedProject.name);
-      } else {
-        this.form.get('name')?.setValue('');
-      }
+    this.form.get('clockify_project_id')?.valueChanges.subscribe((id) => {
+      const selectedProject = this.clockifyProjects().find((p) => p.id === id);
+      this.form.get('name')?.setValue(selectedProject?.name ?? '');
     });
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['project'] && this.project) {
-      this.form.patchValue(this.project);
-    } else if (changes['project'] && !this.project) { // Clear form when project is undefined (new project)
-      this.form.reset();
-    }
-    // If clockifyProjects change, and a project is selected, ensure name is updated
-    if (changes['clockifyProjects'] && this.form.get('clockify_project_id')?.value) {
-      const selectedProject = this.clockifyProjects.find(p => p.id === this.form.get('clockify_project_id')?.value);
-      if (selectedProject) {
-        this.form.get('name')?.setValue(selectedProject.name);
+    if (changes['project']) {
+      const currentProject = this.project();
+      if (currentProject) {
+        this.form.patchValue(currentProject);
       } else {
-        this.form.get('name')?.setValue('');
+        this.form.reset();
+      }
+    }
+
+    if (changes['clockifyProjects']) {
+      const selectedId = this.form.get('clockify_project_id')?.value;
+      if (selectedId) {
+        const selectedProject = this.clockifyProjects().find(
+          (p) => p.id === selectedId
+        );
+        this.form.get('name')?.setValue(selectedProject?.name ?? '');
       }
     }
   }
 
   onSubmit() {
     if (this.form.valid) {
-      const formValue = this.form.getRawValue(); // Use getRawValue to get disabled fields
-      const projectToSave: Partial<Project> = formValue.id
-        ? { ...formValue, name: formValue.name } // Include name for update
-        : {
-            name: formValue.name,
-            target_hours: formValue.target_hours,
-            clockify_project_id: formValue.clockify_project_id // Corrected property name
-          };
-
-      this.save.emit(projectToSave);
+      const formValue = this.form.getRawValue();
+      this.save.emit(formValue);
       this.form.reset();
     }
   }

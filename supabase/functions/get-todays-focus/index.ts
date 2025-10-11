@@ -1,9 +1,9 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { supabaseAdmin, getUserClient } from '../_shared/supabase-client.ts';
+import { createJsonResponse, createErrorResponse } from '../_shared/utils.ts';
 
-// Helper function to count remaining weekdays in the month
-function getRemainingWorkdays(today) {
+function getRemainingWorkdays(today: Date) {
   let remainingWorkdays = 0;
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -20,7 +20,6 @@ function getRemainingWorkdays(today) {
   return remainingWorkdays > 0 ? remainingWorkdays : 1; // Avoid division by zero
 }
 
-// Re-usable duration parser
 function parseISO8601Duration(duration: string): number {
   if (!duration) return 0;
   const regex = /P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)/;
@@ -38,25 +37,14 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    // 1. Fetch active projects
-    const { data: projects, error: projectsError } = await supabase
+    const userClient = getUserClient(req);
+    const { data: projects, error: projectsError } = await userClient
       .from('projects')
       .select('name, target_hours, clockify_project_id')
       .eq('is_archived', false);
 
     if (projectsError) throw projectsError;
 
-    // 2. Fetch time entries for the current month
     const today = new Date();
     const startOfMonth = new Date(
       today.getFullYear(),
@@ -64,13 +52,11 @@ serve(async (req) => {
       1
     ).toISOString();
 
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-    const { data: settingsData } = await serviceClient
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from('settings')
       .select('key, value');
+    if (settingsError) throw settingsError;
+
     const settings = settingsData.reduce(
       (acc, { key, value }) => ({ ...acc, [key]: value }),
       {}
@@ -86,7 +72,6 @@ serve(async (req) => {
     });
     const timeEntries = await clockifyResponse.json();
 
-    // 3. Calculate today's required pace for each project
     const remainingWorkdays = getRemainingWorkdays(today);
 
     const focusList = projects
@@ -100,26 +85,18 @@ serve(async (req) => {
 
         const loggedHours = loggedSeconds / 3600;
         const remainingHours = p.target_hours - loggedHours;
-
-        // Calculate how many hours are needed today (and on subsequent days) to stay on track
         const requiredDailyPace =
           remainingHours > 0 ? remainingHours / remainingWorkdays : 0;
 
         return {
           name: p.name,
-          requiredHoursToday: Math.round(requiredDailyPace * 100) / 100, // Round to 2 decimal places
+          requiredHoursToday: Math.round(requiredDailyPace * 100) / 100,
         };
       })
-      .filter((p) => p.requiredHoursToday > 0); // Only show projects that still need work
+      .filter((p) => p.requiredHoursToday > 0);
 
-    return new Response(JSON.stringify({ focusList }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return createJsonResponse({ focusList });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return createErrorResponse(error.message);
   }
 });

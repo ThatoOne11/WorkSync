@@ -9,13 +9,12 @@ export class SuggestionsService {
   private supabase = inject(SupabaseService).supabase;
 
   getSuggestions() {
-    // Invoke the Edge Function and expect an array of strings
     const promise = this.supabase.functions
       .invoke('generate-suggestions')
       .then(({ data, error }) => {
         if (error) throw error;
-        // The function returns { suggestions: [...] }
-        return data.suggestions as string[];
+        // The function now returns { suggestions: [...] }
+        return (data.suggestions as string[]) ?? [];
       });
 
     return from(promise);

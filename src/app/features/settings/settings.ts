@@ -1,4 +1,11 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+  effect,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -10,12 +17,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { ClockifyService } from '../../core/services/clockify.service';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { SettingsService } from '../../core/services/settings.service';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Import slide toggle
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HistoricalDataService } from '../../core/services/historical-data.service';
+import { AppStateService } from '../../core/state/app.state';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-settings',
@@ -33,55 +42,57 @@ import { HistoricalDataService } from '../../core/services/historical-data.servi
   ],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Settings implements OnInit {
-  form: FormGroup;
+  private fb = inject(FormBuilder);
   private clockifyService = inject(ClockifyService);
   private settingsService = inject(SettingsService);
   private historicalDataService = inject(HistoricalDataService);
-  private snackBar = inject(MatSnackBar);
-  private cdr = inject(ChangeDetectorRef);
+  private notificationService = inject(NotificationService);
+  private state = inject(AppStateService);
 
-  isBackfilling = false;
-  isTestingEmail = false;
+  form: FormGroup;
+  isBackfilling = signal(false);
+  isTestingEmail = signal(false);
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
     this.form = this.fb.group({
       apiKey: ['', Validators.required],
       workspaceId: ['', Validators.required],
       userId: ['', Validators.required],
-      notificationEmail: ['', [Validators.email]], // Add email field
-      enableEmailNotifications: [false], // Add toggle field
+      notificationEmail: ['', [Validators.email]],
+      enableEmailNotifications: [false],
     });
-  }
 
-  ngOnInit() {
-    this.settingsService.getSettings().subscribe((settings) => {
+    // React to changes in the global state and patch the form
+    effect(() => {
+      const settings = this.state.settings();
       if (settings) {
-        // --- THIS IS THE KEY FIX ---
-        // Use setTimeout to schedule the form update for the next change detection cycle.
-        setTimeout(() => {
-          this.form.patchValue(settings);
-        }, 0);
-        // --- END OF FIX ---
+        this.form.patchValue(settings, { emitEvent: false });
       }
     });
   }
 
+  ngOnInit() {
+    // Initial load of settings
+    if (!this.state.settings()) {
+      this.settingsService.getSettings().subscribe();
+    }
+  }
+
   onSubmit() {
     if (this.form.valid) {
-      this.settingsService.saveSettings(this.form.value).subscribe(() => {
-        this.snackBar.open('Settings saved!', 'Close', { duration: 3000 });
-      });
+      this.settingsService.saveSettings(this.form.value).subscribe();
     }
   }
 
   fetchUserId() {
     const apiKey = this.form.get('apiKey')?.value;
     if (!apiKey) {
-      this.snackBar.open('Please enter your Clockify API Key first.', 'Close', {
-        duration: 3000,
-      });
+      this.notificationService.showError(
+        'Please enter your Clockify API Key first.'
+      );
       return;
     }
 
@@ -89,68 +100,37 @@ export class Settings implements OnInit {
       next: (user: any) => {
         if (user && user.id) {
           this.form.patchValue({ userId: user.id });
-          this.snackBar.open('User ID fetched successfully!', 'Close', {
-            duration: 3000,
-          });
+          this.notificationService.showSuccess('User ID fetched successfully!');
         } else {
-          this.snackBar.open(
-            'Could not fetch User ID. Check your API Key.',
-            'Close',
-            { duration: 3000 }
+          this.notificationService.showError(
+            'Could not fetch User ID. Check your API Key.'
           );
         }
-      },
-      error: (err) => {
-        console.error('Error fetching user ID:', err);
-        this.snackBar.open(
-          'Error fetching User ID. Check console for details.',
-          'Close',
-          { duration: 3000 }
-        );
       },
     });
   }
 
   onBackfillHistory() {
-    this.isBackfilling = true;
+    this.isBackfilling.set(true);
     this.historicalDataService.backfillHistory().subscribe({
       next: (response: any) => {
-        this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        this.isBackfilling = false;
+        this.notificationService.showSuccess(response.message);
+        this.isBackfilling.set(false);
       },
-      error: (err) => {
-        console.error('Error during backfill:', err);
-        this.snackBar.open(
-          'An error occurred during backfill. Check console.',
-          'Close',
-          { duration: 5000 }
-        );
-        this.isBackfilling = false;
-      },
+      error: () => this.isBackfilling.set(false),
     });
   }
 
-  // --- ADD THIS NEW FUNCTION ---
   onTestEmail() {
-    this.isTestingEmail = true;
+    this.isTestingEmail.set(true);
     this.settingsService.runWeeklySummary().subscribe({
-      next: (response: any) => {
-        this.snackBar.open(
-          'Weekly summary function ran successfully. Check your email!',
-          'Close',
-          { duration: 5000 }
+      next: () => {
+        this.notificationService.showSuccess(
+          'Weekly summary function ran successfully. Check your email!'
         );
-        this.isTestingEmail = false;
+        this.isTestingEmail.set(false);
       },
-      error: (err) => {
-        console.error('Error running weekly summary:', err);
-        this.snackBar.open(
-          'An error occurred. Please check the console.',
-          'Close',
-          { duration: 5000 }
-        );
-        this.isTestingEmail = false;
-      },
+      error: () => this.isTestingEmail.set(false),
     });
   }
 }

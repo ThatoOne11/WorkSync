@@ -1,4 +1,10 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Project } from '../../../../core/models/project.model';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,11 +18,12 @@ import { ProjectHistory } from '../../../project-history/project-history';
   imports: [MatTableModule, MatButtonModule, MatIconModule, MatDialogModule],
   templateUrl: './project-list.html',
   styleUrl: './project-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectList {
-  @Input() projects: Project[] = [];
-  @Output() edit = new EventEmitter<Project>();
-  @Output() delete = new EventEmitter<number>();
+  projects = input.required<Project[]>();
+  edit = output<Project>();
+  delete = output<number>();
 
   private dialog = inject(MatDialog);
 

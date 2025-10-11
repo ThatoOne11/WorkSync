@@ -1,4 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -17,23 +23,20 @@ import { SuggestionsService } from '../../core/services/suggestions.service';
     MatProgressSpinnerModule,
   ],
   templateUrl: './suggestions.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuggestionsComponent implements OnInit {
   private suggestionsService = inject(SuggestionsService);
-  suggestions: string[] = [];
-  isLoading = true;
+  suggestions = signal<string[]>([]);
+  isLoading = signal(true);
 
   ngOnInit() {
     this.suggestionsService.getSuggestions().subscribe({
       next: (data) => {
-        this.suggestions = data;
-        this.isLoading = false;
+        this.suggestions.set(data);
+        this.isLoading.set(false);
       },
-      error: (err) => {
-        console.error('Error fetching suggestions:', err);
-        this.isLoading = false;
-        // You could set an error message here if you want
-      },
+      error: () => this.isLoading.set(false),
     });
   }
 }

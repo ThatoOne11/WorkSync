@@ -55,9 +55,9 @@
             color="accent"
             type="button"
             (click)="onBackfillHistory()"
-            [disabled]="isBackfilling"
+            [disabled]="isBackfilling()"
           >
-            @if (isBackfilling) {
+            @if (isBackfilling()) {
             <mat-spinner diameter="20"></mat-spinner>
             } @else {
             <span>Backfill Project History</span>
@@ -86,9 +86,9 @@
           color="accent"
           type="button"
           (click)="onTestEmail()"
-          [disabled]="isTestingEmail"
+          [disabled]="isTestingEmail()"
         >
-          @if (isTestingEmail) {
+          @if (isTestingEmail()) {
           <mat-spinner diameter="20"></mat-spinner>
           } @else {
           <span>Send Test Email</span>
