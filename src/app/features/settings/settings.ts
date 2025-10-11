@@ -161,17 +161,24 @@ export class Settings implements OnInit, OnDestroy {
     this.loadSettings();
   }
 
-  onReset(): void {
-    this.settingsService.clearSettings();
+  async onReset() {
+    await this.settingsService.clearSettings();
+
     this.form.reset({
       userId: { value: '', disabled: true },
       enableEmailNotifications: false,
+      enablePacingAlerts: false,
     });
-    this.loadSettings();
+
+    this.loadSettings(); // This will now correctly show the initial setup screen
     this.hasActiveProjects.set(false);
-    this.snackBar.open('Credentials have been cleared.', 'Close', {
-      duration: 3000,
-    });
+    this.snackBar.open(
+      'All your data has been cleared from this browser and the server.',
+      'Close',
+      {
+        duration: 3000,
+      }
+    );
   }
 
   fetchUserId(): void {

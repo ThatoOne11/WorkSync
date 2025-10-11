@@ -12,12 +12,27 @@ export interface AppSettings {
 }
 
 const SETTINGS_STORAGE_KEY = 'workSyncAppSettings';
+const BROWSER_ID_KEY = 'workSyncBrowserId';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
   private supabase = inject(SupabaseService).supabase;
+
+  // --- Browser Identity Management ---
+  private getBrowserId(): string | null {
+    return localStorage.getItem(BROWSER_ID_KEY);
+  }
+
+  private createOrGetBrowserId(): string {
+    let browserId = this.getBrowserId();
+    if (!browserId) {
+      browserId = crypto.randomUUID();
+      localStorage.setItem(BROWSER_ID_KEY, browserId);
+    }
+    return browserId;
+  }
 
   // Retrieves settings directly from localStorage.
   getSettings(): AppSettings | null {
@@ -38,13 +53,36 @@ export class SettingsService {
   }
 
   // Saves the provided settings object to localStorage.
-  saveSettings(settings: AppSettings): void {
+  async saveSettings(settings: AppSettings): Promise<void> {
+    const browserId = this.createOrGetBrowserId();
+
+    // 1. Save to local storage for immediate UI use
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+
+    // 2. Sync to Supabase for background jobs
+    const { error } = await this.supabase.functions.invoke('sync-settings', {
+      body: { settings, browserId },
+    });
+
+    if (error) {
+      console.error('Error syncing settings to server:', error);
+      throw error;
+    }
   }
 
   // Removes all settings from localStorage.
-  clearSettings(): void {
+  async clearSettings(): Promise<void> {
+    const browserId = this.getBrowserId();
+    // 1. Clear local storage
     localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    localStorage.removeItem(BROWSER_ID_KEY);
+
+    // 2. Trigger server-side deletion if an ID existed
+    if (browserId) {
+      await this.supabase.functions.invoke('delete-user-data', {
+        body: { browserId },
+      });
+    }
   }
 
   // This function remains as it invokes a Supabase function, not settings persistence.
