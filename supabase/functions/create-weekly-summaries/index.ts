@@ -107,26 +107,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('settings')
-      .select('key, value');
+    // FIX: Read settings from the request body
+    const { settings } = await req.json();
+    if (!settings) {
+      throw new Error('Settings were not provided in the request body.');
+    }
 
-    if (settingsError) throw settingsError;
-
-    const settings = settingsData.reduce((acc, { key, value }) => {
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
+    const {
+      apiKey: clockifyApiKey,
+      workspaceId: clockifyWorkspaceId,
+      userId: clockifyUserId,
+    } = settings;
 
     if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
       return new Response(
         JSON.stringify({
-          error: 'Clockify settings are not configured in the database.',
+          error: 'Clockify settings are not configured.',
         }),
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         }
       );

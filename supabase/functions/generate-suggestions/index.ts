@@ -63,6 +63,20 @@ serve(async (req) => {
       }
     );
 
+    // FIX: Read settings from the request body
+    const { settings } = await req.json();
+    if (!settings) {
+      throw new Error('Settings were not provided in the request body.');
+    }
+    const {
+      apiKey: clockifyApiKey,
+      workspaceId: clockifyWorkspaceId,
+      userId: clockifyUserId,
+    } = settings;
+
+    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId)
+      throw new Error('Clockify settings missing.');
+
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('name, target_hours, clockify_project_id');
@@ -81,22 +95,6 @@ serve(async (req) => {
       0
     ).toISOString();
 
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-    const { data: settingsData } = await serviceClient
-      .from('settings')
-      .select('key, value');
-    const settings = settingsData.reduce(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {}
-    );
-
-    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
-    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId)
-      throw new Error('Clockify settings missing.');
-
     const timeEntriesUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth}&end=${endOfMonth}&page-size=5000`;
     const clockifyResponse = await fetch(timeEntriesUrl, {
       headers: { 'X-Api-Key': clockifyApiKey },
@@ -110,16 +108,12 @@ serve(async (req) => {
     const passedWorkdays = getPassedWorkdays(today);
 
     const projectAnalysis = projects.map((p) => {
-      // --- THIS IS THE KEY FIX ---
-      // Use the correct parsing function to calculate total seconds
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
           (sum, te) => sum + parseISO8601Duration(te.timeInterval.duration),
           0
         );
-      // --- END OF FIX ---
-
       const loggedHours = loggedSeconds / 3600;
       const dailyBurnRate = loggedHours / passedWorkdays;
       const projectedHours = dailyBurnRate * totalWorkdays;

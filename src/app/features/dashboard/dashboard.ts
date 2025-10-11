@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatGridListModule } from '@angular/material/grid-list';
@@ -28,6 +35,7 @@ interface ProjectWithTime extends Project {
 
 // Helper function to parse ISO 8601 duration (e.g., "PT2H6M17S") to seconds
 function parseISO8601Duration(duration: string): number {
+  if (!duration) return 0;
   const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
   const matches = duration.match(regex);
 
@@ -56,6 +64,7 @@ function parseISO8601Duration(duration: string): number {
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard implements OnInit, OnDestroy {
   private projectService = inject(ProjectService);
@@ -75,25 +84,23 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.pollingSubscription) {
-      this.pollingSubscription.unsubscribe();
-    }
+    this.pollingSubscription?.unsubscribe();
   }
 
   loadData() {
-    this.settingsService.getSettings().subscribe((settings) => {
-      if (
-        settings &&
-        settings.apiKey &&
-        settings.workspaceId &&
-        settings.userId
-      ) {
-        this.fetchProjectsAndEntries(settings);
-      } else {
-        console.log('Dashboard: Settings are not fully configured.');
-        this.projects.set([]);
-      }
-    });
+    // FIX: Call getSettings() synchronously and check for the result.
+    const settings = this.settingsService.getSettings();
+    if (
+      settings &&
+      settings.apiKey &&
+      settings.workspaceId &&
+      settings.userId
+    ) {
+      this.fetchProjectsAndEntries(settings);
+    } else {
+      console.log('Dashboard: Settings are not fully configured.');
+      this.projects.set([]);
+    }
   }
 
   fetchProjectsAndEntries(settings: AppSettings) {
@@ -121,7 +128,7 @@ export class Dashboard implements OnInit, OnDestroy {
           start,
           end
         )
-        .subscribe((timeEntries: TimeEntry[]) => {
+        .subscribe((timeEntries: TimeEntry[] | null) => {
           if (!timeEntries) {
             timeEntries = [];
           }

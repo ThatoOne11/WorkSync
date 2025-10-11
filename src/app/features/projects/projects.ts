@@ -6,7 +6,7 @@ import { ProjectList } from './components/project-list/project-list';
 import { ProjectForm } from './components/project-form/project-form';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar'; // Import MatSnackBar
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
 import { SettingsService } from '../../core/services/settings.service';
 
@@ -50,22 +50,22 @@ export class Projects implements OnInit {
   }
 
   loadClockifyProjects() {
-    // 1. Fetch settings from the database (the correct source of truth)
-    this.settingsService.getSettings().subscribe((settings) => {
-      // 2. Check for credentials
-      if (settings && settings.apiKey && settings.workspaceId) {
-        // 3. Use the credentials to call ClockifyService
-        this.clockifyService
-          .getClockifyProjects(settings.apiKey, settings.workspaceId)
-          .subscribe((projects: ClockifyProject[]) => {
-            this.clockifyProjects.set(projects ?? []);
-          });
-      } else {
-        // If settings are missing, ensure the list is cleared
-        this.clockifyProjects.set([]);
-        // The router guard should prevent the user from seeing this, but this is a safe fallback
-      }
-    });
+    // 1. Fetch settings directly from the service (now synchronous)
+    const settings = this.settingsService.getSettings();
+
+    // 2. Check for credentials
+    if (settings && settings.apiKey && settings.workspaceId) {
+      // 3. Use the credentials to call ClockifyService
+      this.clockifyService
+        .getClockifyProjects(settings.apiKey, settings.workspaceId)
+        .subscribe((projects: ClockifyProject[]) => {
+          this.clockifyProjects.set(projects ?? []);
+        });
+    } else {
+      // If settings are missing, ensure the list is cleared
+      this.clockifyProjects.set([]);
+      // The router guard should prevent the user from seeing this, but this is a safe fallback
+    }
   }
 
   onEditProject(project: Project) {
@@ -91,9 +91,7 @@ export class Projects implements OnInit {
     this.selectedProject.set(undefined);
   }
 
-  // --- NEW FUNCTION for Monthly Rollover ---
   onMonthlyRollover() {
-    // Use the browser's confirm dialog for simplicity
     const isConfirmed = confirm(
       'Are you sure you want to start a new month? This will archive all current projects.'
     );
@@ -101,7 +99,7 @@ export class Projects implements OnInit {
     if (isConfirmed) {
       this.projectService.archiveAllProjects().subscribe({
         next: () => {
-          this.loadProjects(); // This will now fetch an empty list
+          this.loadProjects();
           this.snackBar.open(
             'All projects have been archived. Ready for the new month!',
             'Close',

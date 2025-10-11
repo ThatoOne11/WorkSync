@@ -1,46 +1,72 @@
 <div class="settings-container">
-  <h2>Settings</h2>
+  <div class="header">
+    <h2>Settings</h2>
+    @if (settingsExist()) {
+    <button mat-stroked-button color="warn" (click)="onReset()">
+      <mat-icon>lock_reset</mat-icon>
+      Reset Credentials
+    </button>
+    }
+  </div>
+
   <mat-card>
     <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <form [formGroup]="form" (ngSubmit)="onSave()">
         <h3>Clockify Credentials</h3>
+        <p class="description">
+          @if (settingsExist()) { Your API credentials are saved. You can update
+          your email preferences below. } @else { Enter your credentials and
+          click "Fetch User ID" to validate them before saving. }
+        </p>
+
+        @if (!settingsExist()) {
         <mat-form-field appearance="fill">
           <mat-label>Clockify API Key</mat-label>
-          <input matInput type="text" formControlName="apiKey" />
-          @if (form.controls['apiKey'].hasError('required') &&
-          form.controls['apiKey'].touched) {
-          <mat-error>API Key is required</mat-error>
-          }
+          <input
+            matInput
+            type="password"
+            formControlName="apiKey"
+            autocomplete="off"
+          />
         </mat-form-field>
 
         <mat-form-field appearance="fill">
           <mat-label>Clockify Workspace ID</mat-label>
-          <input matInput type="text" formControlName="workspaceId" />
-          @if (form.controls['workspaceId'].hasError('required') &&
-          form.controls['workspaceId'].touched) {
-          <mat-error>Workspace ID is required</mat-error>
-          }
+          <input
+            matInput
+            type="text"
+            formControlName="workspaceId"
+            autocomplete="off"
+          />
         </mat-form-field>
 
         <div class="user-id-row">
           <mat-form-field appearance="fill">
-            <mat-label>Clockify User ID</mat-label>
-            <input matInput type="text" formControlName="userId" />
-            @if (form.controls['userId'].hasError('required') &&
-            form.controls['userId'].touched) {
-            <mat-error>User ID is required</mat-error>
-            }
+            <mat-label>Clockify User ID (read-only)</mat-label>
+            <input matInput type="text" formControlName="userId" readonly />
           </mat-form-field>
           <button
             mat-stroked-button
             color="accent"
             type="button"
             (click)="fetchUserId()"
-            [disabled]="!form.get('apiKey')?.value"
+            [disabled]="
+              !form.get('apiKey')?.value ||
+              !form.get('workspaceId')?.value ||
+              isFetchingUserId()
+            "
           >
-            Fetch User ID
+            @if(isFetchingUserId()) {
+            <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+            <span class="button-content-wrapper">
+              <mat-icon>person_search</mat-icon>
+              <span>Fetch User ID</span>
+            </span>
+            }
           </button>
         </div>
+        }
 
         <hr />
 
@@ -55,9 +81,11 @@
             color="accent"
             type="button"
             (click)="onBackfillHistory()"
-            [disabled]="isBackfilling"
+            [disabled]="
+              isBackfilling() || !settingsExist() || !hasActiveProjects()
+            "
           >
-            @if (isBackfilling) {
+            @if (isBackfilling()) {
             <mat-spinner diameter="20"></mat-spinner>
             } @else {
             <span>Backfill Project History</span>
@@ -71,29 +99,34 @@
         </mat-slide-toggle>
 
         @if (form.get('enableEmailNotifications')?.value) {
-        <mat-form-field appearance="fill">
-          <mat-label>Notification Email</mat-label>
-          <input
-            matInput
-            type="email"
-            formControlName="notificationEmail"
-            required
-          />
-        </mat-form-field>
-
-        <button
-          mat-flat-button
-          color="accent"
-          type="button"
-          (click)="onTestEmail()"
-          [disabled]="isTestingEmail"
-        >
-          @if (isTestingEmail) {
-          <mat-spinner diameter="20"></mat-spinner>
-          } @else {
-          <span>Send Test Email</span>
-          }
-        </button>
+        <div class="email-actions">
+          <mat-form-field appearance="fill">
+            <mat-label>Notification Email</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="notificationEmail"
+              required
+            />
+            @if (form.get('notificationEmail')?.hasError('email') &&
+            form.get('notificationEmail')?.touched) {
+            <mat-error>Please enter a valid email address</mat-error>
+            }
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            color="accent"
+            type="button"
+            (click)="onTestEmail()"
+            [disabled]="isTestingEmail() || !settingsExist()"
+          >
+            @if (isTestingEmail()) {
+            <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+            <span>Send Test Email</span>
+            }
+          </button>
+        </div>
         }
 
         <div class="actions">
@@ -101,7 +134,11 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="form.invalid"
+            [disabled]="
+              form.invalid ||
+              (settingsExist() && !form.dirty) ||
+              (!settingsExist() && !form.get('userId')?.getRawValue())
+            "
           >
             Save Settings
           </button>

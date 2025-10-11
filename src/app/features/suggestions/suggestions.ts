@@ -1,10 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SuggestionsService } from '../../core/services/suggestions.service';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-suggestions',
@@ -17,23 +19,19 @@ import { SuggestionsService } from '../../core/services/suggestions.service';
     MatProgressSpinnerModule,
   ],
   templateUrl: './suggestions.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SuggestionsComponent implements OnInit {
+export class SuggestionsComponent {
   private suggestionsService = inject(SuggestionsService);
-  suggestions: string[] = [];
-  isLoading = true;
+  protected suggestions$: Observable<string[]>;
 
-  ngOnInit() {
-    this.suggestionsService.getSuggestions().subscribe({
-      next: (data) => {
-        this.suggestions = data;
-        this.isLoading = false;
-      },
-      error: (err) => {
+  constructor() {
+    this.suggestions$ = this.suggestionsService.getSuggestions().pipe(
+      catchError((err) => {
         console.error('Error fetching suggestions:', err);
-        this.isLoading = false;
-        // You could set an error message here if you want
-      },
-    });
+        // On error, return an empty array to prevent the UI from breaking
+        return of([]);
+      })
+    );
   }
 }

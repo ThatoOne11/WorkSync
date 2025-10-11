@@ -28,14 +28,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: settingsData } = await supabase
-      .from('settings')
-      .select('key, value');
-    const settings = settingsData.reduce(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {}
-    );
-    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
+    // FIX: Read settings from the request body
+    const { settings } = await req.json();
+    if (!settings) {
+      throw new Error('Settings were not provided in the request body.');
+    }
+    const {
+      apiKey: clockifyApiKey,
+      workspaceId: clockifyWorkspaceId,
+      userId: clockifyUserId,
+    } = settings;
 
     if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
       throw new Error('Clockify settings are not configured.');
@@ -50,12 +52,10 @@ serve(async (req) => {
     const weeksToBackfill = 12;
 
     for (let i = 0; i < weeksToBackfill; i++) {
-      // --- THIS IS THE KEY FIX: Non-mutating date calculation ---
       const today = new Date();
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() - today.getDay() - 7 * i);
       endOfWeek.setHours(23, 59, 59, 999);
-      // --- END OF FIX ---
 
       const startOfWeek = new Date(endOfWeek);
       startOfWeek.setDate(startOfWeek.getDate() - 6);

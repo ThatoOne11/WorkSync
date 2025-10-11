@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -8,6 +8,8 @@ import {
   FocusProject,
   TodayFocusService,
 } from '../../core/services/today-focus.service';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-today-focus',
@@ -20,22 +22,18 @@ import {
     MatProgressSpinnerModule,
   ],
   templateUrl: './today-focus.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TodayFocusComponent implements OnInit {
+export class TodayFocusComponent {
   private todayFocusService = inject(TodayFocusService);
-  focusList: FocusProject[] = [];
-  isLoading = true;
+  protected focusList$: Observable<FocusProject[]>;
 
-  ngOnInit() {
-    this.todayFocusService.getTodaysFocus().subscribe({
-      next: (data) => {
-        this.focusList = data;
-        this.isLoading = false;
-      },
-      error: (err) => {
+  constructor() {
+    this.focusList$ = this.todayFocusService.getTodaysFocus().pipe(
+      catchError((err) => {
         console.error("Error fetching today's focus:", err);
-        this.isLoading = false;
-      },
-    });
+        return of([]); // Return empty array on error
+      })
+    );
   }
 }

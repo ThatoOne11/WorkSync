@@ -48,7 +48,20 @@ serve(async (req) => {
       }
     );
 
-    // 1. Fetch active projects
+    // FIX: Read settings from the request body
+    const { settings } = await req.json();
+    if (!settings) {
+      throw new Error('Settings were not provided in the request body.');
+    }
+    const {
+      apiKey: clockifyApiKey,
+      workspaceId: clockifyWorkspaceId,
+      userId: clockifyUserId,
+    } = settings;
+
+    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId)
+      throw new Error('Clockify settings missing.');
+
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('name, target_hours, clockify_project_id')
@@ -56,7 +69,6 @@ serve(async (req) => {
 
     if (projectsError) throw projectsError;
 
-    // 2. Fetch time entries for the current month
     const today = new Date();
     const startOfMonth = new Date(
       today.getFullYear(),
@@ -64,29 +76,12 @@ serve(async (req) => {
       1
     ).toISOString();
 
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-    const { data: settingsData } = await serviceClient
-      .from('settings')
-      .select('key, value');
-    const settings = settingsData.reduce(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {}
-    );
-
-    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
-    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId)
-      throw new Error('Clockify settings missing.');
-
     const timeEntriesUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth}&end=${today.toISOString()}&page-size=5000`;
     const clockifyResponse = await fetch(timeEntriesUrl, {
       headers: { 'X-Api-Key': clockifyApiKey },
     });
     const timeEntries = await clockifyResponse.json();
 
-    // 3. Calculate today's required pace for each project
     const remainingWorkdays = getRemainingWorkdays(today);
 
     const focusList = projects
@@ -100,17 +95,15 @@ serve(async (req) => {
 
         const loggedHours = loggedSeconds / 3600;
         const remainingHours = p.target_hours - loggedHours;
-
-        // Calculate how many hours are needed today (and on subsequent days) to stay on track
         const requiredDailyPace =
           remainingHours > 0 ? remainingHours / remainingWorkdays : 0;
 
         return {
           name: p.name,
-          requiredHoursToday: Math.round(requiredDailyPace * 100) / 100, // Round to 2 decimal places
+          requiredHoursToday: Math.round(requiredDailyPace * 100) / 100,
         };
       })
-      .filter((p) => p.requiredHoursToday > 0); // Only show projects that still need work
+      .filter((p) => p.requiredHoursToday > 0);
 
     return new Response(JSON.stringify({ focusList }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
