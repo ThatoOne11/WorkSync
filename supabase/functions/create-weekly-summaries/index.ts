@@ -24,9 +24,8 @@ async function sendSummaryEmail(
   const { notificationEmail, enableEmailNotifications } = settings;
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
-  // Fixed Check
   if (
-    enableEmailNotifications === 'true' &&
+    String(enableEmailNotifications) === 'true' &&
     notificationEmail &&
     resendApiKey
   ) {
@@ -107,10 +106,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // FIX: Read settings from the request body
-    const { settings } = await req.json();
-    if (!settings) {
-      throw new Error('Settings were not provided in the request body.');
+    // FIX: Get both settings and browserId from the request body
+    const { settings, browserId } = await req.json();
+    if (!settings || !browserId) {
+      throw new Error(
+        'Settings or Browser ID were not provided in the request body.'
+      );
     }
 
     const {
@@ -131,11 +132,23 @@ serve(async (req) => {
       );
     }
 
+    // FIX: Filter projects by the provided browserId
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
-      .select('id, name, clockify_project_id, target_hours');
+      .select('id, name, clockify_project_id, target_hours')
+      .eq('user_id', browserId);
 
     if (projectsError) throw projectsError;
+
+    if (!projects || projects.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No active projects found for this user.' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
 
     const today = new Date();
     const endOfLastWeek = new Date(
@@ -164,10 +177,11 @@ serve(async (req) => {
 
     const summaries = projects.map((project) => {
       const projectTimeEntries = timeEntries.filter(
-        (te) => te.projectId === project.clockify_project_id
+        (te: any) => te.projectId === project.clockify_project_id
       );
       const totalDurationSeconds = projectTimeEntries.reduce(
-        (acc, te) => acc + parseISO8601Duration(te.timeInterval.duration),
+        (acc: number, te: any) =>
+          acc + parseISO8601Duration(te.timeInterval.duration),
         0
       );
       const loggedHours = totalDurationSeconds / 3600;
@@ -179,6 +193,7 @@ serve(async (req) => {
         logged_hours: loggedHours,
         balance: project.target_hours - loggedHours,
         week_ending_on: week_ending_on,
+        user_id: browserId, // FIX: Include the user_id in the summary object
       };
     });
 

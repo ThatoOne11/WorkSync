@@ -88,10 +88,12 @@ export class SettingsService {
   // This function remains as it invokes a Supabase function, not settings persistence.
   runWeeklySummary() {
     const settings = this.getSettings();
-    // Pass the settings in the function body
+    const browserId = this.getBrowserId(); // Get the current browser ID
+
+    // FIX: Pass both the settings AND the browserId in the request body
     const promise = this.supabase.functions
       .invoke('create-weekly-summaries', {
-        body: { settings },
+        body: { settings, browserId },
       })
       .then(({ data, error }) => {
         if (error) throw error;
