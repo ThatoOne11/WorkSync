@@ -28,10 +28,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // FIX: Read settings from the request body
-    const { settings } = await req.json();
-    if (!settings) {
-      throw new Error('Settings were not provided in the request body.');
+    // FIX: Read settings and browserId from the request body
+    const { settings, browserId } = await req.json();
+    if (!settings || !browserId) {
+      throw new Error('Settings or Browser ID not provided.');
     }
     const {
       apiKey: clockifyApiKey,
@@ -43,10 +43,13 @@ serve(async (req) => {
       throw new Error('Clockify settings are not configured.');
     }
 
+    // FIX: Filter projects by the provided browserId
     const { data: projects } = await supabase
       .from('projects')
-      .select('id, name, clockify_project_id, target_hours');
-    if (!projects) throw new Error('No projects found.');
+      .select('id, name, clockify_project_id, target_hours')
+      .eq('user_id', browserId);
+
+    if (!projects) throw new Error('No projects found for this user.');
 
     const allSummaries = [];
     const weeksToBackfill = 12;
@@ -75,19 +78,22 @@ serve(async (req) => {
 
       const weeklySummaries = projects.map((project) => {
         const loggedSeconds = timeEntries
-          .filter((te) => te.projectId === project.clockify_project_id)
+          .filter((te: any) => te.projectId === project.clockify_project_id)
           .reduce(
-            (sum, te) => sum + parseDuration(te.timeInterval.duration),
+            (sum: number, te: any) =>
+              sum + parseDuration(te.timeInterval.duration),
             0
           );
 
         const loggedHours = loggedSeconds / 3600;
 
+        // FIX: Include the user_id in the summary object
         return {
           project_id: project.id,
           target_hours: project.target_hours,
           logged_hours: loggedHours,
           week_ending_on: week_ending_on,
+          user_id: browserId,
         };
       });
 
