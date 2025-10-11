@@ -2,8 +2,52 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
+// --- HELPER FUNCTIONS ---
+
+// CORRECT and ROBUST duration parser (reused from other functions)
+function parseISO8601Duration(duration: string): number {
+  if (!duration) return 0;
+  const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
+  const matches = duration.match(regex);
+  if (!matches) return 0;
+
+  const days = parseFloat(matches[1] || '0');
+  const hours = parseFloat(matches[2] || '0');
+  const minutes = parseFloat(matches[3] || '0');
+  const seconds = parseFloat(matches[4] || '0');
+
+  return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
+}
+
+function getWorkdaysInMonth(year, month) {
+  let workdays = 0;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const currentDate = new Date(year, month, day);
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek > 0 && dayOfWeek < 6) {
+      // Monday to Friday
+      workdays++;
+    }
+  }
+  return workdays;
+}
+
+function getPassedWorkdays(today) {
+  let passedWorkdays = 0;
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  for (let day = 1; day <= today.getDate(); day++) {
+    const currentDate = new Date(year, month, day);
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek > 0 && dayOfWeek < 6) {
+      passedWorkdays++;
+    }
+  }
+  return passedWorkdays > 0 ? passedWorkdays : 1;
+}
+
 serve(async (req) => {
-  // This is needed if you're deploying functions locally
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -19,68 +63,121 @@ serve(async (req) => {
       }
     );
 
-    // 1. Get the date from 4 weeks ago to analyze recent trends
-    const fourWeeksAgo = new Date();
-    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('name, target_hours, clockify_project_id');
 
-    // 2. Fetch recent weekly summaries and the corresponding project names
-    const { data: summaries, error } = await supabase
-      .from('weekly_summaries')
-      .select(
-        `
-        *,
-        projects ( name )
-      `
-      )
-      .gte('week_ending_on', fourWeeksAgo.toISOString().split('T')[0]);
+    if (projectsError) throw projectsError;
 
-    if (error) throw error;
+    const today = new Date();
+    const startOfMonth = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    ).toISOString();
+    const endOfMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0
+    ).toISOString();
 
-    // 3. Group summaries by project
-    const projectsData = summaries.reduce((acc, summary) => {
-      const projectId = summary.project_id;
-      if (!acc[projectId]) {
-        acc[projectId] = {
-          name: summary.projects.name,
-          summaries: [],
-        };
-      }
-      acc[projectId].summaries.push(summary);
-      return acc;
-    }, {});
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+    const { data: settingsData } = await serviceClient
+      .from('settings')
+      .select('key, value');
+    const settings = settingsData.reduce(
+      (acc, { key, value }) => ({ ...acc, [key]: value }),
+      {}
+    );
 
-    // 4. Analyze trends and generate suggestions for each project
+    const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = settings;
+    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId)
+      throw new Error('Clockify settings missing.');
+
+    const timeEntriesUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth}&end=${endOfMonth}&page-size=5000`;
+    const clockifyResponse = await fetch(timeEntriesUrl, {
+      headers: { 'X-Api-Key': clockifyApiKey },
+    });
+    const timeEntries = await clockifyResponse.json();
+
+    const totalWorkdays = getWorkdaysInMonth(
+      today.getFullYear(),
+      today.getMonth()
+    );
+    const passedWorkdays = getPassedWorkdays(today);
+
+    const projectAnalysis = projects.map((p) => {
+      // --- THIS IS THE KEY FIX ---
+      // Use the correct parsing function to calculate total seconds
+      const loggedSeconds = timeEntries
+        .filter((te) => te.projectId === p.clockify_project_id)
+        .reduce(
+          (sum, te) => sum + parseISO8601Duration(te.timeInterval.duration),
+          0
+        );
+      // --- END OF FIX ---
+
+      const loggedHours = loggedSeconds / 3600;
+      const dailyBurnRate = loggedHours / passedWorkdays;
+      const projectedHours = dailyBurnRate * totalWorkdays;
+      const variance = projectedHours - p.target_hours;
+
+      return {
+        name: p.name,
+        target: p.target_hours,
+        projected: projectedHours,
+        variance: variance,
+      };
+    });
+
     const suggestions = [];
-    for (const projectId in projectsData) {
-      const project = projectsData[projectId];
-      // We need at least 3 weeks of data for a meaningful trend
-      if (project.summaries.length < 3) continue;
+    const highVarianceProjects = projectAnalysis
+      .filter((p) => Math.abs(p.variance) > p.target * 0.1)
+      .sort((a, b) => b.variance - a.variance);
+    const projectsBurningHot = highVarianceProjects.filter(
+      (p) => p.variance > 0
+    );
+    const projectsBurningCold = highVarianceProjects.filter(
+      (p) => p.variance < 0
+    );
 
-      const avgLogged =
-        project.summaries.reduce((sum, s) => sum + s.logged_hours, 0) /
-        project.summaries.length;
-      const target = project.summaries[0].target_hours; // Assume target is consistent
-      const difference = avgLogged - target;
-
-      // Suggest increasing target if consistently logging more hours
-      if (difference > target * 0.1) {
-        // If logged hours are >10% over target
-        suggestions.push(
-          `For "${project.name}", you've averaged ${avgLogged.toFixed(
-            1
-          )} hours over the last few weeks, which is more than your target of ${target}. Consider increasing your target.`
-        );
-      }
-
-      // Suggest decreasing target if consistently logging fewer hours
-      else if (difference < -(target * 0.1)) {
-        // If logged hours are >10% under target
-        suggestions.push(
-          `For "${project.name}", you've averaged ${avgLogged.toFixed(
-            1
-          )} hours over the last few weeks, which is less than your target of ${target}. Consider decreasing your target to allocate time elsewhere.`
-        );
-      }
+    if (projectsBurningHot.length > 0 && projectsBurningCold.length > 0) {
+      const hotProject = projectsBurningHot[0];
+      const coldProject = projectsBurningCold[0];
+      suggestions.push(
+        `Pacing Alert: You are on track to go over by ${hotProject.variance.toFixed(
+          1
+        )} hours on "${
+          hotProject.name
+        }". To balance, consider shifting some focus to "${
+          coldProject.name
+        }", which is currently tracking under budget.`
+      );
+    } else if (projectsBurningHot.length > 0) {
+      const hotProject = projectsBurningHot[0];
+      suggestions.push(
+        `Pacing Alert: You are working too fast on "${
+          hotProject.name
+        }" and are projected to exceed your target by ${hotProject.variance.toFixed(
+          1
+        )} hours. Consider slowing down to avoid burnout.`
+      );
+    } else if (projectsBurningCold.length > 0) {
+      const coldProject = projectsBurningCold[0];
+      suggestions.push(
+        `Pacing Check: You are currently behind schedule on "${
+          coldProject.name
+        }" and are projected to be ${Math.abs(coldProject.variance).toFixed(
+          1
+        )} hours under target. Consider allocating more time here soon.`
+      );
+    } else {
+      suggestions.push(
+        'Great work! Your pacing across all projects is balanced and on track to meet your monthly targets.'
+      );
     }
 
     return new Response(JSON.stringify({ suggestions }), {

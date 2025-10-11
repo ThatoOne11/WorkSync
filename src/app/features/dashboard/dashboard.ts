@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { ProjectService } from '../../core/services/project.service';
 import { ClockifyService } from '../../core/services/clockify.service';
 import { Project } from '../../core/models/project.model';
@@ -8,7 +8,8 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import {
   SettingsService,
   AppSettings,
-} from '../../core/services/settings.service'; // Import settings
+} from '../../core/services/settings.service';
+import { Subscription, interval } from 'rxjs'; // Import Subscription and interval
 import { SuggestionsComponent } from '../suggestions/suggestions';
 
 interface TimeEntry {
@@ -22,7 +23,8 @@ interface ProjectWithTime extends Project {
   loggedHours: number;
   balance: number;
 }
-// ... (keep the parseISO8601Duration function as is)
+
+// Helper function to parse ISO 8601 duration
 function parseISO8601Duration(duration: string): number {
   const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
   const matches = duration.match(regex);
@@ -47,23 +49,40 @@ function parseISO8601Duration(duration: string): number {
     MatCardModule,
     MatGridListModule,
     SuggestionsComponent,
-  ], // Add SuggestionsComponent
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class Dashboard implements OnInit {
+export class Dashboard implements OnInit, OnDestroy {
+  // Implement OnDestroy
   private projectService = inject(ProjectService);
   private clockifyService = inject(ClockifyService);
-  private settingsService = inject(SettingsService); // Inject settings service
+  private settingsService = inject(SettingsService);
 
   projects = signal<ProjectWithTime[]>([]);
+  private pollingSubscription?: Subscription; // To hold the interval subscription
 
   ngOnInit() {
-    this.loadData();
+    this.loadData(); // Load data immediately on component load
+
+    // --- THIS IS THE KEY CHANGE: Set up polling every 2 minutes ---
+    // 120000 milliseconds = 2 minutes
+    this.pollingSubscription = interval(120000).subscribe(() => {
+      console.log('Polling for new Clockify data...');
+      this.loadData();
+    });
+    // --- END OF CHANGE ---
+  }
+
+  ngOnDestroy() {
+    // --- THIS IS THE KEY CHANGE: Clean up the subscription to prevent memory leaks ---
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+    }
+    // --- END OF CHANGE ---
   }
 
   loadData() {
-    // Load settings from the database now
     this.settingsService.getSettings().subscribe((settings) => {
       if (
         settings &&
@@ -80,19 +99,16 @@ export class Dashboard implements OnInit {
   }
 
   fetchProjectsAndEntries(settings: AppSettings) {
-    // Calculate start and end of the current week
+    // Calculate start and end of the CURRENT MONTH
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - dayOfWeek);
-    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-    const endOfWeek = new Date(today);
-    endOfWeek.setDate(today.getDate() + (6 - dayOfWeek));
-    endOfWeek.setHours(23, 59, 59, 999);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
 
-    const start = startOfWeek.toISOString();
-    const end = endOfWeek.toISOString();
+    const start = startOfMonth.toISOString();
+    const end = endOfMonth.toISOString();
 
     this.projectService.getProjects().subscribe((projects) => {
       if (!projects || projects.length === 0) {
@@ -110,7 +126,6 @@ export class Dashboard implements OnInit {
         )
         .subscribe((timeEntries: TimeEntry[]) => {
           if (!timeEntries) {
-            // Handle null/undefined case
             timeEntries = [];
           }
 
