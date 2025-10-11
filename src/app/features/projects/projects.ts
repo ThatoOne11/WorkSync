@@ -7,6 +7,7 @@ import { ProjectForm } from './components/project-form/project-form';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar'; // Import MatSnackBar
+import { MatCardModule } from '@angular/material/card';
 
 interface ClockifyProject {
   id: string;
@@ -16,7 +17,13 @@ interface ClockifyProject {
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [ProjectList, ProjectForm, MatButtonModule, MatIconModule],
+  imports: [
+    ProjectList,
+    ProjectForm,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+  ],
   templateUrl: './projects.html',
   styleUrl: './projects.scss',
 })

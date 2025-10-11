@@ -13,6 +13,7 @@ import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SettingsService } from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Import slide toggle
+import { MatCardModule } from '@angular/material/card';
 
 @Component({
   selector: 'app-settings',
@@ -25,6 +26,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Import
     MatButtonModule,
     MatSnackBarModule,
     MatSlideToggleModule,
+    MatCardModule,
   ], // Add MatSlideToggleModule
   templateUrl: './settings.html',
   styleUrl: './settings.scss',

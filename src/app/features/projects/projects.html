@@ -1,25 +1,45 @@
-<div class="header-actions">
-  <h2>Projects</h2>
-  <div>
+<div class="projects-container">
+  <div class="header-actions">
+    <h2>Projects</h2>
     <button mat-stroked-button color="warn" (click)="onMonthlyRollover()">
       <mat-icon>archive</mat-icon>
-      Start New Month (Archive All)
-    </button>
-    <button mat-raised-button color="primary" (click)="onNewProject()">
-      <mat-icon>add</mat-icon>
-      Add New Project
+      Start New Month
     </button>
   </div>
+
+  <div class="projects-layout">
+    <mat-card class="project-form-card">
+      <mat-card-header>
+        <mat-card-title>{{
+          selectedProject() ? "Edit Project" : "Add New Project"
+        }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-project-form
+          [project]="selectedProject()"
+          [clockifyProjects]="clockifyProjects()"
+          (save)="onSaveProject($event)"
+        />
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="project-list-card">
+      <mat-card-header>
+        <mat-card-title>Active Projects</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (projects().length > 0) {
+        <app-project-list
+          [projects]="projects()"
+          (edit)="onEditProject($event)"
+          (delete)="onDeleteProject($event)"
+        />
+        } @else {
+        <p class="no-projects-message">
+          No active projects. Add one using the form above.
+        </p>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
 </div>
-
-<app-project-form
-  [project]="selectedProject()"
-  [clockifyProjects]="clockifyProjects()"
-  (save)="onSaveProject($event)"
-/>
-
-<app-project-list
-  [projects]="projects()"
-  (edit)="onEditProject($event)"
-  (delete)="onDeleteProject($event)"
-/>

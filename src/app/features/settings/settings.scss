@@ -1,0 +1,63 @@
+.settings-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h2 {
+  font-size: 2em;
+  font-weight: 300;
+  margin-bottom: 24px;
+}
+
+h3 {
+  font-weight: 400;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+mat-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.dark-theme mat-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.user-id-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  mat-form-field {
+    flex-grow: 1;
+  }
+}
+
+hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 32px 0;
+}
+
+.dark-theme hr {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+mat-slide-toggle {
+  margin-bottom: 16px;
+}
+
+.actions {
+  margin-top: 32px;
+  text-align: right;
+}

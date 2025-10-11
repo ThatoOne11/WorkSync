@@ -1,20 +1,17 @@
-// 1. Import the Angular Material theming module.
 @use "@angular/material" as mat;
 
-// 2. Include the core styles.
 @include mat.core();
 
-// 3. Define the color palettes using the correct `m2-define-palette` function.
-$worksync-light-primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+// --- LIGHT THEME DEFINITION ---
+$worksync-light-primary: mat.m2-define-palette(mat.$m2-grey-palette, 800);
 $worksync-light-accent: mat.m2-define-palette(
-  mat.$m2-pink-palette,
+  mat.$m2-red-palette,
+  A400,
   A200,
-  100,
-  400
+  A700
 );
 $worksync-light-warn: mat.m2-define-palette(mat.$m2-red-palette);
 
-// 4. Create the light theme object using the correct `m2-define-light-theme` function.
 $worksync-light-theme: mat.m2-define-light-theme(
   (
     color: (
@@ -25,22 +22,16 @@ $worksync-light-theme: mat.m2-define-light-theme(
   )
 );
 
-// 5. Define the color palettes for the dark theme.
-$worksync-dark-primary: mat.m2-define-palette(
-  mat.$m2-pink-palette,
-  700,
-  500,
-  900
-);
+// --- DARK THEME DEFINITION ---
+$worksync-dark-primary: mat.m2-define-palette(mat.$m2-grey-palette, 200);
 $worksync-dark-accent: mat.m2-define-palette(
-  mat.$m2-blue-grey-palette,
+  mat.$m2-red-palette,
   A200,
   A100,
   A400
 );
 $worksync-dark-warn: mat.m2-define-palette(mat.$m2-red-palette);
 
-// 6. Create the dark theme object using the correct `m2-define-dark-theme` function.
 $worksync-dark-theme: mat.m2-define-dark-theme(
   (
     color: (
@@ -51,11 +42,23 @@ $worksync-dark-theme: mat.m2-define-dark-theme(
   )
 );
 
-// 7. Apply the themes to CSS classes using the correct `all-component-themes` mixin.
+// --- APPLY THEMES ---
 .light-theme {
   @include mat.all-component-themes($worksync-light-theme);
 }
 
 .dark-theme {
   @include mat.all-component-themes($worksync-dark-theme);
+}
+
+// --- GLOBAL STYLES ---
+html,
+body {
+  height: 100%;
+  font-family: "Roboto", sans-serif;
+  background-color: #f5f5f5;
+}
+
+.dark-theme {
+  background-color: #121212;
 }

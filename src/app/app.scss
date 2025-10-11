@@ -1,11 +1,60 @@
+// --- MAIN LAYOUT & TYPOGRAPHY ---
 .sidenav-container {
   height: calc(100vh - 64px); // Adjust for toolbar height
 }
 
 main {
-  padding: 20px;
+  padding: 24px;
 }
 
 .spacer {
   flex: 1 1 auto;
+}
+
+.mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  // Add a subtle border to separate toolbar from content
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.dark-theme .mat-toolbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+// --- SIDENAV REFINEMENT ---
+.mat-sidenav {
+  width: 230px;
+  // Add a subtle border to separate sidenav from content
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dark-theme .mat-sidenav {
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mat-nav-list .mat-list-item {
+  span {
+    padding-left: 20px; // Increase space between icon and text
+  }
+
+  // Improved active link indicator
+  &.active {
+    color: var(--theme-accent-color); // Use the theme's red color
+
+    .mat-icon {
+      color: var(--theme-accent-color);
+    }
+  }
+}
+
+// --- RESPONSIVE ADJUSTMENTS ---
+@media (max-width: 599px) {
+  main {
+    padding: 16px;
+  }
+  .mat-sidenav {
+    width: 200px;
+  }
 }
