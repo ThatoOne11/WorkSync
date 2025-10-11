@@ -6,13 +6,10 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  MatDialogModule,
-  MatDialogRef,
-  MAT_DIALOG_DATA,
-} from '@angular/material/dialog';
+import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Chart } from 'chart.js/auto';
@@ -33,42 +30,43 @@ import { Project } from '../../core/models/project.model';
   ],
   templateUrl: './project-history.html',
 })
-export class ProjectHistory implements OnInit, AfterViewInit {
-  @Input() project?: Project;
+export class ProjectHistory implements OnInit {
   @ViewChild('historyChart') chartCanvas!: ElementRef<HTMLCanvasElement>;
 
   private historicalDataService = inject(HistoricalDataService);
+  private cdr = inject(ChangeDetectorRef); // Inject ChangeDetectorRef
+
   summaries: WeeklySummary[] = [];
   isLoading = true;
   chart: Chart | undefined;
 
-  // Inject dialog data
   public data: { project: Project } = inject(MAT_DIALOG_DATA);
+  project: Project = this.data.project;
 
   ngOnInit() {
-    this.project = this.data.project;
-    if (this.project) {
-      this.historicalDataService
-        .getWeeklySummaries(this.project.id)
-        .subscribe((summaries) => {
-          this.summaries = summaries;
-          this.isLoading = false;
-          this.createChart();
-        });
-    }
-  }
+    this.historicalDataService
+      .getWeeklySummaries(this.project.id)
+      .subscribe((summaries) => {
+        this.summaries = summaries;
+        this.isLoading = false;
 
-  ngAfterViewInit() {
-    this.createChart();
+        // --- THIS IS THE KEY FIX ---
+        // We must force change detection and then create the chart in the next tick
+        // to ensure the <canvas> element is rendered and available.
+        this.cdr.detectChanges();
+        setTimeout(() => this.createChart(), 0);
+        // --- END OF FIX ---
+      });
   }
 
   createChart() {
+    // Simplified check: only needs the canvas to be ready.
     if (!this.chartCanvas || this.summaries.length === 0) {
       return;
     }
 
     const labels = this.summaries.map((s) => s.week_ending_on);
-    const targetHoursData = this.summaries.map((s) => s.target_hours);
+    const allocatedHoursData = this.summaries.map((s) => s.target_hours);
     const loggedHoursData = this.summaries.map((s) => s.logged_hours);
 
     if (this.chart) {
@@ -83,14 +81,15 @@ export class ProjectHistory implements OnInit, AfterViewInit {
           {
             label: 'Logged Hours',
             data: loggedHoursData,
-            borderColor: '#3f51b5', // primary color
+            borderColor: 'red', // Accent color
+            backgroundColor: 'rgba(255, 64, 129, 0.2)',
+            fill: true,
             tension: 0.1,
           },
           {
-            label: 'Target Hours',
-            data: targetHoursData,
-            borderColor: '#ff4081', // accent color
-            borderDash: [5, 5],
+            label: 'Allocated Hours',
+            data: allocatedHoursData,
+            borderColor: 'black', // A neutral grey
             tension: 0.1,
           },
         ],

@@ -26,4 +26,14 @@ export class HistoricalDataService {
 
     return from(promise);
   }
+
+  backfillHistory() {
+    const promise = this.supabase.functions
+      .invoke('backfill-history')
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data;
+      });
+    return from(promise);
+  }
 }

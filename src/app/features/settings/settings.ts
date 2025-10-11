@@ -14,6 +14,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SettingsService } from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Import slide toggle
 import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { HistoricalDataService } from '../../core/services/historical-data.service';
 
 @Component({
   selector: 'app-settings',
@@ -27,7 +29,8 @@ import { MatCardModule } from '@angular/material/card';
     MatSnackBarModule,
     MatSlideToggleModule,
     MatCardModule,
-  ], // Add MatSlideToggleModule
+    MatProgressSpinnerModule,
+  ],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
@@ -35,7 +38,10 @@ export class Settings implements OnInit {
   form: FormGroup;
   private clockifyService = inject(ClockifyService);
   private settingsService = inject(SettingsService);
+  private historicalDataService = inject(HistoricalDataService);
   private snackBar = inject(MatSnackBar);
+
+  isBackfilling = false;
 
   constructor(private fb: FormBuilder) {
     this.form = this.fb.group({
@@ -94,6 +100,25 @@ export class Settings implements OnInit {
           'Close',
           { duration: 3000 }
         );
+      },
+    });
+  }
+
+  onBackfillHistory() {
+    this.isBackfilling = true;
+    this.historicalDataService.backfillHistory().subscribe({
+      next: (response: any) => {
+        this.snackBar.open(response.message, 'Close', { duration: 5000 });
+        this.isBackfilling = false;
+      },
+      error: (err) => {
+        console.error('Error during backfill:', err);
+        this.snackBar.open(
+          'An error occurred during backfill. Check console.',
+          'Close',
+          { duration: 5000 }
+        );
+        this.isBackfilling = false;
       },
     });
   }

@@ -59,7 +59,7 @@ async function sendSummaryEmail(
       <thead>
         <tr>
           <th>Project</th>
-          <th style="text-align: center;">Target Hours</th>
+          <th style="text-align: center;">Allocated Hours</th>
           <th style="text-align: center;">Logged Hours</th>
           <th style="text-align: center;">Balance</th>
         </tr>
