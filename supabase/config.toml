@@ -20,3 +20,14 @@ entrypoint = "./functions/generate-suggestions/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/generate-suggestions/*.html" ]
+
+[functions.get-todays-focus]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-todays-focus/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get-todays-focus/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get-todays-focus/*.html" ]

@@ -1,0 +1,27 @@
+<mat-card class="today-focus-card">
+  <mat-card-header>
+    <mat-card-title>
+      <mat-icon>track_changes</mat-icon>
+      Today's Focus
+    </mat-card-title>
+    <mat-card-subtitle
+      >Recommended hours to log today to stay on pace</mat-card-subtitle
+    >
+  </mat-card-header>
+  <mat-card-content>
+    @if (isLoading) {
+    <mat-spinner diameter="30"></mat-spinner>
+    } @else if (focusList.length > 0) {
+    <mat-list role="list">
+      @for (item of focusList; track item.name) {
+      <mat-list-item role="listitem">
+        <span class="focus-project-name">{{ item.name }}</span>
+        <span class="focus-hours">{{ item.requiredHoursToday }} hrs</span>
+      </mat-list-item>
+      }
+    </mat-list>
+    } @else {
+    <p>All projects are on track. No specific focus required today!</p>
+    }
+  </mat-card-content>
+</mat-card>
