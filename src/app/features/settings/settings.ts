@@ -27,7 +27,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HistoricalDataService } from '../../core/services/historical-data.service';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
 import { ProjectService } from '../../core/services/project.service';
 import { Project } from '../../core/models/project.model';
 
@@ -73,6 +73,7 @@ export class Settings implements OnInit, OnDestroy {
       userId: [{ value: '', disabled: true }, Validators.required],
       notificationEmail: ['', [Validators.email]],
       enableEmailNotifications: [false],
+      enablePacingAlerts: [false],
     });
   }
 
@@ -87,20 +88,33 @@ export class Settings implements OnInit, OnDestroy {
   }
 
   private setupConditionalEmailValidation(): void {
-    const emailToggle = this.form.get('enableEmailNotifications');
+    const weeklySummaryToggle = this.form.get('enableEmailNotifications');
+    const pacingAlertsToggle = this.form.get('enablePacingAlerts');
     const emailField = this.form.get('notificationEmail');
 
-    emailToggle?.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((isEnabled) => {
-        if (isEnabled) {
-          emailField?.setValidators([Validators.required, Validators.email]);
-        } else {
-          emailField?.clearValidators();
-          emailField?.addValidators([Validators.email]);
-        }
-        emailField?.updateValueAndValidity();
-      });
+    if (weeklySummaryToggle && pacingAlertsToggle && emailField) {
+      // FIX: Use combineLatest to listen to changes on BOTH toggles.
+      combineLatest([
+        weeklySummaryToggle.valueChanges.pipe(
+          startWith(weeklySummaryToggle.value)
+        ),
+        pacingAlertsToggle.valueChanges.pipe(
+          startWith(pacingAlertsToggle.value)
+        ),
+      ])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
+          // If either toggle is on, the email field is required.
+          if (isWeeklyEnabled || isPacingEnabled) {
+            emailField.setValidators([Validators.required, Validators.email]);
+          } else {
+            // If both are off, clear the required validator.
+            emailField.clearValidators();
+            emailField.addValidators([Validators.email]);
+          }
+          emailField.updateValueAndValidity();
+        });
+    }
   }
 
   private loadSettings(): void {

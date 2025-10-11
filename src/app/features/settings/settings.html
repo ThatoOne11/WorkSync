@@ -94,11 +94,17 @@
         </div>
 
         <h3>Email Notifications</h3>
+
         <mat-slide-toggle formControlName="enableEmailNotifications">
           Enable Weekly Summary Email
         </mat-slide-toggle>
 
-        @if (form.get('enableEmailNotifications')?.value) {
+        <mat-slide-toggle formControlName="enablePacingAlerts">
+          Enable Smart Pacing Alerts
+        </mat-slide-toggle>
+
+        @if (form.get('enableEmailNotifications')?.value ||
+        form.get('enablePacingAlerts')?.value) {
         <div class="email-actions">
           <mat-form-field appearance="fill">
             <mat-label>Notification Email</mat-label>

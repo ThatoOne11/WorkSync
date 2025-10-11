@@ -8,6 +8,7 @@ export interface AppSettings {
   userId: string;
   notificationEmail: string;
   enableEmailNotifications: boolean;
+  enablePacingAlerts: boolean;
 }
 
 const SETTINGS_STORAGE_KEY = 'workSyncAppSettings';
