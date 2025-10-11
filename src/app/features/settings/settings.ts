@@ -11,7 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { SettingsService } from '../../core/services/settings.service'; // Import the new service
+import { SettingsService } from '../../core/services/settings.service';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // Import slide toggle
 
 @Component({
   selector: 'app-settings',
@@ -23,14 +24,15 @@ import { SettingsService } from '../../core/services/settings.service'; // Impor
     MatInputModule,
     MatButtonModule,
     MatSnackBarModule,
-  ],
+    MatSlideToggleModule,
+  ], // Add MatSlideToggleModule
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
 export class Settings implements OnInit {
   form: FormGroup;
   private clockifyService = inject(ClockifyService);
-  private settingsService = inject(SettingsService); // Inject the new service
+  private settingsService = inject(SettingsService);
   private snackBar = inject(MatSnackBar);
 
   constructor(private fb: FormBuilder) {
@@ -38,11 +40,12 @@ export class Settings implements OnInit {
       apiKey: ['', Validators.required],
       workspaceId: ['', Validators.required],
       userId: ['', Validators.required],
+      notificationEmail: ['', [Validators.email]], // Add email field
+      enableEmailNotifications: [false], // Add toggle field
     });
   }
 
   ngOnInit() {
-    // Load settings from the database instead of localStorage
     this.settingsService.getSettings().subscribe((settings) => {
       if (settings) {
         this.form.patchValue(settings);
@@ -52,7 +55,6 @@ export class Settings implements OnInit {
 
   onSubmit() {
     if (this.form.valid) {
-      // Save settings to the database instead of localStorage
       this.settingsService.saveSettings(this.form.value).subscribe(() => {
         this.snackBar.open('Settings saved!', 'Close', { duration: 3000 });
       });

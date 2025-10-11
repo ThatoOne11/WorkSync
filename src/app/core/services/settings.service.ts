@@ -6,6 +6,8 @@ export interface AppSettings {
   apiKey: string;
   workspaceId: string;
   userId: string;
+  notificationEmail: string; // Add new property
+  enableEmailNotifications: boolean; // Add new property
 }
 
 @Injectable({
@@ -21,12 +23,16 @@ export class SettingsService {
       .then(({ data }) => {
         if (!data) return {} as AppSettings;
         // Convert array of key-value pairs to a settings object
-        return data.reduce((acc, { key, value }) => {
+        const settings = data.reduce((acc, { key, value }) => {
           acc[
             key.replace('clockify', '').charAt(0).toLowerCase() + key.slice(9)
           ] = value;
           return acc;
-        }, {} as AppSettings);
+        }, {} as any);
+        // Ensure boolean is correctly typed
+        settings.enableEmailNotifications =
+          settings.enableEmailNotifications === 'true';
+        return settings as AppSettings;
       });
     return from(promise);
   }
@@ -36,6 +42,11 @@ export class SettingsService {
       { key: 'clockifyApiKey', value: settings.apiKey },
       { key: 'clockifyWorkspaceId', value: settings.workspaceId },
       { key: 'clockifyUserId', value: settings.userId },
+      { key: 'notificationEmail', value: settings.notificationEmail }, // Add new setting
+      {
+        key: 'enableEmailNotifications',
+        value: String(settings.enableEmailNotifications),
+      }, // Add new setting
     ];
     // Supabase doesn't have a bulk update, so we do it one by one.
     const promises = updates.map((s) =>
