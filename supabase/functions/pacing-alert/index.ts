@@ -51,7 +51,7 @@ async function sendPacingAlertEmail(alert: any, settings: any) {
   }
 
   // HARDCODED COLORS (Engaging Light Aesthetic)
-  const BRAND_ACCENT = '#F44336';
+  const BRAND_ACCENT = '#79A9D1';
   const PRIMARY_TEXT = '#333333';
   const SECONDARY_TEXT = '#666666';
   const BG_COLOR = '#F8F8F8';

@@ -51,7 +51,7 @@ async function sendSummaryEmail(
   });
 
   // HARDCODED COLORS (Engaging Light Aesthetic)
-  const BRAND_ACCENT = '#F44336';
+  const BRAND_ACCENT = '#79A9D1';
   const PRIMARY_TEXT = '#333333';
   const SECONDARY_TEXT = '#666666';
   const BG_COLOR = '#F8F8F8';
@@ -207,15 +207,15 @@ async function sendSummaryEmail(
                                 </table>
 
                                 <h3 style="color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
-                                    Project Breakdown (This Week)
+                                    Project Breakdown
                                 </h3>
 
                                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse;">
                                     <thead>
                                         <tr style="background-color: ${BG_COLOR}; color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
                                             <th style="padding: 10px 20px; text-align: left; font-weight: 700; border-radius: 4px 0 0 0;">Project</th>
-                                            <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Allocation (H)</th>
-                                            <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Logged (H)</th>
+                                            <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Monthly Allocation (H)</th>
+                                            <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Logged This Week (H)</th>
                                             <th style="padding: 10px 20px 10px 0; text-align: right; font-weight: 700; border-radius: 0 4px 0 0;">Balance</th>
                                         </tr>
                                     </thead>
@@ -225,7 +225,7 @@ async function sendSummaryEmail(
                                 </table>
                                 
                                 <p style="text-align: center; margin-top: 40px; color: ${SECONDARY_TEXT}; font-size: 12px; padding-top: 10px; border-top: 1px dashed ${DIVIDER_COLOR};">
-                                    <a href="#" style="color: ${INFO_COLOR}; text-decoration: none; font-weight: 700;">Visit Dashboard</a> to adjust targets or start your monthly rollover.
+                                    <a href="https://worksync-f2s.pages.dev/dashboard" style="color: ${INFO_COLOR}; text-decoration: none; font-weight: 700;">Visit the Dashboard</a> to adjust targets or start your monthly rollover.
                                 </p>
                             </td>
                         </tr>
