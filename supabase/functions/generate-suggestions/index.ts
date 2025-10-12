@@ -79,7 +79,8 @@ serve(async (req) => {
 
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
-      .select('name, target_hours, clockify_project_id');
+      .select('name, target_hours, clockify_project_id')
+      .eq('is_archived', false);
 
     if (projectsError) throw projectsError;
 
