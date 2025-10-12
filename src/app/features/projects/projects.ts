@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core'; // Import computed
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { ProjectService } from '../../core/services/project.service';
 import { ClockifyService } from '../../core/services/clockify.service';
 import { Project } from '../../core/models/project.model';
@@ -79,10 +79,30 @@ export class Projects implements OnInit {
     this.projectService.deleteProject(id).subscribe(() => this.loadProjects());
   }
 
-  onSaveProject(project: Partial<Project>) {
-    const operation = project.id
-      ? this.projectService.updateProject(project.id, project)
-      : this.projectService.addProject(project);
+  onSaveProject(projectData: Partial<Project>) {
+    let operation;
+
+    if (projectData.id) {
+      // This is an update operation.
+      operation = this.projectService.updateProject(
+        projectData.id,
+        projectData
+      );
+    } else {
+      // This is a create operation.
+      const selectedClockifyProject = this.clockifyProjects().find(
+        (p) => p.id === projectData.clockify_project_id
+      );
+
+      // FIX: Destructure to remove the 'id' property, letting the database generate it.
+      const { id: _id, ...newProjectData } = projectData;
+
+      const projectToSave: Partial<Project> = {
+        ...newProjectData,
+        name: selectedClockifyProject?.name,
+      };
+      operation = this.projectService.addProject(projectToSave);
+    }
 
     operation.subscribe(() => {
       this.loadProjects();

@@ -61,23 +61,8 @@ export class ProjectForm implements OnChanges {
 
   onSubmit() {
     if (this.form.valid) {
-      const formValue = this.form.getRawValue();
-      const selectedProject = this.clockifyProjects.find(
-        (p) => p.id === formValue.clockify_project_id
-      );
-
-      const projectToSave: Partial<Project> = formValue.id
-        ? {
-            id: formValue.id,
-            target_hours: formValue.target_hours,
-          }
-        : {
-            name: selectedProject?.name,
-            target_hours: formValue.target_hours,
-            clockify_project_id: formValue.clockify_project_id,
-          };
-
-      this.save.emit(projectToSave);
+      // FIX: Emit the raw form value. The parent component is now responsible for finding the name.
+      this.save.emit(this.form.getRawValue());
       this.form.reset();
     }
   }
