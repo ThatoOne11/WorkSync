@@ -1,71 +1,155 @@
 .settings-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0;
 }
 
-h2 {
-  font-size: 2em;
-  font-weight: 300;
-  margin-bottom: 24px;
-}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
 
-h3 {
-  font-weight: 400;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  &:first-child {
-    margin-top: 0;
+  h2 {
+    font-size: 2.2em;
+    font-weight: 300;
+    margin: 0;
   }
 }
 
-mat-card {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px !important;
-  box-shadow: none !important;
+.mat-card {
+  padding: 40px !important; // More internal padding for a spacious control panel look
 }
 
-.dark-theme mat-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.section-title {
+  font-weight: 600;
+  font-size: 1.25em;
+  color: var(--color-text-primary);
+  margin-top: 40px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  .mat-icon {
+    color: var(--color-accent); // Use accent color for section icon
+  }
+}
+
+.description {
+  margin-bottom: 24px;
+  color: var(--color-text-secondary);
+  font-size: 0.95em;
 }
 
 mat-form-field {
   width: 100%;
 }
 
+// Custom style for outline appearance to look cleaner
+::ng-deep .mat-mdc-text-field-wrapper {
+  border-radius: 10px !important;
+}
+
 .user-id-row {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-bottom: 24px;
 
   mat-form-field {
     flex-grow: 1;
   }
+  .mat-mdc-button {
+    height: 56px;
+    min-width: 150px;
+    font-weight: 500;
+  }
+}
+
+.toggle-spacing {
+  display: block;
+  margin-bottom: 16px;
+  padding: 8px 0; // Add space around the toggle for better touch targets
 }
 
 hr {
   border: none;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  margin: 32px 0;
+  border-top: 1px solid var(--color-border);
+  margin: 40px 0;
 }
 
-.dark-theme hr {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+.data-management-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 0;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 48px;
+    font-weight: 500;
+
+    .mat-icon {
+      font-size: 1.25rem;
+    }
+  }
 }
 
-mat-slide-toggle {
-  margin-bottom: 16px;
+.email-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 0;
+
+  mat-form-field {
+    flex-grow: 1;
+  }
+
+  .test-email-button {
+    height: 56px;
+    align-self: center;
+    min-width: 150px;
+    font-weight: 500;
+  }
 }
 
 .actions {
-  margin-top: 32px;
-  text-align: right;
-}
-
-.actions {
-  margin-top: 32px;
-  text-align: right;
+  margin-top: 40px;
   display: flex;
   justify-content: flex-end;
-  gap: 8px; // This provides spacing for the new cancel button
+  gap: 16px;
+
+  .mat-raised-button {
+    font-weight: 600;
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 599px) {
+  .email-section,
+  .user-id-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .user-id-row .mat-mdc-button,
+  .email-section .test-email-button {
+    width: 100%;
+    height: 48px;
+  }
+
+  .mat-card {
+    padding: 24px !important;
+  }
 }

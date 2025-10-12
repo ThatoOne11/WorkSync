@@ -1,7 +1,12 @@
 <div class="projects-container">
   <div class="header-actions">
     <h2>Projects</h2>
-    <button mat-stroked-button color="warn" (click)="onMonthlyRollover()">
+    <button
+      mat-flat-button
+      color="warn"
+      (click)="onMonthlyRollover()"
+      class="rollover-button"
+    >
       <mat-icon>archive</mat-icon>
       Start New Month
     </button>
@@ -10,9 +15,14 @@
   <div class="projects-layout">
     <mat-card class="project-form-card">
       <mat-card-header>
-        <mat-card-title>{{
-          selectedProject() ? "Edit Project" : "Add New Project"
+        <mat-card-title class="card-title">{{
+          selectedProject() ? "Edit Project Allocation" : "Add New Project"
         }}</mat-card-title>
+        <mat-card-subtitle class="u-text-secondary">{{
+          selectedProject()
+            ? "Only Allocated Hours can be changed."
+            : "Link a Clockify project and set an hour target."
+        }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <app-project-form
@@ -26,9 +36,12 @@
 
     <mat-card class="project-list-card">
       <mat-card-header>
-        <mat-card-title>Active Projects</mat-card-title>
+        <mat-card-title class="card-title">Active Projects</mat-card-title>
+        <mat-card-subtitle class="u-text-secondary"
+          >Manage hour targets and view history.</mat-card-subtitle
+        >
       </mat-card-header>
-      <mat-card-content>
+      <mat-card-content class="list-card-content">
         @if (projects().length > 0) {
         <app-project-list
           [projects]="projects()"
@@ -36,7 +49,7 @@
           (delete)="onDeleteProject($event)"
         />
         } @else {
-        <p class="no-projects-message">
+        <p class="no-projects-message u-text-secondary">
           No active projects. Add one using the form above.
         </p>
         }

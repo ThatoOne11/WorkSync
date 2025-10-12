@@ -4,7 +4,7 @@
     @if (settingsExist()) {
     <button mat-stroked-button color="warn" (click)="onReset()">
       <mat-icon>lock_reset</mat-icon>
-      Reset Credentials
+      Reset All Data
     </button>
     }
   </div>
@@ -12,15 +12,17 @@
   <mat-card>
     <mat-card-content>
       <form [formGroup]="form" (ngSubmit)="onSave()">
-        <h3>Clockify Credentials</h3>
-        <p class="description">
-          @if (settingsExist()) { Your API credentials are saved. You can update
-          your email preferences below. } @else { Enter your credentials and
-          click "Fetch User ID" to validate them before saving. }
+        <h3 class="section-title">
+          <mat-icon>key</mat-icon> Clockify Credentials
+        </h3>
+        <p class="description u-text-secondary">
+          @if (settingsExist()) { Your API credentials are saved. Update your
+          email preferences below. } @else { Enter your credentials and click
+          "Fetch User ID" to validate them before saving. }
         </p>
 
         @if (!settingsExist()) {
-        <mat-form-field appearance="fill">
+        <mat-form-field appearance="outline">
           <mat-label>Clockify API Key</mat-label>
           <input
             matInput
@@ -30,7 +32,7 @@
           />
         </mat-form-field>
 
-        <mat-form-field appearance="fill">
+        <mat-form-field appearance="outline">
           <mat-label>Clockify Workspace ID</mat-label>
           <input
             matInput
@@ -41,12 +43,12 @@
         </mat-form-field>
 
         <div class="user-id-row">
-          <mat-form-field appearance="fill">
+          <mat-form-field appearance="outline">
             <mat-label>Clockify User ID</mat-label>
             <input matInput type="text" formControlName="userId" readonly />
           </mat-form-field>
           <button
-            mat-stroked-button
+            mat-flat-button
             color="accent"
             type="button"
             (click)="fetchUserId()"
@@ -70,43 +72,28 @@
 
         <hr />
 
-        <h3>Data Management</h3>
-        <div class="data-management-row">
-          <p>
-            Populate your project history by pulling the last 3 months of data
-            from Clockify. This is a one-time action.
-          </p>
-          <button
-            mat-stroked-button
-            color="accent"
-            type="button"
-            (click)="onBackfillHistory()"
-            [disabled]="
-              isBackfilling() || !settingsExist() || !hasActiveProjects()
-            "
-          >
-            @if (isBackfilling()) {
-            <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-            <span>Backfill Project History</span>
-            }
-          </button>
-        </div>
+        <h3 class="section-title">
+          <mat-icon>notifications</mat-icon> Email Notifications
+        </h3>
 
-        <h3>Email Notifications</h3>
-
-        <mat-slide-toggle formControlName="enableEmailNotifications">
+        <mat-slide-toggle
+          formControlName="enableEmailNotifications"
+          class="toggle-spacing"
+        >
           Enable Weekly Summary Email
         </mat-slide-toggle>
 
-        <mat-slide-toggle formControlName="enablePacingAlerts">
+        <mat-slide-toggle
+          formControlName="enablePacingAlerts"
+          class="toggle-spacing"
+        >
           Enable Smart Pacing Alerts
         </mat-slide-toggle>
 
         @if (form.get('enableEmailNotifications')?.value ||
         form.get('enablePacingAlerts')?.value) {
         <div class="email-section">
-          <mat-form-field appearance="fill">
+          <mat-form-field appearance="outline">
             <mat-label>Notification Email</mat-label>
             <input
               matInput
@@ -134,7 +121,7 @@
 
           <button
             mat-stroked-button
-            color="accent"
+            color="primary"
             type="button"
             class="test-email-button"
             (click)="onTestEmail()"
@@ -148,6 +135,34 @@
           </button>
         </div>
         }
+
+        <hr />
+
+        <h3 class="section-title">
+          <mat-icon>storage</mat-icon> Data Management
+        </h3>
+        <div class="data-management-row">
+          <p class="u-text-secondary">
+            Populate your project history by pulling the last 3 months of data
+            from Clockify. This is a one-time action.
+          </p>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="onBackfillHistory()"
+            [disabled]="
+              isBackfilling() || !settingsExist() || !hasActiveProjects()
+            "
+          >
+            @if (isBackfilling()) {
+            <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+            <mat-icon>history</mat-icon>
+            <span>Backfill History</span>
+            }
+          </button>
+        </div>
 
         <div class="actions">
           @if (emailEditMode() && settingsExist()) {

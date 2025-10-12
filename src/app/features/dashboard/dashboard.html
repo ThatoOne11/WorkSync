@@ -1,6 +1,4 @@
 <div class="dashboard-container">
-  <h2>Dashboard</h2>
-
   <div class="dashboard-panels">
     <app-suggestions></app-suggestions>
     <app-today-focus></app-today-focus>
@@ -11,26 +9,43 @@
     @for (project of projects(); track project.id) {
     <mat-card
       class="project-card"
-      [class.over-paced]="project.balance >= 0"
-      [class.under-paced]="project.balance < 0"
+      [class.on-pace]="project.balance >= 0"
+      [class.falling-behind]="project.balance < 0"
     >
       <mat-card-header>
-        <mat-card-title>{{ project.name }}</mat-card-title>
+        <mat-card-title class="project-title">{{
+          project.name
+        }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <div class="project-stats">
-          <span>Allocated: {{ project.target_hours }} hrs</span>
-          <span>Logged: {{ project.loggedHours }} hrs</span>
+          <div class="stat-item">
+            <span class="stat-label">Allocated </span>
+            <span class="stat-value">{{ project.target_hours }} hrs</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Logged </span>
+            <span class="stat-value">{{ project.loggedHours }} hrs</span>
+          </div>
         </div>
 
-        <mat-progress-bar
-          mode="determinate"
-          [value]="(project.loggedHours / project.target_hours) * 100"
-        >
-        </mat-progress-bar>
+        <div class="progress-wrapper">
+          <div class="progress-label u-text-secondary">
+            Progress:
+            {{
+              (project.loggedHours / project.target_hours) * 100
+                | number : "1.0-0"
+            }}%
+          </div>
+          <mat-progress-bar
+            mode="determinate"
+            [value]="(project.loggedHours / project.target_hours) * 100"
+          >
+          </mat-progress-bar>
+        </div>
 
         <div class="balance-container">
-          <h3>Balance:</h3>
+          <span class="balance-label">Remaining</span>
           <span class="balance-value">{{ project.balance }} hrs</span>
         </div>
       </mat-card-content>
@@ -38,7 +53,7 @@
     }
   </div>
   } @else {
-  <p class="no-projects-message">
+  <p class="no-projects-message u-text-secondary">
     No active projects found. Go to the Projects page to add new ones.
   </p>
   }

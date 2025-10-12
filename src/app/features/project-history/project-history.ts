@@ -18,6 +18,7 @@ import {
   WeeklySummary,
 } from '../../core/services/historical-data.service';
 import { Project } from '../../core/models/project.model';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-project-history',
@@ -27,6 +28,7 @@ import { Project } from '../../core/models/project.model';
     MatDialogModule,
     MatTableModule,
     MatProgressSpinnerModule,
+    MatIconModule,
   ],
   templateUrl: './project-history.html',
 })

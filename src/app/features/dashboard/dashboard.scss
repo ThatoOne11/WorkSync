@@ -1,126 +1,154 @@
 .dashboard-container {
-  padding: 0 16px 16px 16px;
+  padding: 0;
 }
 
 // --- RESPONSIVE PANEL LAYOUT ---
 .dashboard-panels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 32px;
+  margin-bottom: 32px;
 }
 
-@media (max-width: 599px) {
-  .dashboard-container {
-    padding: 0 8px 8px 8px;
-  }
-
-  .dashboard-panels {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-}
-
-// --- THIS IS THE KEY FIX FOR MOBILE ---
-// On small screens (phones), switch to Flexbox for guaranteed vertical stacking.
-@media (max-width: 599px) {
-  .dashboard-container {
-    padding: 0 8px 8px 8px;
-  }
-
-  .dashboard-panels {
-    display: flex; // Use Flexbox
-    flex-direction: column; // Stack items vertically
-    gap: 16px;
-  }
-}
-// --- END OF FIX ---
-
-// --- CLEANER PROJECT CARD DESIGN ---
+// --- PROJECT CARD DESIGN (Data Widget Look) ---
 .project-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 32px;
 }
 
 .project-card {
-  border-top: 4px solid transparent;
-  transition: all 0.3s ease-in-out;
+  position: relative;
 
-  &.over-paced {
-    border-top-color: #4caf50; // Green
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 6px;
+    border-radius: var(--border-radius-base) 0 0 var(--border-radius-base);
+    transition: background-color 0.3s;
   }
-  &.under-paced {
-    border-top-color: #f44336; // Red
+
+  &.on-pace::before {
+    background-color: var(--color-success);
+  }
+
+  &.falling-behind::before {
+    background-color: var(--color-danger);
+  }
+
+  .project-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    letter-spacing: -0.5px;
   }
 
   .mat-mdc-card-header {
-    padding-bottom: 8px;
-  }
-
-  .mat-mdc-card-content {
-    padding-top: 8px;
+    margin-bottom: 24px;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
 
 .project-stats {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 0.9em;
-  color: #757575;
+  justify-content: space-around;
+  margin-bottom: 24px;
+
+  .stat-label {
+    font-size: 0.85em;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 1.1em;
+    font-weight: 400;
+    color: var(--color-text-primary);
+  }
 }
 
-.dark-theme .project-stats {
-  color: #bdbdbd;
+.progress-wrapper {
+  margin-bottom: 24px;
+
+  .progress-label {
+    font-size: 0.9em;
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: block;
+    letter-spacing: 0.5px;
+  }
 }
 
 mat-progress-bar {
-  height: 6px;
-  border-radius: 3px;
-  margin-bottom: 16px;
+  height: 10px;
+  border-radius: 5px;
+  .mat-mdc-progress-bar-primary {
+    --mdc-linear-progress-track-color: var(--color-border);
+    --mdc-linear-progress-active-indicator-color: var(--color-accent);
+  }
 }
 
 .balance-container {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  padding: 24px 0 0 0;
+  border-top: 1px dashed var(--color-border);
 
-  h3 {
-    margin: 0;
-    font-size: 1.1em;
-    font-weight: 500;
+  .balance-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
   }
 
   .balance-value {
-    font-size: 1.5em;
+    // FIX: Reduced font size for Balance
+    font-size: 2.2em;
     font-weight: 300;
+    line-height: 1;
+    color: var(--color-text-primary);
   }
 }
 
 .no-projects-message {
-  padding: 24px;
+  padding: 32px;
   text-align: center;
-  color: #757575;
+  color: var(--color-text-secondary);
 }
 
 // --- STYLES FOR TODAY'S FOCUS CARD ---
-.today-focus-card .mat-mdc-list-item-unscoped-content {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.focus-project-name {
-  font-weight: 500;
-}
-
 .focus-hours {
-  font-weight: bold;
-  color: #424242;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-size: 1.1em;
 }
 
-.dark-theme .focus-hours {
-  color: #e0e0e0;
+// --- RESPONSIVE ADJUSTMENTS ---
+@media (max-width: 599px) {
+  .dashboard-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .project-cards-container {
+    gap: 24px;
+  }
+  .project-card::before {
+    height: 4px;
+    width: 100%;
+    border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+  }
 }

@@ -1,51 +1,100 @@
 // --- MAIN LAYOUT & TYPOGRAPHY ---
 .sidenav-container {
-  height: calc(100vh - 64px); // Adjust for toolbar height
+  height: calc(100vh - 64px);
+  background-color: var(--color-background-default);
 }
 
 main {
-  padding: 24px;
+  padding: 32px;
 }
 
 .spacer {
   flex: 1 1 auto;
 }
 
-.mat-toolbar {
+// --- TOOLBAR (Flat Header) ---
+.app-toolbar {
   position: sticky;
   top: 0;
   z-index: 1000;
-  // Add a subtle border to separate toolbar from content
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  height: 64px;
+  background-color: var(--color-background-surface);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-ambient);
+  transition: all 0.2s;
 }
 
-.dark-theme .mat-toolbar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+.mat-toolbar.mat-primary {
+  background-color: var(--color-background-surface);
+  color: var(--color-text-primary);
+  .mat-icon,
+  .mat-icon-button {
+    color: var(--color-text-primary);
+  }
 }
 
-// --- SIDENAV REFINEMENT ---
-.mat-sidenav {
-  width: 230px;
-  // Add a subtle border to separate sidenav from content
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+.dark-theme .mat-toolbar.mat-primary {
+  background-color: var(--color-background-surface);
+  color: var(--color-text-primary);
+  .mat-icon,
+  .mat-icon-button {
+    color: var(--color-text-primary);
+  }
 }
 
-.dark-theme .mat-sidenav {
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+// --- SIDENAV REFINEMENT (Minimalist/Floating) ---
+.app-sidenav {
+  width: 280px;
+  border-right: none;
+  box-shadow: var(--shadow-key) !important;
+  padding-top: 24px;
+  background-color: var(--color-background-surface);
+}
+
+.mat-nav-list {
+  padding: 0 16px;
 }
 
 .mat-nav-list .mat-list-item {
+  height: 52px;
+  margin-bottom: 8px;
+  border-radius: var(--border-radius-base);
+  transition: all 0.2s;
+
   span {
-    padding-left: 20px; // Increase space between icon and text
+    padding-left: 20px;
+    font-weight: 500;
+    font-size: 1.05rem;
   }
 
-  // Improved active link indicator
+  .mat-icon {
+    opacity: 0.8;
+  }
+
+  // Active state: A subtle accent fill
   &.active {
-    color: var(--theme-accent-color); // Use the theme's red color
+    background-color: var(--color-accent) !important;
+    color: var(--color-background-surface) !important;
 
     .mat-icon {
-      color: var(--theme-accent-color);
+      color: var(--color-background-surface) !important;
+      opacity: 1;
     }
+  }
+
+  // Hover state (Not active): A subtle lifted effect
+  &:not(.active):hover {
+    background-color: rgba(var(--color-text-primary), 0.05);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -54,7 +103,13 @@ main {
   main {
     padding: 16px;
   }
-  .mat-sidenav {
-    width: 200px;
+  .app-sidenav {
+    width: 250px;
+  }
+  .app-toolbar {
+    height: 56px;
+  }
+  .sidenav-container {
+    height: calc(100vh - 56px);
   }
 }

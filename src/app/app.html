@@ -1,10 +1,10 @@
-<mat-toolbar color="primary">
+<mat-toolbar color="primary" class="app-toolbar">
   @if (isHandset) {
   <button mat-icon-button (click)="sidenav.toggle()">
     <mat-icon>menu</mat-icon>
   </button>
   }
-  <span>{{ title }}</span>
+  <span class="app-title">{{ title }}</span>
   <span class="spacer"></span>
   <button mat-icon-button (click)="themeService.toggleTheme()">
     <mat-icon>{{
@@ -18,6 +18,7 @@
     #sidenav
     [mode]="isHandset ? 'over' : 'side'"
     [opened]="!isHandset"
+    class="app-sidenav"
   >
     <mat-nav-list>
       <a

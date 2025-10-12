@@ -1,14 +1,17 @@
 <mat-card>
   <mat-card-header>
-    <mat-card-title>
-      <mat-icon>lightbulb</mat-icon>
+    <mat-card-title class="card-title">
+      <mat-icon color="accent">lightbulb_circle</mat-icon>
       Smart Suggestions
     </mat-card-title>
+    <mat-card-subtitle class="u-text-secondary"
+      >AI-powered insights to improve your work-life balance.</mat-card-subtitle
+    >
   </mat-card-header>
   <mat-card-content>
     @if (suggestions$ | async; as suggestions) { @if (suggestions.length > 0) {
-    <mat-list role="list">
-      @for (suggestion of suggestions; track suggestion) {
+    <mat-list role="list" dense>
+      @for (suggestion of suggestions; track $index) {
       <mat-list-item
         role="listitem"
         class="suggestion-item"
@@ -18,7 +21,7 @@
       }
     </mat-list>
     } @else {
-    <p>
+    <p class="u-text-secondary">
       No suggestions available right now. Keep tracking your time to generate
       new insights!
     </p>

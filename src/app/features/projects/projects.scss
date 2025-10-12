@@ -1,73 +1,102 @@
 .projects-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0;
 }
 
 h2 {
-  font-size: 2em;
+  font-size: 2.5em;
   font-weight: 300;
   margin: 0;
+  letter-spacing: -1px;
 }
 
 .header-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 40px;
+}
+
+// --- UNIQUE ROLLOVER BUTTON (Fun, Prominent) ---
+.rollover-button {
+  border-radius: 12px !important;
+  font-weight: 600;
+  padding: 10px 28px;
+  height: 52px;
+  letter-spacing: 0.75px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(244, 67, 54, 0.3);
+  }
 }
 
 // --- RESPONSIVE LAYOUT FOR FORM & LIST ---
 .projects-layout {
   display: grid;
-  grid-template-columns: 1fr 2fr; // Form takes 1/3, List takes 2/3
-  gap: 24px;
+  grid-template-columns: 1fr 2fr;
+  gap: 40px;
 }
 
-// On mobile, stack the cards vertically
 @media (max-width: 959px) {
   .projects-layout {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
 }
 
 // --- CARD STYLING ---
-.project-form-card,
-.project-list-card {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px !important;
-  box-shadow: none !important;
-}
-
-.dark-theme {
-  .project-form-card,
-  .project-list-card {
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-}
-
-// --- FORM & LIST SPECIFIC STYLES ---
-.project-form-card .mat-mdc-card-content {
-  display: flex;
-  flex-direction: column;
-
-  // Make form fields take full width
-  ::ng-deep .mat-mdc-form-field {
-    width: 100%;
-  }
-}
-
-.project-list-card .mat-mdc-card-content {
+.project-list-card .list-card-content {
   padding: 0 !important;
 }
 
 .no-projects-message {
-  padding: 24px;
+  padding: 32px;
   text-align: center;
-  color: #757575;
+  color: var(--color-text-secondary);
 }
 
-// Make the project list table responsive
+// --- PROJECT LIST TABLE STYLING (Aggressive Minimalist) ---
 ::ng-deep .mat-mdc-table {
   width: 100%;
+  border-radius: 0;
+  background-color: var(--color-background-surface) !important;
+
+  .mat-mdc-row,
+  .mat-mdc-header-row {
+    padding: 0 32px; // Match global card padding
+
+    .mat-mdc-cell:first-of-type,
+    .mat-mdc-header-cell:first-of-type {
+      padding-left: 0;
+    }
+    .mat-mdc-cell:last-of-type,
+    .mat-mdc-header-cell:last-of-type {
+      padding-right: 0;
+      text-align: right;
+    }
+  }
+
+  .mat-mdc-header-row {
+    border-color: var(--color-border);
+    border-bottom-width: 2px;
+  }
+
+  .mat-column-name {
+    font-weight: 600;
+    font-size: 1.1em;
+  }
+
+  .mat-column-actions {
+    min-width: 140px;
+    .mat-icon-button {
+      opacity: 0.8;
+      transition: opacity 0.15s;
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
 }
