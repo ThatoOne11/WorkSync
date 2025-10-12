@@ -67,8 +67,8 @@ function getWorkdaysInMonth(year: number, month: number): number {
 
 function getWeekOfMonth(date: Date): number {
   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  // Adjust date to the first day of the week (Sunday)
   const dayOfWeek = firstDayOfMonth.getDay();
+  // Adjust the date to the start of the week (Sunday)
   const adjustedDate = date.getDate() + dayOfWeek;
   return Math.ceil(adjustedDate / 7);
 }
@@ -540,8 +540,7 @@ serve(async (_req) => {
           );
         }
 
-        // FIX: The property is named 'summaries', not 'summariesForEmail'
-        const { weeklyStats, summaries } = processWeeklyData(
+        const { weeklyStats, summaries: summariesForEmail } = processWeeklyData(
           allMonthlyData,
           projects,
           endOfLastWeek
@@ -552,7 +551,7 @@ serve(async (_req) => {
         });
 
         const emailResult = await sendSummaryEmail(
-          summaries,
+          summariesForEmail,
           weeklyStats,
           allMonthlyData,
           user,
@@ -605,6 +604,9 @@ function processWeeklyData(
     0
   );
 
+  // Peak day and top project require re-processing time entries or passing them down.
+  // This is a simplified approach for demonstration. A more accurate implementation
+  // would require passing the raw time entries to this function.
   const projectTotalsWeek: Record<string, { name: string; logged: number }> =
     {};
   thisWeekData.forEach((s) => {
