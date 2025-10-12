@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core'; // Import computed
 import { ProjectService } from '../../core/services/project.service';
 import { ClockifyService } from '../../core/services/clockify.service';
 import { Project } from '../../core/models/project.model';
@@ -38,6 +38,16 @@ export class Projects implements OnInit {
   clockifyProjects = signal<ClockifyProject[]>([]);
   selectedProject = signal<Project | undefined>(undefined);
 
+  // FIX: Create a computed signal that filters out already added projects.
+  availableClockifyProjects = computed(() => {
+    const existingProjectIds = new Set(
+      this.projects().map((p) => p.clockify_project_id)
+    );
+    return this.clockifyProjects().filter(
+      (cp) => !existingProjectIds.has(cp.id)
+    );
+  });
+
   ngOnInit() {
     this.loadProjects();
     this.loadClockifyProjects();
@@ -50,21 +60,15 @@ export class Projects implements OnInit {
   }
 
   loadClockifyProjects() {
-    // 1. Fetch settings directly from the service (now synchronous)
     const settings = this.settingsService.getSettings();
-
-    // 2. Check for credentials
     if (settings && settings.apiKey && settings.workspaceId) {
-      // 3. Use the credentials to call ClockifyService
       this.clockifyService
         .getClockifyProjects(settings.apiKey, settings.workspaceId)
         .subscribe((projects: ClockifyProject[]) => {
           this.clockifyProjects.set(projects ?? []);
         });
     } else {
-      // If settings are missing, ensure the list is cleared
       this.clockifyProjects.set([]);
-      // The router guard should prevent the user from seeing this, but this is a safe fallback
     }
   }
 

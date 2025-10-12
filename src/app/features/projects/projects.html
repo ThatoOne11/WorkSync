@@ -17,7 +17,7 @@
       <mat-card-content>
         <app-project-form
           [project]="selectedProject()"
-          [clockifyProjects]="clockifyProjects()"
+          [clockifyProjects]="availableClockifyProjects()"
           (save)="onSaveProject($event)"
         />
       </mat-card-content>

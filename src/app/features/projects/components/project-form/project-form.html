@@ -4,7 +4,6 @@
   <mat-form-field appearance="fill">
     <mat-label>Select Clockify Project</mat-label>
     <mat-select formControlName="clockify_project_id">
-      <!-- Corrected formControlName -->
       @for (cp of clockifyProjects; track cp.id) {
       <mat-option [value]="cp.id">{{ cp.name }}</mat-option>
       }
@@ -13,11 +12,6 @@
     form.controls['clockify_project_id'].touched) {
     <mat-error>Clockify Project is required</mat-error>
     }
-  </mat-form-field>
-
-  <mat-form-field appearance="fill">
-    <mat-label>Project Name (from Clockify)</mat-label>
-    <input matInput formControlName="name" readonly />
   </mat-form-field>
 
   <mat-form-field appearance="fill">
