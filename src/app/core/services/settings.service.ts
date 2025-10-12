@@ -1,3 +1,4 @@
+// thatoone11/worksync/WorkSync-bd67a28866dbaadf83e92d302a1e77aca0512794/src/app/core/services/settings.service.ts
 import { Injectable, inject } from '@angular/core';
 import { from, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
@@ -54,6 +55,15 @@ export class SettingsService {
 
   // Saves the provided settings object to localStorage.
   async saveSettings(settings: AppSettings): Promise<void> {
+    // FIX: If both email toggles are false, clear the notificationEmail field before saving.
+    const isEmailDisabled =
+      !settings.enableEmailNotifications && !settings.enablePacingAlerts;
+
+    if (isEmailDisabled) {
+      settings.notificationEmail = '';
+    }
+    // END FIX
+
     const browserId = this.createOrGetBrowserId();
 
     // 1. Save to local storage for immediate UI use
