@@ -1,59 +1,70 @@
-# TempAngularProject
+[![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Deno](https://img.shields.io/badge/Deno-000000?style=for-the-badge&logo=deno&logoColor=white)](https://deno.land/)
+[![Clockify](https://img.shields.io/badge/Clockify-03A9F4?style=for-the-badge&logo=clockify&logoColor=white)](https://clockify.me/)
+[![Cloudflare Pages](https://img.shields.io/badge/Deployed_on_Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.4.
+# ⏰ WorkSync: Smart Project Pacing & Time Management
 
-## Development server
+WorkSync is an intelligent, multi-tenant dashboard application designed to help freelancers and teams maintain optimal work-life balance and meet project deadlines. It connects directly to your Clockify account to provide daily focus recommendations and monthly pacing alerts based on your allocated hours.
 
-To start a local development server, run:
+## Key Features
 
-```bash
-ng serve
+- Daily Focus Calculation: Computes the exact hours you need to log for each project today to ensure you remain on track for your monthly target.
+
+- Smart Suggestions & Pacing Alerts: Provides AI-powered, real-time insights and email alerts if your current time-logging rate projects you to be significantly over or under budget for a project.
+
+- Weekly Summary Emails: Automatically generates and emails a detailed report of the previous week's performance, including peak productivity days and overall monthly status.
+
+- Project History: Visualizes historical weekly summaries for any project, allowing you to track consistency and allocation over time (using Chart.js).
+
+- Monthly Rollover: A one-click process on the Projects page to archive all current projects and start fresh for a new billing cycle.
+
+## 🛠️ Local Development Setup
+
+### Prerequisites
+
+Please ensure you have the following installed:
+
+- Node.js (v18+)
+
+- Angular (v20+)
+
+- Supabase CLI
+
+- Deno (for running Supabase Edge Functions locally)
+
+### Step 1: Clone and Install Dependencies
+
+```
+# Clone the repository
+git clone <repository-url> worksync
+cd worksync
+
+# Install Angular and project dependencies
+npm install
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+### Step 2: Configure Supabase Local Environment
 
-## Code scaffolding
+The Angular application's environment is configured to connect to a local Supabase instance running via the CLI.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+1. Start Supabase services:
 
-```bash
-ng generate component component-name
-```
+   `supabase start`
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+2. Run Migrations: Apply all the necessary schema changes (including the settings table fix, and the multi-tenancy implementation):
 
-```bash
-ng generate --help
-```
+   `supabase migration up`
 
-## Building
+3. Serve Edge Functions: Serve the local functions so the Angular app can communicate with the backend logic (pacing, suggestions, etc.):
 
-To build the project run:
+   `supabase functions serve`
 
-```bash
-ng build
-```
+### Step 3: Run the Angular Frontend
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Open a new terminal window and run the Angular development server:
 
-## Running unit tests
+`ng serve`
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The application will be accessible at http://localhost:4200/.
