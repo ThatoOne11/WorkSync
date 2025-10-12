@@ -1,6 +1,6 @@
 // thatoone11/worksync/WorkSync-bd67a28866dbaadf83e92d302a1e77aca0512794/src/app/core/services/settings.service.ts
 import { Injectable, inject } from '@angular/core';
-import { from, Observable } from 'rxjs';
+import { from } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 
 export interface AppSettings {
@@ -62,7 +62,10 @@ export class SettingsService {
     if (isEmailDisabled) {
       settings.notificationEmail = '';
     }
-    // END FIX
+
+    if (settings.notificationEmail) {
+      settings.notificationEmail = settings.notificationEmail.toLowerCase();
+    }
 
     const browserId = this.createOrGetBrowserId();
 
