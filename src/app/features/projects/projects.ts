@@ -38,7 +38,6 @@ export class Projects implements OnInit {
   clockifyProjects = signal<ClockifyProject[]>([]);
   selectedProject = signal<Project | undefined>(undefined);
 
-  // FIX: Create a computed signal that filters out already added projects.
   availableClockifyProjects = computed(() => {
     const existingProjectIds = new Set(
       this.projects().map((p) => p.clockify_project_id)
@@ -89,6 +88,10 @@ export class Projects implements OnInit {
       this.loadProjects();
       this.selectedProject.set(undefined);
     });
+  }
+
+  onCancelEdit() {
+    this.selectedProject.set(undefined);
   }
 
   onNewProject() {

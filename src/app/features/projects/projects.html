@@ -19,6 +19,7 @@
           [project]="selectedProject()"
           [clockifyProjects]="availableClockifyProjects()"
           (save)="onSaveProject($event)"
+          (cancel)="onCancelEdit()"
         />
       </mat-card-content>
     </mat-card>

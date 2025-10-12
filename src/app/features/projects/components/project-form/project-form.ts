@@ -37,6 +37,7 @@ export class ProjectForm implements OnChanges {
   @Input() project?: Project;
   @Input() clockifyProjects: { id: string; name: string }[] = [];
   @Output() save = new EventEmitter<Partial<Project>>();
+  @Output() cancel = new EventEmitter<void>();
 
   form: FormGroup;
 
@@ -51,8 +52,10 @@ export class ProjectForm implements OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['project'] && this.project) {
       this.form.patchValue(this.project);
+      this.form.get('clockify_project_id')?.disable();
     } else if (changes['project'] && !this.project) {
       this.form.reset();
+      this.form.get('clockify_project_id')?.enable();
     }
   }
 
@@ -65,13 +68,10 @@ export class ProjectForm implements OnChanges {
 
       const projectToSave: Partial<Project> = formValue.id
         ? {
-            // When updating, we only need to send the changed values
             id: formValue.id,
             target_hours: formValue.target_hours,
-            // The name and clockify_project_id are not editable on update
           }
         : {
-            // When creating, we derive the name from the selection
             name: selectedProject?.name,
             target_hours: formValue.target_hours,
             clockify_project_id: formValue.clockify_project_id,
@@ -80,5 +80,9 @@ export class ProjectForm implements OnChanges {
       this.save.emit(projectToSave);
       this.form.reset();
     }
+  }
+
+  onCancel() {
+    this.cancel.emit();
   }
 }
