@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   OnDestroy,
   OnInit,
+  ViewChild,
   inject,
   signal,
 } from '@angular/core';
@@ -51,6 +53,8 @@ import { Project } from '../../core/models/project.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Settings implements OnInit, OnDestroy {
+  @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
+
   private fb = inject(FormBuilder);
   private clockifyService = inject(ClockifyService);
   private settingsService = inject(SettingsService);
@@ -65,6 +69,7 @@ export class Settings implements OnInit, OnDestroy {
   protected isTestingEmail = signal(false);
   protected isFetchingUserId = signal(false);
   protected hasActiveProjects = signal(false);
+  protected emailEditMode = signal(false);
 
   constructor() {
     this.form = this.fb.group({
@@ -93,7 +98,6 @@ export class Settings implements OnInit, OnDestroy {
     const emailField = this.form.get('notificationEmail');
 
     if (weeklySummaryToggle && pacingAlertsToggle && emailField) {
-      // FIX: Use combineLatest to listen to changes on BOTH toggles.
       combineLatest([
         weeklySummaryToggle.valueChanges.pipe(
           startWith(weeklySummaryToggle.value)
@@ -104,11 +108,9 @@ export class Settings implements OnInit, OnDestroy {
       ])
         .pipe(takeUntil(this.destroy$))
         .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
-          // If either toggle is on, the email field is required.
           if (isWeeklyEnabled || isPacingEnabled) {
             emailField.setValidators([Validators.required, Validators.email]);
           } else {
-            // If both are off, clear the required validator.
             emailField.clearValidators();
             emailField.addValidators([Validators.email]);
           }
@@ -125,13 +127,27 @@ export class Settings implements OnInit, OnDestroy {
       this.form.get('workspaceId')?.disable();
       this.form.get('userId')?.disable();
       this.settingsExist.set(true);
+      this.emailEditMode.set(!settings.notificationEmail);
     } else {
       this.form.enable();
       this.form.get('userId')?.disable();
       this.settingsExist.set(false);
+      this.emailEditMode.set(true);
     }
     this.checkActiveProjects();
     this.form.markAsPristine();
+  }
+
+  toggleEmailEdit(): void {
+    if (this.emailEditMode()) {
+      const originalEmail =
+        this.settingsService.getSettings()?.notificationEmail || '';
+      this.form.get('notificationEmail')?.setValue(originalEmail);
+    }
+    this.emailEditMode.update((v) => !v);
+    if (this.emailEditMode()) {
+      setTimeout(() => this.emailInput.nativeElement.focus(), 0);
+    }
   }
 
   private checkActiveProjects(): void {
@@ -163,14 +179,12 @@ export class Settings implements OnInit, OnDestroy {
 
   async onReset() {
     await this.settingsService.clearSettings();
-
     this.form.reset({
       userId: { value: '', disabled: true },
       enableEmailNotifications: false,
       enablePacingAlerts: false,
     });
-
-    this.loadSettings(); // This will now correctly show the initial setup screen
+    this.loadSettings();
     this.hasActiveProjects.set(false);
     this.snackBar.open(
       'All your data has been cleared from this browser and the server.',

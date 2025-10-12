@@ -42,7 +42,7 @@
 
         <div class="user-id-row">
           <mat-form-field appearance="fill">
-            <mat-label>Clockify User ID (read-only)</mat-label>
+            <mat-label>Clockify User ID</mat-label>
             <input matInput type="text" formControlName="userId" readonly />
           </mat-form-field>
           <button
@@ -105,7 +105,7 @@
 
         @if (form.get('enableEmailNotifications')?.value ||
         form.get('enablePacingAlerts')?.value) {
-        <div class="email-actions">
+        <div class="email-section">
           <mat-form-field appearance="fill">
             <mat-label>Notification Email</mat-label>
             <input
@@ -113,16 +113,30 @@
               type="email"
               formControlName="notificationEmail"
               required
+              [readonly]="!emailEditMode()"
+              #emailInput
             />
             @if (form.get('notificationEmail')?.hasError('email') &&
             form.get('notificationEmail')?.touched) {
             <mat-error>Please enter a valid email address</mat-error>
+            } @if (!emailEditMode()) {
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="toggleEmailEdit()"
+              [disabled]="!settingsExist()"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
             }
           </mat-form-field>
+
           <button
             mat-stroked-button
             color="accent"
             type="button"
+            class="test-email-button"
             (click)="onTestEmail()"
             [disabled]="isTestingEmail() || !settingsExist()"
           >
@@ -136,6 +150,11 @@
         }
 
         <div class="actions">
+          @if (emailEditMode() && settingsExist()) {
+          <button mat-stroked-button type="button" (click)="toggleEmailEdit()">
+            Cancel
+          </button>
+          }
           <button
             mat-raised-button
             color="primary"

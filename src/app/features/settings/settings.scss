@@ -61,3 +61,11 @@ mat-slide-toggle {
   margin-top: 32px;
   text-align: right;
 }
+
+.actions {
+  margin-top: 32px;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px; // This provides spacing for the new cancel button
+}
