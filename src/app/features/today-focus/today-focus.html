@@ -18,9 +18,14 @@
       </mat-list-item>
       }
     </mat-list>
+    } @else { @if (isWeekend()) {
+    <p>
+      It's the weekend! No required focus today. The daily pace will adjust on
+      Monday.
+    </p>
     } @else {
     <p>All projects are on track. No specific focus required today!</p>
-    } } @else {
+    } } } @else {
     <mat-spinner diameter="30"></mat-spinner>
     }
   </mat-card-content>

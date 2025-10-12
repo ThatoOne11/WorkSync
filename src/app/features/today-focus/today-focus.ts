@@ -28,11 +28,17 @@ export class TodayFocusComponent {
   private todayFocusService = inject(TodayFocusService);
   protected focusList$: Observable<FocusProject[]>;
 
+  // helper to check if today is a weekend
+  protected isWeekend(): boolean {
+    const day = new Date().getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  }
+
   constructor() {
     this.focusList$ = this.todayFocusService.getTodaysFocus().pipe(
       catchError((err) => {
         console.error("Error fetching today's focus:", err);
-        return of([]); // Return empty array on error
+        return of([]);
       })
     );
   }

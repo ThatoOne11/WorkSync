@@ -70,6 +70,19 @@ serve(async (req) => {
     if (projectsError) throw projectsError;
 
     const today = new Date();
+
+    // Determine if today is a weekend (0=Sunday, 6=Saturday)
+    const dayOfWeek = today.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // If it's a weekend, the daily focus is zero. We still return the list, but with 0 hours.
+    if (isWeekend) {
+      return new Response(JSON.stringify({ focusList: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     const startOfMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
