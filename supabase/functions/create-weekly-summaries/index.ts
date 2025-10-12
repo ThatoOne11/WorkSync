@@ -84,7 +84,7 @@ async function sendSummaryEmail(
     )
     .join('');
 
-  // --- Overall Insight Content Generation FIX ---
+  //Overall Insight Content Generation
   let overallBalanceValue = Math.abs(weeklyStats.overallBalance).toFixed(2);
   let insightText = '';
 
@@ -102,7 +102,6 @@ async function sendSummaryEmail(
       2
     )} hours this week, staying perfectly aligned with your monthly targets! Excellent consistency and balance this period.`;
   }
-  // --- END FIX ---
 
   const htmlBody = `
     <!DOCTYPE html>
@@ -266,247 +265,265 @@ serve(async (req) => {
   }
 
   try {
+    // 1. Initialize Supabase Client with SERVICE_ROLE_KEY for admin access
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { settings, browserId } = await req.json();
-    if (!settings || !browserId) {
-      throw new Error(
-        'Settings or Browser ID were not provided in the request body.'
-      );
-    }
+    // 2. Fetch all settings data to process all users who have notifications enabled.
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('settings')
+      .select('key, value, user_id');
 
-    const {
-      apiKey: clockifyApiKey,
-      workspaceId: clockifyWorkspaceId,
-      userId: clockifyUserId,
-    } = settings;
+    if (settingsError) throw settingsError;
 
-    if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
-      return new Response(
-        JSON.stringify({
-          error: 'Clockify settings are not configured.',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      );
-    }
+    // Convert flat settings data into a user object map
+    const users = settingsData.reduce((acc, { key, value, user_id }) => {
+      acc[user_id] = acc[user_id] || { user_id };
+      acc[user_id][key] = value;
+      return acc;
+    }, {} as Record<string, any>);
 
-    const { data: projects, error: projectsError } = await supabase
-      .from('projects')
-      .select('id, name, clockify_project_id, target_hours')
-      .eq('user_id', browserId);
+    let globalMessages: string[] = [];
 
-    if (projectsError) throw projectsError;
-
-    if (!projects || projects.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No active projects found for this user.' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    const today = new Date();
-    // 1. Define last week's boundaries
-    const endOfLastWeek = new Date(
-      today.setDate(today.getDate() - today.getDay())
-    );
-    endOfLastWeek.setHours(23, 59, 59, 999);
-
-    const startOfLastWeek = new Date(endOfLastWeek);
-    startOfLastWeek.setDate(startOfLastWeek.getDate() - 6);
-    startOfLastWeek.setHours(0, 0, 0, 0);
-
-    // 2. Define month-to-date boundaries (MTD)
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    // --- API Calls ---
-
-    // API Call 1: Fetch data for the last week (for Peak Day/Top Project)
-    const weekStart = startOfLastWeek.toISOString();
-    const weekEnd = endOfLastWeek.toISOString();
-
-    const clockifyUrlWeek = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${weekStart}&end=${weekEnd}&page-size=1000`;
-    const clockifyResponseWeek = await fetch(clockifyUrlWeek, {
-      headers: { 'X-Api-Key': clockifyApiKey },
-    });
-    if (!clockifyResponseWeek.ok) {
-      throw new Error(
-        `Clockify API error (Weekly): ${await clockifyResponseWeek.text()}`
-      );
-    }
-    const timeEntriesWeek = await clockifyResponseWeek.json();
-
-    // API Call 2: Fetch data from start of month to end of last week (for Overall Status/Balance)
-    const monthStart = startOfMonth.toISOString();
-    const clockifyUrlMonth = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${monthStart}&end=${weekEnd}&page-size=5000`;
-    const clockifyResponseMonth = await fetch(clockifyUrlMonth, {
-      headers: { 'X-Api-Key': clockifyApiKey },
-    });
-    if (!clockifyResponseMonth.ok) {
-      throw new Error(
-        `Clockify API error (Monthly): ${await clockifyResponseMonth.text()}`
-      );
-    }
-    const timeEntriesMonth = await clockifyResponseMonth.json();
-
-    // --- Calculation ---
-
-    let totalLoggedHoursWeek = 0;
-    let totalLoggedHoursMonth = 0;
-    let totalTargetHours = 0;
-    const dailyLoggedHours: Record<string, number> = {};
-    const dayNames = [
-      'Sunday',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-    ];
-    const projectTotalHoursWeek: Record<
-      string,
-      { name: string; logged: number }
-    > = {};
-    const projectTotalHoursMonth: Record<string, number> = {};
-
-    projects.forEach((project) => {
-      totalTargetHours += project.target_hours;
-
-      // Calculate Monthly Logged Hours
-      const projectTimeEntriesMonth = timeEntriesMonth.filter(
-        (te: any) => te.projectId === project.clockify_project_id
-      );
-      const totalDurationSecondsMonth = projectTimeEntriesMonth.reduce(
-        (acc: number, te: any) =>
-          acc + parseISO8601Duration(te.timeInterval.duration),
-        0
-      );
-      projectTotalHoursMonth[project.clockify_project_id!] =
-        totalDurationSecondsMonth / 3600;
-      totalLoggedHoursMonth +=
-        projectTotalHoursMonth[project.clockify_project_id!];
-
-      // Calculate Weekly Logged Hours & Daily Breakdown
-      const projectTimeEntriesWeek = timeEntriesWeek.filter(
-        (te: any) => te.projectId === project.clockify_project_id
-      );
-      const totalDurationSecondsWeek = projectTimeEntriesWeek.reduce(
-        (acc: number, te: any) => {
-          const duration = parseISO8601Duration(te.timeInterval.duration);
-
-          // Track daily totals for Peak Day calculation
-          const entryDate = new Date(te.timeInterval.start);
-          const dayIndex = entryDate.getDay();
-          const dayName = dayNames[dayIndex];
-          dailyLoggedHours[dayName] =
-            (dailyLoggedHours[dayName] || 0) + duration / 3600;
-
-          return acc + duration;
-        },
-        0
-      );
-
-      const loggedHoursWeek = totalDurationSecondsWeek / 3600;
-      totalLoggedHoursWeek += loggedHoursWeek;
-      projectTotalHoursWeek[project.clockify_project_id!] = {
-        name: project.name,
-        logged: loggedHoursWeek,
-      };
-    });
-
-    // --- Summaries (Table Data) ---
-    const week_ending_on = endOfLastWeek.toISOString().split('T')[0];
-
-    const summaries = projects.map((project) => {
-      const loggedHours =
-        projectTotalHoursWeek[project.clockify_project_id!].logged;
-
-      return {
-        project_id: project.id,
-        project_name: project.name,
-        target_hours: project.target_hours, // Display monthly target in weekly table
-        logged_hours: loggedHours,
-        balance: project.target_hours - loggedHours, // Display balance against monthly target
-        week_ending_on: week_ending_on,
-        user_id: browserId,
-      };
-    });
-
-    // --- Weekly Stats (Peak Day/Top Project) ---
-    let peakDay = 'N/A';
-    let peakHours = 0;
-    for (const [day, hours] of Object.entries(dailyLoggedHours)) {
-      if (hours > peakHours) {
-        peakHours = hours;
-        peakDay = day;
+    // 3. Iterate through each user
+    for (const user of Object.values(users)) {
+      // Skip users who do not have email notifications enabled
+      if (user.enableEmailNotifications !== 'true' || !user.notificationEmail) {
+        globalMessages.push(
+          `Skipping user ${user.user_id}: Email notifications disabled.`
+        );
+        continue;
       }
-    }
 
-    let topProject = 'N/A';
-    let topProjectHours = 0;
-    Object.values(projectTotalHoursWeek).forEach((p) => {
-      if (p.logged > topProjectHours) {
-        topProjectHours = p.logged;
-        topProject = p.name;
+      const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = user;
+      const browserId = user.user_id; // Use the stored user_id as the browserId for DB operations
+
+      if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
+        globalMessages.push(
+          `Skipping user ${user.user_id}: Clockify credentials missing.`
+        );
+        continue;
       }
-    });
 
-    // --- Monthly Status ---
-    const overallBalance = totalTargetHours - totalLoggedHoursMonth;
-    let overallStatus: 'On Pace' | 'Over Shooting' | 'Under Shooting';
-    if (Math.abs(overallBalance) < 0.05 * totalTargetHours) {
-      // 5% tolerance for "On Pace"
-      overallStatus = 'On Pace';
-    } else if (overallBalance < 0) {
-      overallStatus = 'Over Shooting';
-    } else {
-      overallStatus = 'Under Shooting';
-    }
+      // 4. Get user's projects
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name, clockify_project_id, target_hours')
+        .eq('is_archived', false)
+        .eq('user_id', browserId); // Filter by user_id
 
-    const weeklyStats: WeeklyStats = {
-      weeklyLoggedHours: totalLoggedHoursWeek,
-      totalTargetHours: totalTargetHours,
-      overallBalance: overallBalance,
-      overallStatus: overallStatus,
-      peakDay: peakDay,
-      peakHours: peakHours,
-      topProject: topProject,
-      topProjectShare:
-        totalLoggedHoursWeek > 0
-          ? (topProjectHours / totalLoggedHoursWeek) * 100
-          : 0,
-    };
+      if (projectsError || !projects || projects.length === 0) {
+        globalMessages.push(
+          `Skipping user ${user.user_id}: No active projects found.`
+        );
+        continue;
+      }
 
-    const summariesToInsert = summaries.map(
-      ({ project_name, balance, ...rest }) => rest
-    );
+      // --- Date setup ---
+      const today = new Date();
+      // 1. Define last week's boundaries
+      const endOfLastWeek = new Date(
+        today.setDate(today.getDate() - today.getDay())
+      );
+      endOfLastWeek.setHours(23, 59, 59, 999);
 
-    const { error: insertError } = await supabase
-      .from('weekly_summaries')
-      .upsert(summariesToInsert, { onConflict: 'project_id,week_ending_on' });
+      const startOfLastWeek = new Date(endOfLastWeek);
+      startOfLastWeek.setDate(startOfLastWeek.getDate() - 6);
+      startOfLastWeek.setHours(0, 0, 0, 0);
 
-    if (insertError) throw insertError;
+      // 2. Define month-to-date boundaries (MTD)
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
 
-    const emailResult = await sendSummaryEmail(
-      summaries,
-      weeklyStats,
-      settings,
-      endOfLastWeek
-    );
+      // --- API Calls ---
+      const weekStart = startOfLastWeek.toISOString();
+      const weekEnd = endOfLastWeek.toISOString();
+      const monthStart = startOfMonth.toISOString();
+
+      // Fetch data for the last week (for Peak Day/Top Project)
+      const clockifyUrlWeek = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${weekStart}&end=${weekEnd}&page-size=1000`;
+      const clockifyResponseWeek = await fetch(clockifyUrlWeek, {
+        headers: { 'X-Api-Key': clockifyApiKey },
+      });
+      if (!clockifyResponseWeek.ok) {
+        throw new Error(
+          `Clockify API error (Weekly) for user ${
+            user.user_id
+          }: ${await clockifyResponseWeek.text()}`
+        );
+      }
+      const timeEntriesWeek = await clockifyResponseWeek.json();
+
+      // Fetch data from start of month to end of last week (for Overall Status/Balance)
+      const clockifyUrlMonth = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${monthStart}&end=${weekEnd}&page-size=5000`;
+      const clockifyResponseMonth = await fetch(clockifyUrlMonth, {
+        headers: { 'X-Api-Key': clockifyApiKey },
+      });
+      if (!clockifyResponseMonth.ok) {
+        throw new Error(
+          `Clockify API error (Monthly) for user ${
+            user.user_id
+          }: ${await clockifyResponseMonth.text()}`
+        );
+      }
+      const timeEntriesMonth = await clockifyResponseMonth.json();
+
+      // --- Calculation ---
+      let totalLoggedHoursWeek = 0;
+      let totalLoggedHoursMonth = 0;
+      let totalTargetHours = 0;
+      const dailyLoggedHours: Record<string, number> = {};
+      const dayNames = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
+      const projectTotalHoursWeek: Record<
+        string,
+        { name: string; logged: number }
+      > = {};
+      const projectTotalHoursMonth: Record<string, number> = {};
+
+      projects.forEach((project) => {
+        totalTargetHours += project.target_hours;
+
+        // Calculate Monthly Logged Hours
+        const projectTimeEntriesMonth = timeEntriesMonth.filter(
+          (te: any) => te.projectId === project.clockify_project_id
+        );
+        const totalDurationSecondsMonth = projectTimeEntriesMonth.reduce(
+          (acc: number, te: any) =>
+            acc + parseISO8601Duration(te.timeInterval.duration),
+          0
+        );
+        projectTotalHoursMonth[project.clockify_project_id!] =
+          totalDurationSecondsMonth / 3600;
+        totalLoggedHoursMonth +=
+          projectTotalHoursMonth[project.clockify_project_id!];
+
+        // Calculate Weekly Logged Hours & Daily Breakdown
+        const projectTimeEntriesWeek = timeEntriesWeek.filter(
+          (te: any) => te.projectId === project.clockify_project_id
+        );
+        const totalDurationSecondsWeek = projectTimeEntriesWeek.reduce(
+          (acc: number, te: any) => {
+            const duration = parseISO8601Duration(te.timeInterval.duration);
+
+            // Track daily totals for Peak Day calculation
+            const entryDate = new Date(te.timeInterval.start);
+            const dayIndex = entryDate.getDay();
+            const dayName = dayNames[dayIndex];
+            dailyLoggedHours[dayName] =
+              (dailyLoggedHours[dayName] || 0) + duration / 3600;
+
+            return acc + duration;
+          },
+          0
+        );
+
+        const loggedHoursWeek = totalDurationSecondsWeek / 3600;
+        totalLoggedHoursWeek += loggedHoursWeek;
+        projectTotalHoursWeek[project.clockify_project_id!] = {
+          name: project.name,
+          logged: loggedHoursWeek,
+        };
+      });
+
+      // --- Summaries (Table Data) ---
+      const week_ending_on = endOfLastWeek.toISOString().split('T')[0];
+
+      const summaries = projects.map((project) => {
+        const loggedHours =
+          projectTotalHoursWeek[project.clockify_project_id!].logged;
+
+        return {
+          project_id: project.id,
+          project_name: project.name,
+          target_hours: project.target_hours, // Display monthly target in weekly table
+          logged_hours: loggedHours,
+          balance: project.target_hours - loggedHours, // Display balance against monthly target
+          week_ending_on: week_ending_on,
+          user_id: browserId,
+        };
+      });
+
+      // --- Weekly Stats (Peak Day/Top Project) ---
+      let peakDay = 'N/A';
+      let peakHours = 0;
+      for (const [day, hours] of Object.entries(dailyLoggedHours)) {
+        if (hours > peakHours) {
+          peakHours = hours;
+          peakDay = day;
+        }
+      }
+
+      let topProject = 'N/A';
+      let topProjectHours = 0;
+      Object.values(projectTotalHoursWeek).forEach((p) => {
+        if (p.logged > topProjectHours) {
+          topProjectHours = p.logged;
+          topProject = p.name;
+        }
+      });
+
+      // --- Monthly Status ---
+      const overallBalance = totalTargetHours - totalLoggedHoursMonth;
+      let overallStatus: 'On Pace' | 'Over Shooting' | 'Under Shooting';
+      if (totalTargetHours === 0) {
+        overallStatus = 'On Pace';
+      } else if (Math.abs(overallBalance) < 0.05 * totalTargetHours) {
+        // 5% tolerance for "On Pace"
+        overallStatus = 'On Pace';
+      } else if (overallBalance < 0) {
+        overallStatus = 'Over Shooting';
+      } else {
+        overallStatus = 'Under Shooting';
+      }
+
+      const weeklyStats: WeeklyStats = {
+        weeklyLoggedHours: totalLoggedHoursWeek,
+        totalTargetHours: totalTargetHours,
+        overallBalance: overallBalance,
+        overallStatus: overallStatus,
+        peakDay: peakDay,
+        peakHours: peakHours,
+        topProject: topProject,
+        topProjectShare:
+          totalLoggedHoursWeek > 0
+            ? (topProjectHours / totalLoggedHoursWeek) * 100
+            : 0,
+      };
+
+      const summariesToInsert = summaries.map(
+        ({ project_name, balance, ...rest }) => rest
+      );
+
+      const { error: insertError } = await supabase
+        .from('weekly_summaries')
+        .upsert(summariesToInsert, { onConflict: 'project_id,week_ending_on' });
+
+      if (insertError) throw insertError;
+
+      const emailResult = await sendSummaryEmail(
+        summaries,
+        weeklyStats,
+        user as Record<string, string>, // Pass the full user settings object
+        endOfLastWeek
+      );
+
+      globalMessages.push(emailResult);
+    } // End of user loop
 
     return new Response(
       JSON.stringify({
-        message: `Successfully created ${summaries.length} summaries. ${emailResult}`,
+        message: 'Weekly summary scheduler completed.',
+        details: globalMessages,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
