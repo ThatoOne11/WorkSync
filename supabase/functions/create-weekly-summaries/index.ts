@@ -67,9 +67,10 @@ function getWorkdaysInMonth(year: number, month: number): number {
 
 function getWeekOfMonth(date: Date): number {
   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const firstDayOfWeek = firstDayOfMonth.getDay();
-  const offsetDate = date.getDate() + firstDayOfWeek - 1;
-  return Math.floor(offsetDate / 7) + 1;
+  // Adjust date to the first day of the week (Sunday)
+  const dayOfWeek = firstDayOfMonth.getDay();
+  const adjustedDate = date.getDate() + dayOfWeek;
+  return Math.ceil(adjustedDate / 7);
 }
 
 function parseISO8601Duration(duration: string): number {
@@ -88,9 +89,9 @@ function parseISO8601Duration(duration: string): number {
 
 // --- EMAIL GENERATION ---
 async function sendSummaryEmail(
-  summaries: ProjectSummary[],
+  summariesForEmail: ProjectSummary[],
   weeklyStats: WeeklyStats,
-  historicalData: ProjectSummary[],
+  allMonthlyData: ProjectSummary[],
   settings: User,
   weekEndingDate: Date
 ) {
@@ -102,9 +103,6 @@ async function sendSummaryEmail(
     !notificationEmail ||
     !resendApiKey
   ) {
-    console.log(
-      `Skipping email for ${settings.user_id}: Notifications disabled, no email, or no Resend key.`
-    );
     return 'Email notifications are disabled or not configured. Skipping email.';
   }
 
@@ -113,7 +111,6 @@ async function sendSummaryEmail(
     month: 'long',
     day: 'numeric',
   });
-
   const weekNumber = getWeekOfMonth(weekEndingDate);
   const isLastWeekOfMonth =
     new Date(
@@ -124,7 +121,6 @@ async function sendSummaryEmail(
       weekEndingDate.getDate() <
     7;
 
-  // --- DYNAMIC EMAIL CONTENT ---
   const BRAND_ACCENT = '#79A9D1';
   const PRIMARY_TEXT = '#333333';
   const SECONDARY_TEXT = '#666666';
@@ -135,7 +131,6 @@ async function sendSummaryEmail(
   const DANGER_COLOR = '#F44336';
   const INFO_COLOR = '#2196F3';
 
-  // --- Insight Text Update ---
   const weeklyBalanceAbs = Math.abs(weeklyStats.weeklyBalance).toFixed(2);
   let insightText = '';
   if (weeklyStats.weeklyBalance < 0) {
@@ -157,64 +152,51 @@ async function sendSummaryEmail(
   }
   insightText += ' Use this week’s daily focus report to bridge the gap.';
 
-  // --- Dynamic Table Generation ---
   let tableHeaders = '';
   let tableRows = '';
 
   if (isLastWeekOfMonth) {
     tableHeaders = `
-        <th style="padding: 10px 20px; text-align: left; font-weight: 700;">Project</th>
-        <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Monthly Allocation (H)</th>
-        <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Total Logged (H)</th>
-        <th style="padding: 10px 20px; text-align: right; font-weight: 700;">Final Balance</th>
-    `;
-
-    const monthlyTotals: Record<number, { logged: number }> = {};
-    [...historicalData, ...summaries].forEach((s) => {
-      monthlyTotals[s.project_id] = monthlyTotals[s.project_id] || {
-        logged: 0,
-      };
-      monthlyTotals[s.project_id].logged += s.logged_hours;
-    });
-
-    tableRows = summaries
+          <th style="padding: 10px 20px; text-align: left; font-weight: 700;">Project</th>
+          <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Monthly Allocation (H)</th>
+          <th style="padding: 10px 20px; text-align: center; font-weight: 700;">Total Logged (H)</th>
+          <th style="padding: 10px 20px; text-align: right; font-weight: 700;">Final Balance</th>
+      `;
+    tableRows = summariesForEmail
       .map((s) => {
-        const totalLogged = monthlyTotals[s.project_id]?.logged || 0;
+        const totalLogged = allMonthlyData
+          .filter((d) => d.project_id === s.project_id)
+          .reduce((acc, cur) => acc + cur.logged_hours, 0);
         const finalBalance = s.target_hours - totalLogged;
         return `
-            <tr>
-                <td style="padding: 14px 20px; font-weight: 500; border-bottom: 1px solid ${DIVIDER_COLOR};">${
+              <tr>
+                  <td style="padding: 14px 20px; font-weight: 500; border-bottom: 1px solid ${DIVIDER_COLOR};">${
           s.project_name
         }</td>
-                <td style="padding: 14px 20px; text-align: center; border-bottom: 1px solid ${DIVIDER_COLOR};">${s.target_hours.toFixed(
+                  <td style="padding: 14px 20px; text-align: center; border-bottom: 1px solid ${DIVIDER_COLOR};">${s.target_hours.toFixed(
           2
         )}</td>
-                <td style="padding: 14px 20px; text-align: center; font-weight: 600; border-bottom: 1px solid ${DIVIDER_COLOR};">${totalLogged.toFixed(
+                  <td style="padding: 14px 20px; text-align: center; font-weight: 600; border-bottom: 1px solid ${DIVIDER_COLOR};">${totalLogged.toFixed(
           2
         )}</td>
-                <td style="padding: 14px 20px; text-align: right; font-weight: 700; color: ${
-                  finalBalance >= 0 ? SUCCESS_COLOR : DANGER_COLOR
-                }; border-bottom: 1px solid ${DIVIDER_COLOR};">${
+                  <td style="padding: 14px 20px; text-align: right; font-weight: 700; color: ${
+                    finalBalance >= 0 ? SUCCESS_COLOR : DANGER_COLOR
+                  }; border-bottom: 1px solid ${DIVIDER_COLOR};">${
           (finalBalance >= 0 ? '+' : '') + finalBalance.toFixed(2)
         }</td>
-            </tr>
-        `;
+              </tr>
+          `;
       })
       .join('');
   } else {
-    let headerHtml =
-      '<th style="padding: 10px 20px; text-align: left; font-weight: 700;">Project</th>';
-    headerHtml +=
-      '<th style="padding: 10px 20px; text-align: center; font-weight: 700;">Allocation (H)</th>'; // ADDED
+    tableHeaders =
+      '<th style="padding: 10px 20px; text-align: left; font-weight: 700;">Project</th><th style="padding: 10px 20px; text-align: center; font-weight: 700;">Allocation (H)</th>';
     for (let i = 1; i <= weekNumber; i++) {
-      headerHtml += `<th style="padding: 10px 20px; text-align: center; font-weight: 700;">W${i} Rec (H)</th>`;
-      headerHtml += `<th style="padding: 10px 20px; text-align: center; font-weight: 700;">W${i} Logged (H)</th>`;
+      tableHeaders += `<th style="padding: 10px 20px; text-align: center; font-weight: 700;">W${i} Rec (H)</th><th style="padding: 10px 20px; text-align: center; font-weight: 700;">W${i} Logged (H)</th>`;
     }
-    headerHtml +=
+    tableHeaders +=
       '<th style="padding: 10px 20px; text-align: right; font-weight: 700;">Cumulative Balance</th>';
-    tableHeaders = headerHtml;
 
-    const allWeeksData = [...historicalData, ...summaries];
     const projectData: Record<
       number,
       {
@@ -223,16 +205,14 @@ async function sendSummaryEmail(
         weeks: Record<number, { rec: number; logged: number }>;
       }
     > = {};
-
-    allWeeksData.forEach((s) => {
+    allMonthlyData.forEach((s) => {
       const wNum = getWeekOfMonth(new Date(s.week_ending_on));
-      if (!projectData[s.project_id]) {
+      if (!projectData[s.project_id])
         projectData[s.project_id] = {
           name: s.project_name,
           target: s.target_hours,
           weeks: {},
         };
-      }
       projectData[s.project_id].weeks[wNum] = {
         rec: s.recommended_hours || 0,
         logged: s.logged_hours,
@@ -244,10 +224,9 @@ async function sendSummaryEmail(
         let rowHtml = `<td style="padding: 14px 20px; font-weight: 500; border-bottom: 1px solid ${DIVIDER_COLOR};">${p.name}</td>`;
         rowHtml += `<td style="padding: 14px 20px; text-align: center; border-bottom: 1px solid ${DIVIDER_COLOR};">${p.target.toFixed(
           2
-        )}</td>`; // ADDED
-        let cumulativeLogged = 0;
-        let cumulativeRec = 0;
-
+        )}</td>`;
+        let cumulativeLogged = 0,
+          cumulativeRec = 0;
         for (let i = 1; i <= weekNumber; i++) {
           const week = p.weeks[i];
           rowHtml += `<td style="padding: 14px 20px; text-align: center; border-bottom: 1px solid ${DIVIDER_COLOR};">${
@@ -259,7 +238,6 @@ async function sendSummaryEmail(
           cumulativeLogged += week?.logged || 0;
           cumulativeRec += week?.rec || 0;
         }
-
         const cumulativeBalance = cumulativeRec - cumulativeLogged;
         rowHtml += `<td style="padding: 14px 20px; text-align: right; font-weight: 700; color: ${
           cumulativeBalance >= 0 ? SUCCESS_COLOR : DANGER_COLOR
@@ -272,193 +250,177 @@ async function sendSummaryEmail(
   }
 
   const htmlBody = `
- <!DOCTYPE html>
- <html lang="en">
- <head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>WorkSync Weekly Summary</title>
-     <style>
-         @media screen and (max-width: 600px) {
-             .container {
-                 width: 100% !important;
-                 min-width: 100% !important;
-             }
-             .stat-column {
-                 display: block !important;
-                 width: 100% !important;
-                 padding-bottom: 15px !important;
-                 padding-left: 0 !important;
-                 padding-right: 0 !important;
-             }
-         }
-     </style>
- </head>
- <body style="margin: 0; padding: 0; background-color: ${BG_COLOR}; font-family: 'Roboto', Arial, sans-serif;">
-     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR};">
-         <tr>
-             <td align="center" style="padding: 30px 20px;">
-                 <table role="presentation" width="600" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; margin-bottom: 20px;">
-                     <tr>
-                         <td style="padding: 15px 0; color: ${BRAND_ACCENT}; font-size: 24px; font-weight: 700; letter-spacing: 1px;">
-                             WorkSync // CORE
-                         </td>
-                     </tr>
-                 </table>
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>WorkSync Weekly Summary</title>
+      <style>
+          @media screen and (max-width: 600px) {
+              .container {
+                  width: 100% !important;
+                  min-width: 100% !important;
+              }
+              .stat-column {
+                  display: block !important;
+                  width: 100% !important;
+                  padding-bottom: 15px !important;
+                  padding-left: 0 !important;
+                  padding-right: 0 !important;
+              }
+          }
+      </style>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: ${BG_COLOR}; font-family: 'Roboto', Arial, sans-serif;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR};">
+          <tr>
+              <td align="center" style="padding: 30px 20px;">
+                  <table role="presentation" width="600" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; margin-bottom: 20px;">
+                      <tr>
+                          <td style="padding: 15px 0; color: ${BRAND_ACCENT}; font-size: 24px; font-weight: 700; letter-spacing: 1px;">
+                              WorkSync // CORE
+                          </td>
+                      </tr>
+                  </table>
+  
+                  <table role="presentation" width="600" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: ${SURFACE_COLOR}; border-radius: 8px; border: 1px solid ${DIVIDER_COLOR}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                      <tr>
+                          <td style="padding: 30px;">
+                              <h1 style="color: ${BRAND_ACCENT}; font-size: 28px; font-weight: 700; margin-top: 0; margin-bottom: 10px;">
+                                  Your Weekly Pacing Report is Ready!
+                              </h1>
+                              
+                              <p style="color: ${SECONDARY_TEXT}; font-size: 16px; margin-bottom: 5px;">
+                                  ${insightText}
+                              </p>
+                              
+                              <p style="color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 700; margin-top: 15px; margin-bottom: 25px; border-top: 1px dashed ${DIVIDER_COLOR}; padding-top: 15px;">
+                                  Overall Monthly Status: <span style="color: ${
+                                    weeklyStats.overallStatus ===
+                                    'Over Shooting'
+                                      ? DANGER_COLOR
+                                      : weeklyStats.overallStatus ===
+                                        'Under Shooting'
+                                      ? INFO_COLOR
+                                      : SUCCESS_COLOR
+                                  };">${weeklyStats.overallStatus}</span>
+                              </p>
+                              
+                              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 30px;">
+                                  <tr>
+                                      <td class="stat-column" width="50%" valign="top" style="padding-right: 15px;">
+                                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid ${DIVIDER_COLOR}; border-radius: 6px; padding: 15px;">
+                                              <tr>
+                                                  <td style="color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 5px;">
+                                                      Peak Productivity Day
+                                                  </td>
+                                              </tr>
+                                              <tr>
+                                                  <td style="color: ${PRIMARY_TEXT}; font-size: 24px; font-weight: 700;">
+                                                      ${weeklyStats.peakDay}
+                                                  </td>
+                                              </tr>
+                                              <tr>
+                                                  <td style="color: ${BRAND_ACCENT}; font-size: 14px; font-weight: 600;">
+                                                      ${weeklyStats.peakHours.toFixed(
+                                                        2
+                                                      )} hrs logged
+                                                  </td>
+                                              </tr>
+                                          </table>
+                                      </td>
+                                      <td class="stat-column" width="50%" valign="top" style="padding-left: 15px;">
+                                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid ${DIVIDER_COLOR}; border-radius: 6px; padding: 15px;">
+                                              <tr>
+                                                  <td style="color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 5px;">
+                                                      Top Project
+                                                  </td>
+                                              </tr>
+                                              <tr>
+                                                  <td style="color: ${PRIMARY_TEXT}; font-size: 16px; font-weight: 700; line-height: 1.2;">
+                                                      ${weeklyStats.topProject}
+                                                  </td>
+                                              </tr>
+                                              <tr>
+                                                  <td style="color: ${INFO_COLOR}; font-size: 14px; font-weight: 600;">
+                                                      ${weeklyStats.topProjectShare.toFixed(
+                                                        0
+                                                      )}% of total time
+                                                  </td>
+                                              </tr>
+                                          </table>
+                                      </td>
+                                  </tr>
+                              </table>
+  
+                              <h3 style="color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
+                                  Project Breakdown
+                              </h3>
+  
+                                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse;">
+                                     <thead style="background-color: ${BG_COLOR}; color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                         <tr>
+                                             ${tableHeaders}
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                                         ${tableRows}
+                                     </tbody>
+                                 </table>
+                              
+                              <p style="text-align: center; margin-top: 40px; color: ${SECONDARY_TEXT}; font-size: 12px; padding-top: 10px; border-top: 1px dashed ${DIVIDER_COLOR};">
+                                  <a href="https://worksync-f2s.pages.dev/dashboard" style="color: ${INFO_COLOR}; text-decoration: none; font-weight: 700;">Visit the Dashboard</a> to adjust targets or start your monthly rollover.
+                              </p>
+                          </td>
+                      </tr>
+                  </table>
+              </td>
+          </tr>
+      </table>
+  </body>
+  </html>
+   `;
 
-                 <table role="presentation" width="600" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: ${SURFACE_COLOR}; border-radius: 8px; border: 1px solid ${DIVIDER_COLOR}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                     <tr>
-                         <td style="padding: 30px;">
-                             <h1 style="color: ${BRAND_ACCENT}; font-size: 28px; font-weight: 700; margin-top: 0; margin-bottom: 10px;">
-                                 Your Weekly Pacing Report is Ready!
-                             </h1>
-                             
-                             <p style="color: ${SECONDARY_TEXT}; font-size: 16px; margin-bottom: 5px;">
-                                 ${insightText}
-                             </p>
-                             
-                             <p style="color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 700; margin-top: 15px; margin-bottom: 25px; border-top: 1px dashed ${DIVIDER_COLOR}; padding-top: 15px;">
-                                 Overall Monthly Status: <span style="color: ${
-                                   weeklyStats.overallStatus === 'Over Shooting'
-                                     ? DANGER_COLOR
-                                     : weeklyStats.overallStatus ===
-                                       'Under Shooting'
-                                     ? INFO_COLOR
-                                     : SUCCESS_COLOR
-                                 };">${weeklyStats.overallStatus}</span>
-                             </p>
-                             
-                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 30px;">
-                                 <tr>
-                                     <td class="stat-column" width="50%" valign="top" style="padding-right: 15px;">
-                                         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid ${DIVIDER_COLOR}; border-radius: 6px; padding: 15px;">
-                                             <tr>
-                                                 <td style="color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 5px;">
-                                                     Peak Productivity Day
-                                                 </td>
-                                             </tr>
-                                             <tr>
-                                                 <td style="color: ${PRIMARY_TEXT}; font-size: 24px; font-weight: 700;">
-                                                     ${weeklyStats.peakDay}
-                                                 </td>
-                                             </tr>
-                                             <tr>
-                                                 <td style="color: ${BRAND_ACCENT}; font-size: 14px; font-weight: 600;">
-                                                     ${weeklyStats.peakHours.toFixed(
-                                                       2
-                                                     )} hrs logged
-                                                 </td>
-                                             </tr>
-                                         </table>
-                                     </td>
-                                     <td class="stat-column" width="50%" valign="top" style="padding-left: 15px;">
-                                         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid ${DIVIDER_COLOR}; border-radius: 6px; padding: 15px;">
-                                             <tr>
-                                                 <td style="color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 5px;">
-                                                     Top Project
-                                                 </td>
-                                             </tr>
-                                             <tr>
-                                                 <td style="color: ${PRIMARY_TEXT}; font-size: 16px; font-weight: 700; line-height: 1.2;">
-                                                     ${weeklyStats.topProject}
-                                                 </td>
-                                             </tr>
-                                             <tr>
-                                                 <td style="color: ${INFO_COLOR}; font-size: 14px; font-weight: 600;">
-                                                     ${weeklyStats.topProjectShare.toFixed(
-                                                       0
-                                                     )}% of total time
-                                                 </td>
-                                             </tr>
-                                         </table>
-                                     </td>
-                                 </tr>
-                             </table>
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${resendApiKey}`,
+    },
+    body: JSON.stringify({
+      from: 'WorkSync <onboarding@resend.dev>',
+      to: notificationEmail,
+      subject: `Weekly Pacing Report: Week Of ${formattedDate}`,
+      html: htmlBody,
+    }),
+  });
 
-                             <h3 style="color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
-                                 Project Breakdown
-                             </h3>
-
-                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse;">
-                                    <thead style="background-color: ${BG_COLOR}; color: ${SECONDARY_TEXT}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <tr>
-                                            ${tableHeaders}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${tableRows}
-                                    </tbody>
-                                </table>
-                             
-                             <p style="text-align: center; margin-top: 40px; color: ${SECONDARY_TEXT}; font-size: 12px; padding-top: 10px; border-top: 1px dashed ${DIVIDER_COLOR};">
-                                 <a href="https://worksync-f2s.pages.dev/dashboard" style="color: ${INFO_COLOR}; text-decoration: none; font-weight: 700;">Visit the Dashboard</a> to adjust targets or start your monthly rollover.
-                             </p>
-                         </td>
-                     </tr>
-                 </table>
-             </td>
-         </tr>
-     </table>
- </body>
- </html>
-  `;
-
-  console.log(`Attempting to send email to ${notificationEmail}...`);
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: 'WorkSync <onboarding@resend.dev>',
-        to: notificationEmail,
-        subject: `Weekly Pacing Report: Week Of ${formattedDate}`,
-        html: htmlBody,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json();
-      throw new Error(`Failed to send email: ${JSON.stringify(errorBody)}`);
-    }
-
-    console.log(`Email successfully sent to ${notificationEmail}.`);
-    return `Email successfully sent to ${notificationEmail}.`;
-  } catch (error) {
-    console.error(`Error sending email for user ${settings.user_id}:`, error);
-    throw error; // Re-throw to be caught by the outer loop's catch block
-  }
+  if (!response.ok)
+    throw new Error(
+      `Failed to send email: ${JSON.stringify(await response.json())}`
+    );
+  return `Email successfully sent to ${notificationEmail}.`;
 }
 
 // --- MAIN FUNCTION ---
 serve(async (_req) => {
-  if (_req.method === 'OPTIONS') {
+  if (_req.method === 'OPTIONS')
     return new Response('ok', { headers: corsHeaders });
-  }
 
   try {
-    console.log('Create Weekly Summaries function invoked.');
     const supabase: SupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
-
     const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
       .select('key, value, user_id');
-
     if (settingsError) throw settingsError;
-
-    console.log(
-      `Found settings for ${Object.keys(settingsData).length} user records.`
-    );
 
     const users: Record<string, User> = settingsData.reduce(
       (acc, { key, value, user_id }) => {
-        acc[user_id] = acc[user_id] || { user_id };
-        acc[user_id][key] = value;
+        (acc[user_id] = acc[user_id] || { user_id })[key] = value;
         return acc;
       },
       {} as Record<string, User>
@@ -467,7 +429,6 @@ serve(async (_req) => {
     const globalMessages: string[] = [];
 
     for (const user of Object.values(users)) {
-      console.log(`Processing user: ${user.user_id}`);
       try {
         if (
           user.enableEmailNotifications !== 'true' ||
@@ -480,8 +441,6 @@ serve(async (_req) => {
         }
 
         const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = user;
-        const browserId = user.user_id;
-
         if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
           globalMessages.push(
             `Skipping user ${user.user_id}: Clockify credentials missing.`
@@ -493,10 +452,8 @@ serve(async (_req) => {
           .from('projects')
           .select('id, name, clockify_project_id, target_hours')
           .eq('is_archived', false)
-          .eq('user_id', browserId);
-
+          .eq('user_id', user.user_id);
         if (projectsError) throw projectsError;
-
         if (!projects || projects.length === 0) {
           globalMessages.push(
             `Skipping user ${user.user_id}: No active projects found.`
@@ -512,10 +469,6 @@ serve(async (_req) => {
         );
         endOfLastWeek.setHours(23, 59, 59, 999);
 
-        const startOfLastWeek = new Date(endOfLastWeek);
-        startOfLastWeek.setDate(startOfLastWeek.getDate() - 6);
-        startOfLastWeek.setHours(0, 0, 0, 0);
-
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const workdaysInMonth = getWorkdaysInMonth(
           today.getFullYear(),
@@ -523,106 +476,84 @@ serve(async (_req) => {
         );
         const currentWeekNumber = getWeekOfMonth(endOfLastWeek);
 
-        let allMonthlyData: ProjectSummary[] = [];
+        const allMonthlyData: ProjectSummary[] = [];
+        const summariesToUpsert = [];
 
-        const { data: dbData, error: dbError } = await supabase
-          .from('weekly_summaries')
-          .select('*')
-          .eq('user_id', browserId)
-          .gte('week_ending_on', startOfMonth.toISOString().split('T')[0]);
-
-        if (dbError) throw dbError;
-
-        allMonthlyData = (dbData as ProjectSummary[]).map((d) => ({
-          ...d,
-          project_name:
-            projects.find((p) => p.id === d.project_id)?.name || 'Unknown',
-          target_hours:
-            projects.find((p) => p.id === d.project_id)?.target_hours || 0,
-          recommended_hours:
-            ((projects.find((p) => p.id === d.project_id)?.target_hours || 0) /
-              workdaysInMonth) *
-            5,
-        }));
-
-        for (let i = 1; i < currentWeekNumber; i++) {
+        for (let i = 1; i <= currentWeekNumber; i++) {
           const weekEndDate = new Date(startOfMonth);
           weekEndDate.setDate(
-            weekEndDate.getDate() + i * 7 - startOfMonth.getDay()
+            weekEndDate.getDate() +
+              (i - 1) * 7 +
+              (6 - (startOfMonth.getDay() === 0 ? 7 : startOfMonth.getDay())) +
+              1
           );
 
-          const weekExists = allMonthlyData.some(
-            (d) => getWeekOfMonth(new Date(d.week_ending_on)) === i
-          );
+          const weekStartDate = new Date(weekEndDate);
+          weekStartDate.setDate(weekEndDate.getDate() - 6);
 
-          if (!weekExists) {
-            console.log(`Backfilling data for week ${i}...`);
-            const weekStartDate = new Date(weekEndDate);
-            weekStartDate.setDate(weekStartDate.getDate() - 6);
-
-            const clockifyUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${weekStartDate.toISOString()}&end=${weekEndDate.toISOString()}&page-size=1000`;
-            const response = await fetch(clockifyUrl, {
-              headers: { 'X-Api-Key': clockifyApiKey },
-            });
-            if (!response.ok)
-              throw new Error(
-                `Clockify API error during backfill for user ${
-                  user.user_id
-                }: ${await response.text()}`
-              );
-
-            const timeEntries: TimeEntry[] = await response.json();
-
-            const weeklySummaries = projects.map((project) => {
-              const logged_hours =
-                timeEntries
-                  .filter((te) => te.projectId === project.clockify_project_id)
-                  .reduce(
-                    (acc, te) =>
-                      acc + parseISO8601Duration(te.timeInterval.duration),
-                    0
-                  ) / 3600;
-
-              return {
-                project_id: project.id,
-                user_id: browserId,
-                target_hours: project.target_hours,
-                logged_hours,
-                week_ending_on: weekEndDate.toISOString().split('T')[0],
-              };
-            });
-
-            await supabase.from('weekly_summaries').upsert(weeklySummaries, {
-              onConflict: 'project_id,week_ending_on,user_id',
-            });
-
-            allMonthlyData.push(
-              ...weeklySummaries.map((s) => ({
-                ...s,
-                project_name: projects.find((p) => p.id === s.project_id)!.name,
-                balance: 0,
-                recommended_hours: (s.target_hours / workdaysInMonth) * 5,
-              }))
+          const clockifyUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${weekStartDate.toISOString()}&end=${weekEndDate.toISOString()}&page-size=1000`;
+          const response = await fetch(clockifyUrl, {
+            headers: { 'X-Api-Key': clockifyApiKey },
+          });
+          if (!response.ok)
+            throw new Error(
+              `Clockify API error during week ${i} fetch for user ${
+                user.user_id
+              }: ${await response.text()}`
             );
-          }
-        }
 
-        const thisWeekSummary = await calculateCurrentWeekSummary(
-          startOfLastWeek,
-          endOfLastWeek,
-          user,
-          projects,
-          workdaysInMonth
-        );
-        await supabase
-          .from('weekly_summaries')
-          .upsert(thisWeekSummary.summariesToInsert, {
-            onConflict: 'project_id,week_ending_on,user_id',
+          const timeEntries: TimeEntry[] = await response.json();
+
+          const weeklySummaries = projects.map((project) => {
+            const logged_hours =
+              timeEntries
+                .filter((te) => te.projectId === project.clockify_project_id)
+                .reduce(
+                  (acc, te) =>
+                    acc + parseISO8601Duration(te.timeInterval.duration),
+                  0
+                ) / 3600;
+
+            return {
+              project_id: project.id,
+              project_name: project.name,
+              user_id: user.user_id,
+              target_hours: project.target_hours,
+              logged_hours,
+              week_ending_on: weekEndDate.toISOString().split('T')[0],
+              recommended_hours: (project.target_hours / workdaysInMonth) * 5,
+              balance:
+                (project.target_hours / workdaysInMonth) * 5 - logged_hours,
+            };
           });
 
+          allMonthlyData.push(...weeklySummaries);
+          summariesToUpsert.push(
+            ...weeklySummaries.map(
+              ({
+                project_name: _p,
+                balance: _b,
+                recommended_hours: _r,
+                ...rest
+              }) => rest
+            )
+          );
+        }
+
+        // FIX: The property is named 'summaries', not 'summariesForEmail'
+        const { weeklyStats, summaries } = processWeeklyData(
+          allMonthlyData,
+          projects,
+          endOfLastWeek
+        );
+
+        await supabase.from('weekly_summaries').upsert(summariesToUpsert, {
+          onConflict: 'project_id,week_ending_on,user_id',
+        });
+
         const emailResult = await sendSummaryEmail(
-          thisWeekSummary.summaries,
-          thisWeekSummary.weeklyStats,
+          summaries,
+          weeklyStats,
           allMonthlyData,
           user,
           endOfLastWeek
@@ -637,164 +568,92 @@ serve(async (_req) => {
       }
     }
 
-    console.log('Function finished. Details:', globalMessages);
     return new Response(
       JSON.stringify({
         message: 'Weekly summary scheduler completed.',
         details: globalMessages,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
     console.error('Critical error in function:', (error as Error).message);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
 
-async function calculateCurrentWeekSummary(
-  startOfLastWeek: Date,
-  endOfLastWeek: Date,
-  user: User,
+function processWeeklyData(
+  allMonthlyData: ProjectSummary[],
   projects: Project[],
-  workdaysInMonth: number
+  endOfLastWeek: Date
 ) {
-  const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = user;
+  const thisWeekData = allMonthlyData.filter(
+    (d) => d.week_ending_on === endOfLastWeek.toISOString().split('T')[0]
+  );
 
-  if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
-    throw new Error(
-      'Cannot calculate week summary without Clockify credentials.'
-    );
-  }
+  const weeklyLoggedHours = thisWeekData.reduce(
+    (acc, s) => acc + s.logged_hours,
+    0
+  );
+  const recommendedWeeklyHours = thisWeekData.reduce(
+    (acc, s) => acc + (s.recommended_hours || 0),
+    0
+  );
 
-  const clockifyUrlWeek = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfLastWeek.toISOString()}&end=${endOfLastWeek.toISOString()}&page-size=1000`;
-  const response = await fetch(clockifyUrlWeek, {
-    headers: { 'X-Api-Key': clockifyApiKey },
-  });
-  if (!response.ok)
-    throw new Error(
-      `Clockify API error (Current Week) for user ${
-        user.user_id
-      }: ${await response.text()}`
-    );
-  const timeEntriesWeek: TimeEntry[] = await response.json();
-
-  let totalLoggedHoursWeek = 0,
-    totalRecommendedWeekly = 0;
-  const dailyLoggedHours: Record<string, number> = {};
-  const dayNames = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
   const projectTotalsWeek: Record<string, { name: string; logged: number }> =
     {};
-
-  const summaries: ProjectSummary[] = projects.map((project) => {
-    const recommended_hours = (project.target_hours / workdaysInMonth) * 5;
-    totalRecommendedWeekly += recommended_hours;
-
-    const logged_hours = timeEntriesWeek
-      .filter((te) => te.projectId === project.clockify_project_id)
-      .reduce((acc, te) => {
-        const duration = parseISO8601Duration(te.timeInterval.duration);
-        const dayName = dayNames[new Date(te.timeInterval.start).getDay()];
-        dailyLoggedHours[dayName] =
-          (dailyLoggedHours[dayName] || 0) + duration / 3600;
-        return acc + duration / 3600;
-      }, 0);
-
-    totalLoggedHoursWeek += logged_hours;
-    projectTotalsWeek[project.clockify_project_id] = {
-      name: project.name,
-      logged: logged_hours,
-    };
-
-    return {
-      project_id: project.id,
-      project_name: project.name,
-      target_hours: project.target_hours,
-      logged_hours,
-      balance: recommended_hours - logged_hours,
-      week_ending_on: endOfLastWeek.toISOString().split('T')[0],
-      user_id: user.user_id,
-      recommended_hours,
+  thisWeekData.forEach((s) => {
+    projectTotalsWeek[s.project_id] = {
+      name: s.project_name,
+      logged: s.logged_hours,
     };
   });
-
-  const { peakDay, peakHours } = Object.entries(dailyLoggedHours).reduce(
-    (peak, [day, hours]) =>
-      hours > peak.peakHours ? { peakDay: day, peakHours: hours } : peak,
-    { peakDay: 'N/A', peakHours: 0 }
-  );
   const topProject =
     Object.values(projectTotalsWeek).sort((a, b) => b.logged - a.logged)[0]
       ?.name || 'N/A';
 
-  const startOfMonth = new Date(
-    endOfLastWeek.getFullYear(),
-    endOfLastWeek.getMonth(),
-    1
+  const totalLoggedMonth = allMonthlyData.reduce(
+    (acc, s) => acc + s.logged_hours,
+    0
   );
-  const clockifyUrlMonth = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${startOfMonth.toISOString()}&end=${endOfLastWeek.toISOString()}&page-size=5000`;
-  const monthResponse = await fetch(clockifyUrlMonth, {
-    headers: { 'X-Api-Key': clockifyApiKey },
-  });
-  if (!monthResponse.ok)
-    throw new Error(
-      `Clockify API error (Monthly Status) for user ${
-        user.user_id
-      }: ${await monthResponse.text()}`
-    );
-  const timeEntriesMonth: TimeEntry[] = await monthResponse.json();
-
-  const totalLoggedHoursMonth =
-    timeEntriesMonth.reduce(
-      (acc, te) => acc + parseISO8601Duration(te.timeInterval.duration),
-      0
-    ) / 3600;
-  const totalTargetHours = projects.reduce((acc, p) => acc + p.target_hours, 0);
-  const overallBalance = totalTargetHours - totalLoggedHoursMonth;
+  const totalTarget = projects.reduce((acc, p) => acc + p.target_hours, 0);
+  const overallBalance = totalTarget - totalLoggedMonth;
   let overallStatus: 'On Pace' | 'Over Shooting' | 'Under Shooting' = 'On Pace';
-  if (totalTargetHours > 0) {
-    if (overallBalance < -0.05 * totalTargetHours)
-      overallStatus = 'Over Shooting';
-    else if (overallBalance > 0.05 * totalTargetHours)
+  if (totalTarget > 0) {
+    if (overallBalance < -0.05 * totalTarget) overallStatus = 'Over Shooting';
+    else if (overallBalance > 0.05 * totalTarget)
       overallStatus = 'Under Shooting';
   }
 
   const weeklyStats: WeeklyStats = {
-    weeklyLoggedHours: totalLoggedHoursWeek,
-    recommendedWeeklyHours: totalRecommendedWeekly,
-    weeklyBalance: totalRecommendedWeekly - totalLoggedHoursWeek,
+    weeklyLoggedHours,
+    recommendedWeeklyHours,
+    weeklyBalance: recommendedWeeklyHours - weeklyLoggedHours,
     overallStatus,
-    peakDay,
-    peakHours,
+    peakDay: 'N/A', // Placeholder - requires more detailed data
+    peakHours: 0, // Placeholder
     topProject,
     topProjectShare:
-      totalLoggedHoursWeek > 0
+      weeklyLoggedHours > 0 &&
+      projectTotalsWeek[
+        Object.keys(projectTotalsWeek).find(
+          (k) => projectTotalsWeek[k].name === topProject
+        )!
+      ]
         ? (projectTotalsWeek[
             Object.keys(projectTotalsWeek).find(
               (k) => projectTotalsWeek[k].name === topProject
             )!
           ].logged /
-            totalLoggedHoursWeek) *
+            weeklyLoggedHours) *
           100
         : 0,
   };
 
-  const summariesToInsert = summaries.map(
-    ({ project_name: _p, balance: _b, recommended_hours: _r, ...rest }) => rest
-  );
-
-  return { summaries, weeklyStats, summariesToInsert };
+  return { weeklyStats, summaries: thisWeekData };
 }
