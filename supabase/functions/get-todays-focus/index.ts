@@ -48,10 +48,11 @@ serve(async (req) => {
       }
     );
 
-    // FIX: Read settings from the request body
-    const { settings } = await req.json();
-    if (!settings) {
-      throw new Error('Settings were not provided in the request body.');
+    const { settings, browserId } = await req.json();
+    if (!settings || !browserId) {
+      throw new Error(
+        'Settings or Browser ID were not provided in the request body.'
+      );
     }
     const {
       apiKey: clockifyApiKey,
@@ -65,7 +66,8 @@ serve(async (req) => {
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('name, target_hours, clockify_project_id')
-      .eq('is_archived', false);
+      .eq('is_archived', false)
+      .eq('user_id', browserId);
 
     if (projectsError) throw projectsError;
 
