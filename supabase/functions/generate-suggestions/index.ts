@@ -44,7 +44,7 @@ function getPassedWorkdays(today: Date): number {
   return passedWorkdays > 0 ? passedWorkdays : 1;
 }
 
-// FIX: New function to calculate the last full work week boundaries
+// Function to calculate the last full work week boundaries
 function getLastWorkWeekBoundaries(today: Date) {
   const endOfWeek = new Date(today);
   // Find last Sunday (day 0) at 23:59:59 (The end of the week)
@@ -75,7 +75,7 @@ serve(async (req) => {
       }
     );
 
-    // FIX: Read settings from the request body
+    // Read settings from the request body
     const { settings } = await req.json();
     if (!settings) {
       throw new Error('Settings were not provided in the request body.');
@@ -115,7 +115,7 @@ serve(async (req) => {
       );
     }
 
-    // --- WEEKEND LOGIC (NEW WEEKLY BREAKDOWN) ---
+    // WEEKEND LOGIC (WEEKLY BREAKDOWN)
     if (isWeekend) {
       const { start, end } = getLastWorkWeekBoundaries(today);
       const year = today.getFullYear();
@@ -153,7 +153,7 @@ serve(async (req) => {
         };
       });
 
-      const suggestions = ["<strong>Last Week's Performance Review: </strong>"];
+      const suggestions = ["<strong>This Week's Performance Review: </strong>"];
 
       weeklyBreakdown.forEach((p) => {
         const variance = Math.abs(p.balance);
@@ -200,7 +200,7 @@ serve(async (req) => {
       if (suggestions.length <= 1) {
         // If only the header exists
         suggestions.push(
-          'All projects were either on pace or had no time logged last week. Good work on maintaining balance!'
+          'All projects were either on pace or had no time logged this week. Good work on maintaining balance!'
         );
       }
 
@@ -209,10 +209,8 @@ serve(async (req) => {
         status: 200,
       });
     }
-    // --- END WEEKEND LOGIC ---
 
-    // --- WEEKDAY LOGIC (ORIGINAL PACING ALERT) ---
-
+    // WEEKDAY LOGIC (ORIGINAL PACING ALERT)
     const startOfMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -268,7 +266,7 @@ serve(async (req) => {
       (p) => p.variance < 0
     );
 
-    // Day-to-day logic will also benefit from bolding the project names using HTML tags if they render
+    // Day-to-day logic
     const formatBold = (text: string) => `<strong>${text}</strong>`;
 
     if (projectsBurningHot.length > 0 && projectsBurningCold.length > 0) {
@@ -286,9 +284,9 @@ serve(async (req) => {
     } else if (projectsBurningHot.length > 0) {
       const hotProject = projectsBurningHot[0];
       suggestions.push(
-        `Pacing Alert: You are working too fast on "${formatBold(
+        `Pacing Alert: You are working too much on "${formatBold(
           hotProject.name
-        )}" and are projected to exceed your target by ${hotProject.variance.toFixed(
+        )}" and are projected to exceed your hours by ${hotProject.variance.toFixed(
           1
         )} hours. Consider slowing down to avoid burnout.`
       );
