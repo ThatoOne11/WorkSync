@@ -50,18 +50,105 @@ async function sendPacingAlertEmail(alert: any, settings: any) {
     return 'Email notifications are not configured. Skipping email.';
   }
 
+  // HARDCODED COLORS (Engaging Light Aesthetic)
+  const BRAND_ACCENT = '#F44336';
+  const PRIMARY_TEXT = '#333333';
+  const SECONDARY_TEXT = '#666666';
+  const BG_COLOR = '#F8F8F8';
+  const SURFACE_COLOR = '#FFFFFF';
+  const WARNING_COLOR = '#FFC107';
+  const DANGER_COLOR = '#F44336';
+  const ALERT_BACKGROUND = '#FFFBE5';
+  const CRITICAL_BACKGROUND = '#FBE5E5';
+
   const { projectName, variance, recommendation } = alert;
-  const subject = `WorkSync Pacing Alert for ${projectName}`;
+  const isOver = variance > 0;
+  const statusColor = isOver ? WARNING_COLOR : DANGER_COLOR;
+  const statusBackground = isOver ? ALERT_BACKGROUND : CRITICAL_BACKGROUND;
+  const statusLabel = isOver ? 'OVER SHOOTING' : 'FALLING BEHIND';
+  const headline = isOver ? 'Pace Warning' : 'Time Allocation Alert';
+  const subject = `Pacing Alert: ${statusLabel} on ${projectName}`;
+
   const htmlBody = `
-    <h1>WorkSync Pacing Alert</h1>
-    <p>This is a proactive alert to help you stay on track with your monthly goals.</p>
-    <p>
-      <strong>Project:</strong> ${projectName}<br>
-      <strong>Issue:</strong> You are currently on track to go ${
-        variance > 0 ? 'over' : 'under'
-      } by <strong>${Math.abs(variance).toFixed(1)} hours</strong>.
-    </p>
-    <p><strong>Recommendation:</strong> ${recommendation}</p>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>WorkSync Pacing Alert</title>
+        <style>
+            @media screen and (max-width: 600px) {
+                .container {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                }
+            }
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: ${BG_COLOR}; font-family: 'Roboto', Arial, sans-serif;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR};">
+            <tr>
+                <td align="center" style="padding: 30px 20px;">
+                    <table role="presentation" width="500" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; margin-bottom: 20px;">
+                        <tr>
+                            <td style="padding: 10px 0; color: ${BRAND_ACCENT}; font-size: 20px; font-weight: 700;">
+                                WorkSync // CORE
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table role="presentation" width="500" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; background-color: ${SURFACE_COLOR}; border-radius: 8px; border: 1px solid ${statusColor}; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        <tr>
+                            <td style="padding: 0;">
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${statusBackground}; border-radius: 8px 8px 0 0; border-bottom: 2px solid ${statusColor};">
+                                    <tr>
+                                        <td style="padding: 15px 30px; color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 600;">
+                                            ${headline}
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                    <tr>
+                                        <td style="padding: 30px;">
+                                            <h3 style="color: ${PRIMARY_TEXT}; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 5px;">
+                                                Project: ${projectName}
+                                            </h3>
+
+                                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR}; border-radius: 8px; padding: 20px;">
+                                                <tr>
+                                                    <td style="padding: 0;">
+                                                        <p style="font-size: 16px; margin: 0 0 15px 0; color: ${PRIMARY_TEXT}; font-weight: 500;">
+                                                            <span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase;">${statusLabel}:</span> Projected to go ${
+    isOver ? 'OVER' : 'UNDER'
+  } by 
+                                                            <span style="color: ${statusColor}; font-weight: 800; font-size: 1.1em;">${Math.abs(
+    variance
+  ).toFixed(1)} hrs</span>
+                                                        </p>
+                                                        <p style="font-size: 14px; margin: 0; color: ${PRIMARY_TEXT}; font-weight: 400;">
+                                                            ${recommendation}
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            
+                                            <p style="text-align: center; margin-top: 30px;">
+                                                <a href="#" style="background-color: ${BRAND_ACCENT}; color: ${SURFACE_COLOR}; text-decoration: none; padding: 12px 25px; border-radius: 4px; font-weight: 600; font-size: 14px; display: inline-block;">
+                                                    Review on WorkSync
+                                                </a>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
   `;
 
   const response = await fetch('https://api.resend.com/emails', {
