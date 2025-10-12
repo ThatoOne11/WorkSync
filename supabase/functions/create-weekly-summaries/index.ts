@@ -66,11 +66,10 @@ function getWorkdaysInMonth(year: number, month: number): number {
 }
 
 function getWeekOfMonth(date: Date): number {
-  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const dayOfWeek = firstDayOfMonth.getDay();
-  // Adjust the date to the start of the week (Sunday)
-  const adjustedDate = date.getDate() + dayOfWeek;
-  return Math.ceil(adjustedDate / 7);
+  const d = new Date(date);
+  d.setDate(1);
+  const firstDay = d.getDay() === 0 ? 7 : d.getDay();
+  return Math.ceil((date.getDate() + firstDay - 1) / 7);
 }
 
 function parseISO8601Duration(duration: string): number {
@@ -132,23 +131,18 @@ async function sendSummaryEmail(
   const INFO_COLOR = '#2196F3';
 
   const weeklyBalanceAbs = Math.abs(weeklyStats.weeklyBalance).toFixed(2);
-  let insightText = '';
+  let insightText = `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(
+    2
+  )} hours</span> this week, compared to your recommended weekly target of ${weeklyStats.recommendedWeeklyHours.toFixed(
+    2
+  )} hours.`;
+
   if (weeklyStats.weeklyBalance < 0) {
-    insightText = `You logged <span style="color: ${DANGER_COLOR}; font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(
-      2
-    )} hours</span> this week, which is ${weeklyBalanceAbs} hours more than your recommended target of ${weeklyStats.recommendedWeeklyHours.toFixed(
-      2
-    )}. Review your pacing to avoid burnout.`;
+    insightText += ` You went <span style="color: ${DANGER_COLOR}; font-weight: 700;">over by ${weeklyBalanceAbs} hours.</span> Review your pacing to avoid burnout.`;
   } else if (weeklyStats.weeklyBalance > 0) {
-    insightText = `You logged <span style="color: ${PRIMARY_TEXT}; font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(
-      2
-    )} hours</span> this week, compared to your recommended weekly target of ${weeklyStats.recommendedWeeklyHours.toFixed(
-      2
-    )} hours. You went under by ${weeklyBalanceAbs} hours.`;
+    insightText += ` You went <span style="color: ${INFO_COLOR}; font-weight: 700;">under by ${weeklyBalanceAbs} hours.</span>`;
   } else {
-    insightText = `You logged ${weeklyStats.weeklyLoggedHours.toFixed(
-      2
-    )} hours this week, hitting your recommended weekly target exactly! Excellent consistency.`;
+    insightText += ` You hit your target exactly! Excellent consistency.`;
   }
   insightText += ' Use this week’s daily focus report to bridge the gap.';
 
@@ -478,18 +472,18 @@ serve(async (_req) => {
 
         const allMonthlyData: ProjectSummary[] = [];
         const summariesToUpsert = [];
+        let thisWeeksTimeEntries: TimeEntry[] = [];
 
         for (let i = 1; i <= currentWeekNumber; i++) {
-          const weekEndDate = new Date(startOfMonth);
-          weekEndDate.setDate(
-            weekEndDate.getDate() +
-              (i - 1) * 7 +
-              (6 - (startOfMonth.getDay() === 0 ? 7 : startOfMonth.getDay())) +
-              1
+          const weekStartDate = new Date(startOfMonth);
+          weekStartDate.setDate(
+            weekStartDate.getDate() + (i - 1) * 7 - (weekStartDate.getDay() - 1)
           );
+          weekStartDate.setHours(0, 0, 0, 0);
 
-          const weekStartDate = new Date(weekEndDate);
-          weekStartDate.setDate(weekEndDate.getDate() - 6);
+          const weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+          weekEndDate.setHours(23, 59, 59, 999);
 
           const clockifyUrl = `https://api.clockify.me/api/v1/workspaces/${clockifyWorkspaceId}/user/${clockifyUserId}/time-entries?start=${weekStartDate.toISOString()}&end=${weekEndDate.toISOString()}&page-size=1000`;
           const response = await fetch(clockifyUrl, {
@@ -503,6 +497,10 @@ serve(async (_req) => {
             );
 
           const timeEntries: TimeEntry[] = await response.json();
+
+          if (i === currentWeekNumber) {
+            thisWeeksTimeEntries = timeEntries;
+          }
 
           const weeklySummaries = projects.map((project) => {
             const logged_hours =
@@ -543,7 +541,8 @@ serve(async (_req) => {
         const { weeklyStats, summaries: summariesForEmail } = processWeeklyData(
           allMonthlyData,
           projects,
-          endOfLastWeek
+          endOfLastWeek,
+          thisWeeksTimeEntries
         );
 
         await supabase.from('weekly_summaries').upsert(summariesToUpsert, {
@@ -589,7 +588,8 @@ serve(async (_req) => {
 function processWeeklyData(
   allMonthlyData: ProjectSummary[],
   projects: Project[],
-  endOfLastWeek: Date
+  endOfLastWeek: Date,
+  timeEntries: TimeEntry[]
 ) {
   const thisWeekData = allMonthlyData.filter(
     (d) => d.week_ending_on === endOfLastWeek.toISOString().split('T')[0]
@@ -604,20 +604,57 @@ function processWeeklyData(
     0
   );
 
-  // Peak day and top project require re-processing time entries or passing them down.
-  // This is a simplified approach for demonstration. A more accurate implementation
-  // would require passing the raw time entries to this function.
+  const dayTotals: Record<string, number> = {
+    Sunday: 0,
+    Monday: 0,
+    Tuesday: 0,
+    Wednesday: 0,
+    Thursday: 0,
+    Friday: 0,
+    Saturday: 0,
+  };
   const projectTotalsWeek: Record<string, { name: string; logged: number }> =
     {};
-  thisWeekData.forEach((s) => {
-    projectTotalsWeek[s.project_id] = {
-      name: s.project_name,
-      logged: s.logged_hours,
-    };
+  const projectMap = new Map(
+    projects.map((p) => [p.clockify_project_id, p.name])
+  );
+
+  timeEntries.forEach((te) => {
+    const entryDate = new Date(te.timeInterval.start);
+    const dayName = entryDate.toLocaleDateString('en-US', { weekday: 'long' });
+    const durationSeconds = parseISO8601Duration(te.timeInterval.duration);
+
+    dayTotals[dayName] = (dayTotals[dayName] || 0) + durationSeconds;
+
+    const projectName = projectMap.get(te.projectId) || 'Unknown Project';
+    if (!projectTotalsWeek[projectName]) {
+      projectTotalsWeek[projectName] = { name: projectName, logged: 0 };
+    }
+    projectTotalsWeek[projectName].logged += durationSeconds;
   });
+
+  let peakDay = 'N/A';
+  let peakHours = 0;
+  for (const [day, totalSeconds] of Object.entries(dayTotals)) {
+    const hours = totalSeconds / 3600;
+    if (hours > peakHours) {
+      peakDay = day;
+      peakHours = hours;
+    }
+  }
+
   const topProject =
     Object.values(projectTotalsWeek).sort((a, b) => b.logged - a.logged)[0]
       ?.name || 'N/A';
+  const totalSecondsThisWeek = Object.values(projectTotalsWeek).reduce(
+    (sum, p) => sum + p.logged,
+    0
+  );
+  const topProjectSeconds = projectTotalsWeek[topProject]?.logged || 0;
+  const topProjectShare =
+    totalSecondsThisWeek > 0
+      ? (topProjectSeconds / totalSecondsThisWeek) * 100
+      : 0;
 
   const totalLoggedMonth = allMonthlyData.reduce(
     (acc, s) => acc + s.logged_hours,
@@ -637,24 +674,10 @@ function processWeeklyData(
     recommendedWeeklyHours,
     weeklyBalance: recommendedWeeklyHours - weeklyLoggedHours,
     overallStatus,
-    peakDay: 'N/A', // Placeholder - requires more detailed data
-    peakHours: 0, // Placeholder
+    peakDay,
+    peakHours,
     topProject,
-    topProjectShare:
-      weeklyLoggedHours > 0 &&
-      projectTotalsWeek[
-        Object.keys(projectTotalsWeek).find(
-          (k) => projectTotalsWeek[k].name === topProject
-        )!
-      ]
-        ? (projectTotalsWeek[
-            Object.keys(projectTotalsWeek).find(
-              (k) => projectTotalsWeek[k].name === topProject
-            )!
-          ].logged /
-            weeklyLoggedHours) *
-          100
-        : 0,
+    topProjectShare,
   };
 
   return { weeklyStats, summaries: thisWeekData };
