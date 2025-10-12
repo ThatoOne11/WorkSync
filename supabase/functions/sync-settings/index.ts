@@ -19,10 +19,10 @@ serve(async (req) => {
     );
 
     const updates = [
-      { key: 'clockifyApiKey', value: settings.apiKey },
-      { key: 'clockifyWorkspaceId', value: settings.workspaceId },
-      { key: 'clockifyUserId', value: settings.userId },
-      { key: 'notificationEmail', value: settings.notificationEmail },
+      { key: 'clockifyApiKey', value: settings.apiKey || '' },
+      { key: 'clockifyWorkspaceId', value: settings.workspaceId || '' },
+      { key: 'clockifyUserId', value: settings.userId || '' },
+      { key: 'notificationEmail', value: settings.notificationEmail || '' },
       {
         key: 'enableEmailNotifications',
         value: String(settings.enableEmailNotifications),
