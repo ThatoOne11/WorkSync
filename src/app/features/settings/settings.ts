@@ -71,6 +71,13 @@ export class Settings implements OnInit, OnDestroy {
   protected hasActiveProjects = signal(false);
   protected emailEditMode = signal(false);
 
+  // --- FIX 4: New properties for state tracking ---
+  protected initialToggleValues = {
+    enableEmailNotifications: false,
+    enablePacingAlerts: false,
+  };
+  protected isToggleDirty = signal(false);
+
   constructor() {
     this.form = this.fb.group({
       apiKey: ['', Validators.required],
@@ -115,6 +122,20 @@ export class Settings implements OnInit, OnDestroy {
             emailField.addValidators([Validators.email]);
           }
           emailField.updateValueAndValidity();
+
+          // --- FIX 4: Check for Toggle Dirtiness (Controls Cancel Button visibility) ---
+          const isCurrentWeeklyEnabled = weeklySummaryToggle.value;
+          const isCurrentPacingEnabled = pacingAlertsToggle.value;
+
+          const weeklyChanged =
+            isCurrentWeeklyEnabled !==
+            this.initialToggleValues.enableEmailNotifications;
+          const pacingChanged =
+            isCurrentPacingEnabled !==
+            this.initialToggleValues.enablePacingAlerts;
+
+          this.isToggleDirty.set(weeklyChanged || pacingChanged);
+          // ----------------------------------------------------------------------------------
         });
     }
   }
@@ -126,20 +147,65 @@ export class Settings implements OnInit, OnDestroy {
       this.form.get('apiKey')?.disable();
       this.form.get('workspaceId')?.disable();
       this.form.get('userId')?.disable();
+
+      // --- FIX 4: Store initial toggle values ---
+      this.initialToggleValues.enableEmailNotifications =
+        settings.enableEmailNotifications;
+      this.initialToggleValues.enablePacingAlerts = settings.enablePacingAlerts;
+      // ------------------------------------------
+
       this.settingsExist.set(true);
+      // FIX 1: The email field should be in edit mode only if no email is saved.
       this.emailEditMode.set(!settings.notificationEmail);
     } else {
       this.form.enable();
       this.form.get('userId')?.disable();
       this.settingsExist.set(false);
       this.emailEditMode.set(true);
+
+      // Reset initial values for a fresh start
+      this.initialToggleValues.enableEmailNotifications = false;
+      this.initialToggleValues.enablePacingAlerts = false;
     }
     this.checkActiveProjects();
     this.form.markAsPristine();
+    this.isToggleDirty.set(false); // Reset toggle dirty state on load
   }
 
+  // --- Helper for Bug 3 (Test Email Button) ---
+  protected getOriginalEmail(): string {
+    return this.settingsService.getSettings()?.notificationEmail || '';
+  }
+
+  // --- FIX 4: Consolidated Cancel logic to reset toggles and email field ---
+  onCancelChanges(): void {
+    const settings = this.settingsService.getSettings();
+    const emailField = this.form.get('notificationEmail');
+    const weeklyToggle = this.form.get('enableEmailNotifications');
+    const pacingToggle = this.form.get('enablePacingAlerts');
+
+    // 1. Reset toggles to initial state (Bug 4)
+    weeklyToggle?.setValue(this.initialToggleValues.enableEmailNotifications, {
+      emitEvent: true,
+    });
+    pacingToggle?.setValue(this.initialToggleValues.enablePacingAlerts, {
+      emitEvent: true,
+    });
+
+    // 2. Reset email field to saved state (Bug 4)
+    const originalEmail = settings?.notificationEmail || '';
+    emailField?.setValue(originalEmail);
+
+    // 3. Exit email edit mode and mark as pristine
+    this.emailEditMode.set(!originalEmail); // Exit edit mode unless no email was ever set
+    this.form.markAsPristine(); // Resets overall dirty state (fixes Bug 2 for toggles)
+    this.isToggleDirty.set(false);
+  }
+
+  // --- FIX 4: Refined toggleEmailEdit to reset email field when exiting edit mode ---
   toggleEmailEdit(): void {
     if (this.emailEditMode()) {
+      // If exiting edit mode (clicking 'cancel' icon), reset the field value
       const originalEmail =
         this.settingsService.getSettings()?.notificationEmail || '';
       this.form.get('notificationEmail')?.setValue(originalEmail);

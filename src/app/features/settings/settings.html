@@ -125,7 +125,9 @@
             type="button"
             class="test-email-button"
             (click)="onTestEmail()"
-            [disabled]="isTestingEmail() || !settingsExist()"
+            [disabled]="
+              isTestingEmail() || !settingsExist() || !getOriginalEmail()
+            "
           >
             @if (isTestingEmail()) {
             <mat-spinner diameter="20"></mat-spinner>
@@ -158,15 +160,17 @@
             @if (isBackfilling()) {
             <mat-spinner diameter="20"></mat-spinner>
             } @else {
-            <mat-icon>history</mat-icon>
-            <span>Backfill History</span>
+            <span class="button-content-wrapper">
+              <mat-icon>history</mat-icon>
+              <span>Backfill History</span>
+            </span>
             }
           </button>
         </div>
 
         <div class="actions">
-          @if (emailEditMode() && settingsExist()) {
-          <button mat-stroked-button type="button" (click)="toggleEmailEdit()">
+          @if (settingsExist() && (emailEditMode() || isToggleDirty())) {
+          <button mat-stroked-button type="button" (click)="onCancelChanges()">
             Cancel
           </button>
           }
