@@ -67,9 +67,9 @@ function getWorkdaysInMonth(year: number, month: number): number {
 
 function getWeekOfMonth(date: Date): number {
   const d = new Date(date);
-  d.setDate(1);
-  const firstDay = d.getDay() === 0 ? 7 : d.getDay();
-  return Math.ceil((date.getDate() + firstDay - 1) / 7);
+  const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+  const offsetDate = d.getDate() + firstDayOfMonth - 1;
+  return Math.floor(offsetDate / 7) + 1;
 }
 
 function parseISO8601Duration(duration: string): number {
@@ -137,12 +137,14 @@ async function sendSummaryEmail(
     2
   )} hours.`;
 
-  if (weeklyStats.weeklyBalance < 0) {
+  if (weeklyStats.weeklyBalance > 0.1) {
+    // User is under target
+    insightText += ` You were <span style="color: ${INFO_COLOR}; font-weight: 700;">under by ${weeklyBalanceAbs} hours.</span>`;
+  } else if (weeklyStats.weeklyBalance < -0.1) {
+    // User is over target
     insightText += ` You went <span style="color: ${DANGER_COLOR}; font-weight: 700;">over by ${weeklyBalanceAbs} hours.</span> Review your pacing to avoid burnout.`;
-  } else if (weeklyStats.weeklyBalance > 0) {
-    insightText += ` You went <span style="color: ${INFO_COLOR}; font-weight: 700;">under by ${weeklyBalanceAbs} hours.</span>`;
   } else {
-    insightText += ` You hit your target exactly! Excellent consistency.`;
+    insightText += ` You hit your target almost exactly! Excellent consistency.`;
   }
   insightText += ' Use this week’s daily focus report to bridge the gap.';
 
@@ -463,7 +465,6 @@ serve(async (_req) => {
         );
         endOfLastWeek.setHours(23, 59, 59, 999);
 
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const workdaysInMonth = getWorkdaysInMonth(
           today.getFullYear(),
           today.getMonth()
@@ -475,10 +476,25 @@ serve(async (_req) => {
         let thisWeeksTimeEntries: TimeEntry[] = [];
 
         for (let i = 1; i <= currentWeekNumber; i++) {
-          const weekStartDate = new Date(startOfMonth);
-          weekStartDate.setDate(
-            weekStartDate.getDate() + (i - 1) * 7 - (weekStartDate.getDay() - 1)
+          const firstDayOfMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
           );
+          const firstMonday = new Date(firstDayOfMonth);
+          if (firstDayOfMonth.getDay() !== 1) {
+            firstMonday.setDate(
+              firstMonday.getDate() + ((8 - firstDayOfMonth.getDay()) % 7)
+            );
+          }
+
+          let weekStartDate: Date;
+          if (i === 1) {
+            weekStartDate = firstDayOfMonth;
+          } else {
+            weekStartDate = new Date(firstMonday);
+            weekStartDate.setDate(firstMonday.getDate() + (i - 2) * 7);
+          }
           weekStartDate.setHours(0, 0, 0, 0);
 
           const weekEndDate = new Date(weekStartDate);
@@ -619,14 +635,19 @@ function processWeeklyData(
     projects.map((p) => [p.clockify_project_id, p.name])
   );
 
-  timeEntries.forEach((te) => {
+  const trackedProjectIds = new Set(projects.map((p) => p.clockify_project_id));
+  const trackedTimeEntries = timeEntries.filter((te) =>
+    trackedProjectIds.has(te.projectId)
+  );
+
+  trackedTimeEntries.forEach((te) => {
     const entryDate = new Date(te.timeInterval.start);
     const dayName = entryDate.toLocaleDateString('en-US', { weekday: 'long' });
     const durationSeconds = parseISO8601Duration(te.timeInterval.duration);
 
     dayTotals[dayName] = (dayTotals[dayName] || 0) + durationSeconds;
 
-    const projectName = projectMap.get(te.projectId) || 'Unknown Project';
+    const projectName = projectMap.get(te.projectId)!;
     if (!projectTotalsWeek[projectName]) {
       projectTotalsWeek[projectName] = { name: projectName, logged: 0 };
     }
@@ -646,14 +667,17 @@ function processWeeklyData(
   const topProject =
     Object.values(projectTotalsWeek).sort((a, b) => b.logged - a.logged)[0]
       ?.name || 'N/A';
-  const totalSecondsThisWeek = Object.values(projectTotalsWeek).reduce(
+
+  const totalTrackedSecondsThisWeek = Object.values(projectTotalsWeek).reduce(
     (sum, p) => sum + p.logged,
     0
   );
+
   const topProjectSeconds = projectTotalsWeek[topProject]?.logged || 0;
+
   const topProjectShare =
-    totalSecondsThisWeek > 0
-      ? (topProjectSeconds / totalSecondsThisWeek) * 100
+    totalTrackedSecondsThisWeek > 0
+      ? (topProjectSeconds / totalTrackedSecondsThisWeek) * 100
       : 0;
 
   const totalLoggedMonth = allMonthlyData.reduce(
