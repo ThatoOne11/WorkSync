@@ -1,5 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from '@supabase/supabase-js';
+import { serve } from '@deno/server';
 import { corsHeaders } from '../_shared/cors.ts';
 
 function parseISO8601Duration(duration: string): number {
@@ -270,35 +270,35 @@ serve(async (req) => {
     );
 
     // Day-to-day logic
-    const formatBold = (text: string) => `<strong>${text}</strong>`;
+    const formatBold = (text: string) => `${text}`;
 
     if (projectsBurningHot.length > 0 && projectsBurningCold.length > 0) {
       const hotProject = projectsBurningHot[0];
       const coldProject = projectsBurningCold[0];
       suggestions.push(
-        `Pacing Alert: You are on track to go over by ${hotProject.variance.toFixed(
+        `You are on track to go over by ${hotProject.variance.toFixed(
           1
-        )} hours on "${formatBold(
+        )} hours on ${formatBold(
           hotProject.name
-        )}". To balance, consider shifting some focus to "${formatBold(
+        )}. To maintain balance, consider shifting some focus to ${formatBold(
           coldProject.name
-        )}", which is currently tracking under budget.`
+        )}, which is currently tracking under budget.`
       );
     } else if (projectsBurningHot.length > 0) {
       const hotProject = projectsBurningHot[0];
       suggestions.push(
-        `Pacing Alert: You are working too much on "${formatBold(
+        `You are working too much on ${formatBold(
           hotProject.name
-        )}" and are projected to exceed your hours by ${hotProject.variance.toFixed(
+        )} and are projected to exceed your hours by ${hotProject.variance.toFixed(
           1
-        )} hours. Consider slowing down to avoid burnout.`
+        )} hours. Slow down buddy lol 😂.`
       );
     } else if (projectsBurningCold.length > 0) {
       const coldProject = projectsBurningCold[0];
       suggestions.push(
-        `Pacing Check: You are currently behind schedule on "${formatBold(
+        `You are currently behind schedule on ${formatBold(
           coldProject.name
-        )}" and are projected to be ${Math.abs(coldProject.variance).toFixed(
+        )} and are projected to be ${Math.abs(coldProject.variance).toFixed(
           1
         )} hours under target. Consider allocating more time here soon.`
       );
