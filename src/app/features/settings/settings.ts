@@ -32,6 +32,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
 import { ProjectService } from '../../core/services/project.service';
 import { Project } from '../../core/models/project.model';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
 
 @Component({
   selector: 'app-settings',
@@ -47,6 +49,7 @@ import { Project } from '../../core/models/project.model';
     MatCardModule,
     MatProgressSpinnerModule,
     MatIconModule,
+    MatDialogModule,
   ],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
@@ -61,6 +64,9 @@ export class Settings implements OnInit, OnDestroy {
   private historicalDataService = inject(HistoricalDataService);
   private projectService = inject(ProjectService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+
+  private activeProjects: Project[] = [];
   private destroy$ = new Subject<void>();
 
   protected form: FormGroup;
@@ -71,7 +77,6 @@ export class Settings implements OnInit, OnDestroy {
   protected hasActiveProjects = signal(false);
   protected emailEditMode = signal(false);
 
-  // --- FIX 4: New properties for state tracking ---
   protected initialToggleValues = {
     enableEmailNotifications: false,
     enablePacingAlerts: false,
@@ -123,7 +128,6 @@ export class Settings implements OnInit, OnDestroy {
           }
           emailField.updateValueAndValidity();
 
-          // --- FIX 4: Check for Toggle Dirtiness (Controls Cancel Button visibility) ---
           const isCurrentWeeklyEnabled = weeklySummaryToggle.value;
           const isCurrentPacingEnabled = pacingAlertsToggle.value;
 
@@ -135,7 +139,6 @@ export class Settings implements OnInit, OnDestroy {
             this.initialToggleValues.enablePacingAlerts;
 
           this.isToggleDirty.set(weeklyChanged || pacingChanged);
-          // ----------------------------------------------------------------------------------
         });
     }
   }
@@ -172,12 +175,10 @@ export class Settings implements OnInit, OnDestroy {
     this.isToggleDirty.set(false); // Reset toggle dirty state on load
   }
 
-  // --- Helper for Bug 3 (Test Email Button) ---
   protected getOriginalEmail(): string {
     return this.settingsService.getSettings()?.notificationEmail || '';
   }
 
-  // --- FIX 4: Consolidated Cancel logic to reset toggles and email field ---
   onCancelChanges(): void {
     const settings = this.settingsService.getSettings();
     const emailField = this.form.get('notificationEmail');
@@ -202,7 +203,6 @@ export class Settings implements OnInit, OnDestroy {
     this.isToggleDirty.set(false);
   }
 
-  // --- FIX 4: Refined toggleEmailEdit to reset email field when exiting edit mode ---
   toggleEmailEdit(): void {
     if (this.emailEditMode()) {
       // If exiting edit mode (clicking 'cancel' icon), reset the field value
@@ -219,6 +219,7 @@ export class Settings implements OnInit, OnDestroy {
   private checkActiveProjects(): void {
     if (this.settingsExist()) {
       this.projectService.getProjects().subscribe((projects: Project[]) => {
+        this.activeProjects = projects; // Store for the dialog
         this.hasActiveProjects.set(projects && projects.length > 0);
       });
     }
@@ -306,21 +307,39 @@ export class Settings implements OnInit, OnDestroy {
   }
 
   onBackfillHistory(): void {
-    this.isBackfilling.set(true);
-    this.historicalDataService.backfillHistory().subscribe({
-      next: (response: any) => {
-        this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        this.isBackfilling.set(false);
+    const today = new Date();
+    const months = [...Array(3)].map((_, i) => {
+      const d = new Date(today.getFullYear(), today.getMonth() - (i + 1), 1);
+      return d.toLocaleString('default', { month: 'long' });
+    });
+
+    const dialogRef = this.dialog.open(BackfillDialog, {
+      width: '600px',
+      data: {
+        projects: this.activeProjects,
+        months,
       },
-      error: (err) => {
-        console.error('Error during backfill:', err);
-        this.snackBar.open(
-          'An error occurred during backfill. Check the console.',
-          'Close',
-          { duration: 5000 }
-        );
-        this.isBackfilling.set(false);
-      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.isBackfilling.set(true);
+        this.historicalDataService.backfillHistory(result).subscribe({
+          next: (response: any) => {
+            this.snackBar.open(response.message, 'Close', { duration: 5000 });
+            this.isBackfilling.set(false);
+          },
+          error: (err) => {
+            console.error('Error during backfill:', err);
+            this.snackBar.open(
+              'An error occurred during backfill. Check the console.',
+              'Close',
+              { duration: 5000 }
+            );
+            this.isBackfilling.set(false);
+          },
+        });
+      }
     });
   }
 

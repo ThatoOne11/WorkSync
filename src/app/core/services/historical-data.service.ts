@@ -36,14 +36,13 @@ export class HistoricalDataService {
     return from(promise);
   }
 
-  backfillHistory() {
+  backfillHistory(historicalTargets: any[]) {
     const settings = this.settingsService.getSettings();
-    const browserId = this.getBrowserId(); // Get the current browser ID
+    const browserId = this.getBrowserId();
 
-    // FIX: Pass both settings and the browserId in the request body
     const promise = this.supabase.functions
       .invoke('backfill-history', {
-        body: { settings, browserId },
+        body: { settings, browserId, historicalTargets }, // Pass new data
       })
       .then(({ data, error }) => {
         if (error) throw error;
