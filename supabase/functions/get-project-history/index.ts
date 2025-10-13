@@ -2,15 +2,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { serve } from '@deno/server';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// --- TYPE DEFINITIONS ---
-interface TimeEntry {
-  projectId: string;
-  timeInterval: {
-    start: string;
-    duration: string;
-  };
-}
-
 interface WeeklySummary {
   week_ending_on: string;
   logged_hours: number;
@@ -26,7 +17,7 @@ function getWorkdaysInMonth(year: number, month: number): number {
     const dayOfWeek = currentDate.getDay();
     if (dayOfWeek > 0 && dayOfWeek < 6) workdays++;
   }
-  return workdays > 0 ? workdays : 20; // Default for safety
+  return workdays > 0 ? workdays : 20;
 }
 
 // --- MAIN FUNCTION ---
@@ -64,82 +55,119 @@ serve(async (req) => {
 
     if (summariesError) throw summariesError;
 
-    // --- REFINED LOGIC ---
     const processedSummaries = summaries.map((s) => {
       const weekDate = new Date(s.week_ending_on);
       const workdays = getWorkdaysInMonth(
         weekDate.getFullYear(),
         weekDate.getMonth()
       );
-      const recommendedWeeklyHours = (s.target_hours / workdays) * 5;
+      const recommendedWeeklyHours =
+        s.target_hours > 0 ? (s.target_hours / workdays) * 5 : 0;
       return {
         ...s,
         recommendedWeeklyHours,
       };
     });
 
+    const trackedSummaries = processedSummaries.filter(
+      (s) => s.target_hours > 0
+    );
     const totalLoggedHours = processedSummaries.reduce(
       (acc, s) => acc + s.logged_hours,
       0
     );
-    const totalRecommendedHours = processedSummaries.reduce(
+
+    const totalTrackedLoggedHours = trackedSummaries.reduce(
+      (acc, s) => acc + s.logged_hours,
+      0
+    );
+    const totalRecommendedHours = trackedSummaries.reduce(
       (acc, s) => acc + s.recommendedWeeklyHours,
       0
     );
-    const pacingVariance = totalRecommendedHours - totalLoggedHours;
+    const pacingVariance = totalRecommendedHours - totalTrackedLoggedHours;
+    const averageWeeklyBurn =
+      trackedSummaries.length > 0
+        ? totalTrackedLoggedHours / trackedSummaries.length
+        : 0;
 
     const mostProductiveWeek = processedSummaries.reduce(
       (max, s) => (s.logged_hours > max.logged_hours ? s : max),
-      processedSummaries[0] || {
-        logged_hours: 0,
-        week_ending_on: 'N/A',
-        recommendedWeeklyHours: 0,
-      }
+      processedSummaries[0] || { logged_hours: 0, week_ending_on: 'N/A' }
     );
 
     const insights = [];
-    const overshootThreshold = 1.1; // 10% over
-    const undershootThreshold = 0.9; // 10% under
-    const burnoutThreshold = 1.5; // 50% over weekly recommendation
+    if (trackedSummaries.length > 1) {
+      const overshootThreshold = 1.1;
+      const burnoutThreshold = 1.5;
 
-    // --- NEW INSIGHT: Consecutive Overshooting ---
-    let consecutiveOvershoots = 0;
-    for (const s of processedSummaries) {
-      if (
-        s.target_hours > 0 &&
-        s.logged_hours > s.recommendedWeeklyHours * overshootThreshold
-      ) {
-        consecutiveOvershoots++;
-      } else {
-        consecutiveOvershoots = 0;
+      let consecutiveOvershoots = 0;
+      for (const s of trackedSummaries) {
+        if (s.logged_hours > s.recommendedWeeklyHours * overshootThreshold) {
+          consecutiveOvershoots++;
+        } else {
+          consecutiveOvershoots = 0;
+        }
+        if (consecutiveOvershoots >= 3) {
+          insights.push(
+            `You have logged more than recommended for ${consecutiveOvershoots} consecutive weeks. The project may require more time than allocated.`
+          );
+          break;
+        }
       }
-      if (consecutiveOvershoots >= 3) {
-        insights.push(
-          `You have logged more than your recommended hours for ${consecutiveOvershoots} consecutive weeks. This may indicate the project requires more time than allocated.`
-        );
-        break; // Only show this insight once
-      }
-    }
 
-    // --- NEW INSIGHT: Burnout Warning ---
-    const burnoutWeek = processedSummaries.find(
-      (s) =>
-        s.target_hours > 0 &&
-        s.logged_hours > s.recommendedWeeklyHours * burnoutThreshold
-    );
-    if (burnoutWeek) {
-      insights.push(
-        `On the week ending ${new Date(
-          burnoutWeek.week_ending_on
-        ).toLocaleDateString()}, you logged ${burnoutWeek.logged_hours.toFixed(
-          1
-        )} hours, significantly exceeding the recommended ${burnoutWeek.recommendedWeeklyHours.toFixed(
-          1
-        )} hours. Remember to pace yourself to avoid burnout.`
+      const burnoutWeek = trackedSummaries.find(
+        (s) => s.logged_hours > s.recommendedWeeklyHours * burnoutThreshold
       );
+      if (burnoutWeek) {
+        insights.push(
+          `On the week ending ${new Date(
+            burnoutWeek.week_ending_on
+          ).toLocaleDateString()}, you logged ${burnoutWeek.logged_hours.toFixed(
+            1
+          )} hours, significantly exceeding the recommended ${burnoutWeek.recommendedWeeklyHours.toFixed(
+            1
+          )} hours. Remember to pace yourself.`
+        );
+      }
     }
 
-    // --- CORRECTED CHART DATA ---
+    const monthlyData: { [key: string]: { logged: number; target: number } } =
+      {};
+    processedSummaries.forEach((s) => {
+      const monthKey = new Date(s.week_ending_on).toLocaleString('default', {
+        month: 'long',
+        year: 'numeric',
+      });
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { logged: 0, target: s.target_hours };
+      }
+      monthlyData[monthKey].logged += s.logged_hours;
+      if (s.target_hours > 0) {
+        monthlyData[monthKey].target = s.target_hours;
+      }
+    });
+
+    const monthlyChartData = {
+      labels: Object.keys(monthlyData),
+      datasets: [
+        {
+          label: 'Logged Hours',
+          data: Object.values(monthlyData).map((m) => m.logged),
+          backgroundColor: 'rgba(255, 59, 48, 0.7)',
+          borderColor: '#ff3b30',
+          borderWidth: 1,
+        },
+        {
+          label: 'Target Hours',
+          data: Object.values(monthlyData).map((m) => m.target),
+          backgroundColor: 'rgba(142, 142, 147, 0.7)',
+          borderColor: '#8e8e93',
+          borderWidth: 1,
+        },
+      ],
+    };
+
     const chartData = {
       labels: processedSummaries.map(
         (s) => `Week ending ${new Date(s.week_ending_on).toLocaleDateString()}`
@@ -160,7 +188,6 @@ serve(async (req) => {
           borderDash: [5, 5],
           tension: 0.1,
         },
-        // --- NEW DATASET ---
         {
           label: 'Allocated Hours (Monthly)',
           data: processedSummaries.map((s) => s.target_hours),
@@ -175,8 +202,8 @@ serve(async (req) => {
       projectName: project.name,
       keyMetrics: {
         totalLoggedHours,
-        targetHours: project.target_hours, // Current target for display
-        averageWeeklyBurn: totalLoggedHours / processedSummaries.length,
+        targetHours: project.target_hours,
+        averageWeeklyBurn,
         pacingVariance,
         mostProductiveWeek: {
           logged_hours: mostProductiveWeek.logged_hours,
@@ -184,6 +211,7 @@ serve(async (req) => {
         },
       },
       chartData,
+      monthlyChartData,
       insights,
     };
 

@@ -75,31 +75,50 @@
         </mat-card-header>
         <mat-card-content>
           <div class="chart-container">
-            <canvas #historyChart></canvas>
+            <canvas #weeklyChart></canvas>
           </div>
         </mat-card-content>
       </mat-card>
-
-      @if (insights.length > 0) {
-      <mat-card class="insights-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon color="accent">lightbulb_circle</mat-icon>
-            Smart Suggestions
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <mat-list role="list" dense>
-            @for (insight of insights; track $index) {
-            <mat-list-item role="listitem" class="suggestion-item">
-              {{ insight }}
-            </mat-list-item>
-            }
-          </mat-list>
-        </mat-card-content>
-      </mat-card>
-      }
     </div>
+
+    <mat-card class="monthly-card">
+      <mat-card-header>
+        <mat-card-title>Monthly Breakdown</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="monthly-layout">
+        <div class="monthly-chart-container">
+          <canvas #monthlyChart></canvas>
+        </div>
+        <div class="monthly-table-container">
+          <table class="monthly-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Target</th>
+                <th>Logged</th>
+                <th>Variance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of monthlyDataForTable; track row.month) {
+              <tr>
+                <td>{{ row.month }}</td>
+                <td>{{ row.target.toFixed(2) }}</td>
+                <td>{{ row.logged.toFixed(2) }}</td>
+                <td
+                  [class.positive]="row.variance >= 0"
+                  [class.negative]="row.variance < 0"
+                >
+                  {{ row.variance >= 0 ? "+" : ""
+                  }}{{ row.variance.toFixed(2) }}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
   </div>
   } @else {
   <p class="no-data-message u-text-secondary">
