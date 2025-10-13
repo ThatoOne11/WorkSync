@@ -2,6 +2,31 @@ import { createClient } from '@supabase/supabase-js';
 import { serve } from '@deno/server';
 import { corsHeaders } from '../_shared/cors.ts';
 
+// --- TYPE DEFINITIONS ---
+interface ProjectAnalysis {
+  id: number;
+  name: string;
+  variance: number;
+}
+
+interface User {
+  user_id: string;
+  enablePacingAlerts?: string;
+  notificationEmail?: string;
+  clockifyApiKey?: string;
+  clockifyWorkspaceId?: string;
+  clockifyUserId?: string;
+  [key: string]: string | undefined;
+}
+
+interface ClockifyTimeEntry {
+  projectId: string;
+  timeInterval: {
+    duration: string;
+  };
+}
+
+// --- HELPER FUNCTIONS ---
 function parseISO8601Duration(duration: string): number {
   if (!duration) return 0;
   const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
@@ -13,7 +38,6 @@ function parseISO8601Duration(duration: string): number {
   const seconds = parseFloat(matches[4] || '0');
   return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
 }
-
 function getWorkdaysInMonth(year: number, month: number): number {
   let workdays = 0;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -27,7 +51,6 @@ function getWorkdaysInMonth(year: number, month: number): number {
   }
   return workdays;
 }
-
 function getPassedWorkdays(today: Date): number {
   let passedWorkdays = 0;
   const year = today.getFullYear();
@@ -42,7 +65,11 @@ function getPassedWorkdays(today: Date): number {
   return passedWorkdays > 0 ? passedWorkdays : 1;
 }
 
-async function sendPacingAlertEmail(alert: any, settings: any) {
+// --- NEW EMAIL GENERATION FUNCTION ---
+async function sendPacingDigestEmail(
+  projectsToAlert: ProjectAnalysis[],
+  settings: User
+) {
   const { notificationEmail } = settings;
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
 
@@ -50,103 +77,61 @@ async function sendPacingAlertEmail(alert: any, settings: any) {
     return 'Email notifications are not configured. Skipping email.';
   }
 
-  // HARDCODED COLORS (Engaging Light Aesthetic)
   const BRAND_ACCENT = '#79A9D1';
   const PRIMARY_TEXT = '#333333';
   const SECONDARY_TEXT = '#666666';
   const BG_COLOR = '#F8F8F8';
   const SURFACE_COLOR = '#FFFFFF';
-  const WARNING_COLOR = '#FFC107';
   const DANGER_COLOR = '#F44336';
-  const ALERT_BACKGROUND = '#FFFBE5';
-  const CRITICAL_BACKGROUND = '#FBE5E5';
+  const WARNING_COLOR = '#FFC107';
+  const DIVIDER_COLOR = '#E0E0E0';
 
-  const { projectName, variance, recommendation } = alert;
-  const isOver = variance > 0;
-  const statusColor = isOver ? WARNING_COLOR : DANGER_COLOR;
-  const statusBackground = isOver ? ALERT_BACKGROUND : CRITICAL_BACKGROUND;
-  const statusLabel = isOver ? 'OVER SHOOTING' : 'FALLING BEHIND';
-  const headline = isOver ? 'Pace Warning' : 'Time Allocation Alert';
-  const subject = `Pacing Alert: ${statusLabel} on ${projectName}`;
+  const projectRows = projectsToAlert
+    .map((p) => {
+      const isOver = p.variance > 0;
+      const statusColor = isOver ? WARNING_COLOR : DANGER_COLOR;
+      const statusLabel = isOver ? 'Overshooting' : 'Falling Behind';
+
+      return `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid ${DIVIDER_COLOR};">
+          <strong style="color: ${PRIMARY_TEXT};">${p.name}</strong><br>
+          <span style="color: ${statusColor}; font-size: 12px; font-weight: 700;">${statusLabel}</span>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid ${DIVIDER_COLOR}; text-align: right;">
+          <strong style="color: ${statusColor}; font-size: 16px;">
+            ${(p.variance > 0 ? '+' : '') + p.variance.toFixed(1)} hrs
+          </strong>
+        </td>
+      </tr>
+    `;
+    })
+    .join('');
 
   const htmlBody = `
     <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WorkSync Pacing Alert</title>
-        <style>
-            @media screen and (max-width: 600px) {
-                .container {
-                    width: 100% !important;
-                    min-width: 100% !important;
-                }
-            }
-        </style>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: ${BG_COLOR}; font-family: 'Roboto', Arial, sans-serif;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR};">
-            <tr>
-                <td align="center" style="padding: 30px 20px;">
-                    <table role="presentation" width="500" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; margin-bottom: 20px;">
-                        <tr>
-                            <td style="padding: 10px 0; color: ${BRAND_ACCENT}; font-size: 20px; font-weight: 700;">
-                                WorkSync // CORE
-                            </td>
-                        </tr>
-                    </table>
+    <html>
+    <body style="margin: 0; padding: 0; background-color: ${BG_COLOR}; font-family: sans-serif;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${BG_COLOR}; padding: 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: ${SURFACE_COLOR}; border-radius: 8px; padding: 30px;">
+              <tr>
+                <td>
+                  <h1 style="color: ${BRAND_ACCENT}; font-size: 24px;">Your Daily Pacing Digest</h1>
+                  <p style="color: ${SECONDARY_TEXT};">Here’s a look at projects that need your attention based on today's progress.</p>
+                  
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 20px;">
+                    ${projectRows}
+                  </table>
 
-                    <table role="presentation" width="500" class="container" cellspacing="0" cellpadding="0" border="0" style="max-width: 500px; background-color: ${SURFACE_COLOR}; border-radius: 8px; border: 1px solid ${statusColor}; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-                        <tr>
-                            <td style="padding: 0;">
-                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${statusBackground}; border-radius: 8px 8px 0 0; border-bottom: 2px solid ${statusColor};">
-                                    <tr>
-                                        <td style="padding: 15px 30px; color: ${PRIMARY_TEXT}; font-size: 18px; font-weight: 600;">
-                                            ${headline}
-                                        </td>
-                                    </tr>
-                                </table>
-
-                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                                    <tr>
-                                        <td style="padding: 30px;">
-                                            <h3 style="color: ${PRIMARY_TEXT}; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 5px;">
-                                                Project: ${projectName}
-                                            </h3>
-
-                                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${BG_COLOR}; border-radius: 8px; padding: 20px;">
-                                                <tr>
-                                                    <td style="padding: 0;">
-                                                        <p style="font-size: 16px; margin: 0 0 15px 0; color: ${PRIMARY_TEXT}; font-weight: 500;">
-                                                            <span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase;">${statusLabel}:</span> Projected to go ${
-    isOver ? 'OVER' : 'UNDER'
-  } by 
-                                                            <span style="color: ${statusColor}; font-weight: 800; font-size: 1.1em;">${Math.abs(
-    variance
-  ).toFixed(1)} hrs</span>
-                                                        </p>
-                                                        <p style="font-size: 14px; margin: 0; color: ${PRIMARY_TEXT}; font-weight: 400;">
-                                                            ${recommendation}
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                            
-                                            <p style="text-align: center; margin-top: 30px;">
-                                                <a href="#" style="background-color: ${BRAND_ACCENT}; color: ${SURFACE_COLOR}; text-decoration: none; padding: 12px 25px; border-radius: 4px; font-weight: 600; font-size: 14px; display: inline-block;">
-                                                    Review on WorkSync
-                                                </a>
-                                            </p>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
+                  <p style="color: ${SECONDARY_TEXT}; margin-top: 30px;">Use your <a href="https://worksync-f2s.pages.dev/dashboard" style="color: ${BRAND_ACCENT};">WorkSync Dashboard</a> for a more detailed breakdown and to adjust your focus for tomorrow.</p>
                 </td>
-            </tr>
-        </table>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
@@ -158,9 +143,9 @@ async function sendPacingAlertEmail(alert: any, settings: any) {
       Authorization: `Bearer ${resendApiKey}`,
     },
     body: JSON.stringify({
-      from: 'WorkSync Alerts <onboarding@resend.dev>',
+      from: 'WorkSync Digest <onboarding@resend.dev>',
       to: notificationEmail,
-      subject: subject,
+      subject: `Your Daily Pacing Digest`,
       html: htmlBody,
     }),
   });
@@ -170,7 +155,7 @@ async function sendPacingAlertEmail(alert: any, settings: any) {
     throw new Error(`Failed to send email: ${JSON.stringify(errorBody)}`);
   }
 
-  return `Pacing alert successfully sent to ${notificationEmail}.`;
+  return `Pacing digest successfully sent to ${notificationEmail}.`;
 }
 
 serve(async (req) => {
@@ -190,27 +175,24 @@ serve(async (req) => {
 
     if (settingsError) throw settingsError;
 
-    const users = settingsData.reduce((acc, { key, value, user_id }) => {
-      acc[user_id] = acc[user_id] || { user_id };
-      acc[user_id][key] = value;
-      return acc;
-    }, {} as Record<string, any>);
+    const users = settingsData.reduce(
+      (acc: Record<string, User>, { key, value, user_id }) => {
+        acc[user_id] = acc[user_id] || { user_id };
+        acc[user_id][key] = value;
+        return acc;
+      },
+      {}
+    );
 
-    let messages = [];
+    const messages: string[] = [];
 
     for (const user of Object.values(users)) {
-      if (user.enablePacingAlerts !== 'true') {
-        messages.push(
-          `Pacing alerts disabled for user ${user.user_id}. Skipping.`
-        );
+      if (user.enablePacingAlerts !== 'true' || !user.notificationEmail) {
         continue;
       }
 
       const { clockifyApiKey, clockifyWorkspaceId, clockifyUserId } = user;
       if (!clockifyApiKey || !clockifyWorkspaceId || !clockifyUserId) {
-        messages.push(
-          `Clockify settings missing for user ${user.user_id}. Skipping.`
-        );
         continue;
       }
 
@@ -224,27 +206,7 @@ serve(async (req) => {
         continue;
       }
 
-      // --- FIX: Change from a rolling 24-hour window to a calendar day reset ---
       const today = new Date();
-      const startOfTodayUTC = new Date(
-        Date.UTC(
-          today.getUTCFullYear(),
-          today.getUTCMonth(),
-          today.getUTCDate()
-        )
-      );
-
-      const { data: recentAlerts } = await supabase
-        .from('pacing_alerts')
-        .select('project_id')
-        .eq('user_id', user.user_id)
-        .gte('alert_sent_at', startOfTodayUTC.toISOString());
-
-      const recentlyAlertedProjectIds = new Set(
-        (recentAlerts || []).map((a) => a.project_id)
-      );
-      // --- END OF FIX ---
-
       const startOfMonth = new Date(
         today.getFullYear(),
         today.getMonth(),
@@ -265,9 +227,11 @@ serve(async (req) => {
 
       const projectAnalysis = projects.map((p) => {
         const loggedSeconds = timeEntries
-          .filter((te: any) => te.projectId === p.clockify_project_id)
+          .filter(
+            (te: ClockifyTimeEntry) => te.projectId === p.clockify_project_id
+          )
           .reduce(
-            (sum: number, te: any) =>
+            (sum: number, te: ClockifyTimeEntry) =>
               sum + parseISO8601Duration(te.timeInterval.duration),
             0
           );
@@ -277,59 +241,31 @@ serve(async (req) => {
         const projectedHours = dailyBurnRate * totalWorkdays;
         const variance = projectedHours - p.target_hours;
 
-        return { id: p.id, name: p.name, target: p.target_hours, variance };
+        return { id: p.id, name: p.name, variance };
       });
 
-      const highVarianceProjects = projectAnalysis.filter(
-        (p) => Math.abs(p.variance) > p.target * 0.1
+      const projectsToAlert = projectAnalysis.filter(
+        (p) => Math.abs(p.variance) > 2
       );
 
-      const projectsToAlert = highVarianceProjects.filter(
-        (p) => !recentlyAlertedProjectIds.has(p.id)
-      );
+      if (projectsToAlert.length > 0) {
+        const emailResult = await sendPacingDigestEmail(projectsToAlert, user);
+        messages.push(emailResult);
 
-      if (projectsToAlert.length === 0) {
-        messages.push(
-          `All projects on pace or already alerted for user ${user.user_id}.`
-        );
-        continue;
-      }
-
-      const mostCriticalProject = projectsToAlert.sort(
-        (a, b) => Math.abs(b.variance) - Math.abs(a.variance)
-      )[0];
-
-      let recommendation = '';
-      if (mostCriticalProject.variance > 0) {
-        recommendation =
-          'Consider slowing down or shifting focus to other projects to avoid burnout and stay within budget.';
-      } else {
-        recommendation =
-          'Consider allocating more time here soon to catch up and meet your monthly target.';
-      }
-
-      const alert = {
-        projectName: mostCriticalProject.name,
-        variance: mostCriticalProject.variance,
-        recommendation,
-      };
-
-      const emailResult = await sendPacingAlertEmail(alert, user);
-      messages.push(emailResult);
-
-      await supabase.from('pacing_alerts').upsert(
-        {
-          project_id: mostCriticalProject.id,
+        const alertsToUpsert = projectsToAlert.map((p) => ({
+          project_id: p.id,
           user_id: user.user_id,
           alert_sent_at: new Date().toISOString(),
-        },
-        { onConflict: 'project_id, user_id' }
-      );
+        }));
+        await supabase
+          .from('pacing_alerts')
+          .upsert(alertsToUpsert, { onConflict: 'project_id, user_id' });
+      }
     }
 
     return new Response(
       JSON.stringify({
-        message: 'Pacing analysis complete for all users.',
+        message: 'Pacing analysis complete.',
         details: messages,
       }),
       {
@@ -338,7 +274,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
