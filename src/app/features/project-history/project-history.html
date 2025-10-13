@@ -1,14 +1,109 @@
-<h2 mat-dialog-title class="history-dialog-title">
-  History for: {{ project.name }}
-</h2>
-<mat-dialog-content>
+<div class="history-container">
+  <div class="header">
+    <a routerLink="/projects" mat-icon-button>
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h2>History for: {{ projectName }}</h2>
+  </div>
+
   @if (isLoading) {
-  <mat-spinner></mat-spinner>
-  } @else if (summaries.length > 0) {
-  <div class="chart-container" style="position: relative; height: 40vh">
-    <canvas #historyChart></canvas>
+  <div class="spinner-container">
+    <mat-spinner></mat-spinner>
+  </div>
+  } @else if (keyMetrics) {
+  <div class="history-layout">
+    <div class="metrics-grid">
+      <mat-card class="metric-card">
+        <mat-card-header>
+          <mat-card-title>Total Progress</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <span class="metric-value"
+            >{{ keyMetrics.totalLoggedHours.toFixed(2) }} /
+            {{ keyMetrics.targetHours.toFixed(2) }}</span
+          >
+          <span class="metric-label">Hours Logged</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="metric-card">
+        <mat-card-header>
+          <mat-card-title>Pacing Variance</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <span
+            class="metric-value"
+            [class.positive]="keyMetrics.pacingVariance >= 0"
+            [class.negative]="keyMetrics.pacingVariance < 0"
+          >
+            {{ keyMetrics.pacingVariance >= 0 ? "+" : ""
+            }}{{ keyMetrics.pacingVariance.toFixed(2) }}
+          </span>
+          <span class="metric-label">Hours</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="metric-card">
+        <mat-card-header>
+          <mat-card-title>Avg. Weekly Burn</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <span class="metric-value">{{
+            keyMetrics.averageWeeklyBurn.toFixed(2)
+          }}</span>
+          <span class="metric-label">Hours / Week</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="metric-card">
+        <mat-card-header>
+          <mat-card-title>Peak Week</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <span class="metric-value">{{
+            keyMetrics.mostProductiveWeek.logged_hours.toFixed(2)
+          }}</span>
+          <span class="metric-label"
+            >Hours (ending
+            {{ keyMetrics.mostProductiveWeek.week_ending_on }})</span
+          >
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="data-grid">
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Weekly Performance</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-container">
+            <canvas #historyChart></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      @if (insights.length > 0) {
+      <mat-card class="insights-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon color="accent">lightbulb_circle</mat-icon>
+            Smart Suggestions
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list role="list" dense>
+            @for (insight of insights; track $index) {
+            <mat-list-item role="listitem" class="suggestion-item">
+              {{ insight }}
+            </mat-list-item>
+            }
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
+      }
+    </div>
   </div>
   } @else {
-  <p>No historical data found for this project.</p>
+  <p class="no-data-message u-text-secondary">
+    No historical data found for this project.
+  </p>
   }
-</mat-dialog-content>
+</div>

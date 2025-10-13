@@ -10,6 +10,7 @@ import { SettingsService } from './core/services/settings.service';
 import { Projects } from './features/projects/projects';
 import { Settings } from './features/settings/settings';
 import { Dashboard } from './features/dashboard/dashboard';
+import { ProjectHistory } from './features/project-history/project-history';
 
 // Define the functional guard to check for required settings in localStorage
 const canActivateMainRoutes: CanActivateFn = (
@@ -41,6 +42,11 @@ export const routes: Routes = [
   {
     path: 'projects',
     component: Projects,
+    canActivate: [canActivateMainRoutes],
+  },
+  {
+    path: 'projects/:id/history',
+    component: ProjectHistory,
     canActivate: [canActivateMainRoutes],
   },
   { path: 'settings', component: Settings },

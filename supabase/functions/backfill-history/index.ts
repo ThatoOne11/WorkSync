@@ -28,7 +28,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // FIX: Read settings and browserId from the request body
     const { settings, browserId } = await req.json();
     if (!settings || !browserId) {
       throw new Error('Settings or Browser ID not provided.');
@@ -43,7 +42,6 @@ serve(async (req) => {
       throw new Error('Clockify settings are not configured.');
     }
 
-    // FIX: Filter projects by the provided browserId
     const { data: projects } = await supabase
       .from('projects')
       .select('id, name, clockify_project_id, target_hours')
@@ -87,7 +85,6 @@ serve(async (req) => {
 
         const loggedHours = loggedSeconds / 3600;
 
-        // FIX: Include the user_id in the summary object
         return {
           project_id: project.id,
           target_hours: project.target_hours,
@@ -100,9 +97,12 @@ serve(async (req) => {
       allSummaries.push(...weeklySummaries);
     }
 
+    // The onConflict constraint now matches the new multi-tenant unique constraint which includes the user_id.
     const { error: insertError } = await supabase
       .from('weekly_summaries')
-      .upsert(allSummaries, { onConflict: 'project_id,week_ending_on' });
+      .upsert(allSummaries, {
+        onConflict: 'project_id,week_ending_on,user_id',
+      });
 
     if (insertError) throw insertError;
 
