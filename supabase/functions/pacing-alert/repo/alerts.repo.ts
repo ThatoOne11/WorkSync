@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SupabaseTables } from '../constants/supabase.constants.ts';
+import { SupabaseTables } from '../../_shared/constants/supabase.constants.ts';
 
 export class AlertsRepository {
   constructor(private readonly client: SupabaseClient) {}

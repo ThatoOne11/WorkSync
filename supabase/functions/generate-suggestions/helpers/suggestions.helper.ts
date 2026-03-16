@@ -1,9 +1,9 @@
-export interface ProjectVarianceData {
+export type ProjectVarianceData = {
   name: string;
   loggedHours: number;
   targetHours: number;
   variance: number;
-}
+};
 
 export class SuggestionsHelper {
   static formatWeekendSuggestions(

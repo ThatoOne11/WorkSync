@@ -11,7 +11,7 @@ import {
 import {
   SuggestionsHelper,
   ProjectVarianceData,
-} from '../../_shared/helpers/suggestions.helper.ts';
+} from '../helpers/suggestions.helper.ts';
 
 export class SuggestionsService {
   constructor(private readonly projectsRepo: ProjectsRepository) {}

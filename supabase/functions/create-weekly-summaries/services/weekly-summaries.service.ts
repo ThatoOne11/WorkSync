@@ -7,7 +7,7 @@ import {
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
 import { EmailService } from '../../_shared/services/email.service.ts';
 import { EmailHelper } from '../../_shared/helpers/email.helper.ts';
-import { WeeklyStatsHelper } from '../../_shared/helpers/weekly-stats.helper.ts';
+import { WeeklyStatsHelper } from '../helpers/weekly-stats.helper.ts';
 import {
   getWorkdaysInMonth,
   getWeekOfMonth,

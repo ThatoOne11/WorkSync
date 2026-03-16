@@ -1,6 +1,6 @@
-import { EmailTheme } from '../constants/email.constants.ts';
-import { EmailHelper } from '../helpers/email.helper.ts';
-import { WeeklyStats } from '../types/app.types.ts';
+import { EmailTheme } from '../../_shared/constants/email.constants.ts';
+import { EmailHelper } from '../../_shared/helpers/email.helper.ts';
+import { WeeklyStats } from '../../_shared/types/app.types.ts';
 
 export function buildWeeklySummaryTemplate(
   insightText: string,

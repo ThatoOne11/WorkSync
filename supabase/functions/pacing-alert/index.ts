@@ -3,7 +3,7 @@ import { SUPABASE_CONFIG } from '../_shared/config.ts';
 import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
-import { AlertsRepository } from '../_shared/repo/alerts.repo.ts';
+import { AlertsRepository } from './repo/alerts.repo.ts';
 import { EmailService } from '../_shared/services/email.service.ts';
 import { PacingAlertService } from './services/pacing.service.ts';
 import { PacingAlertController } from './controllers/pacing.controller.ts';

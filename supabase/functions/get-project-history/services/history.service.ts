@@ -1,8 +1,8 @@
 import { ProjectsRepository } from '../../_shared/repo/projects.repo.ts';
 import { SummariesRepository } from '../../_shared/repo/summaries.repo.ts';
 import { getWorkdaysInMonth } from '../../_shared/utils/date.utils.ts';
-import { ChartHelper } from '../../_shared/helpers/chart.helper.ts';
-import { InsightsHelper } from '../../_shared/helpers/insights.helper.ts';
+import { ChartHelper } from '../helpers/chart.helper.ts';
+import { InsightsHelper } from '../helpers/insights.helper.ts';
 import { HistoryResponsePayload } from '../types/history.types.ts';
 
 export class HistoryService {

@@ -2,7 +2,7 @@ import { EMAIL_CONFIG } from '../config.ts';
 import { DownstreamSyncError } from '../exceptions/custom.exceptions.ts';
 import { ApiConstants } from '../constants/api.constants.ts';
 import { buildPacingDigestTemplate } from '../templates/pacing-digest.template.ts';
-import { buildWeeklySummaryTemplate } from '../templates/weekly-summary.template.ts';
+import { buildWeeklySummaryTemplate } from '../../create-weekly-summaries/templates/weekly-summary.template.ts';
 import { EmailHelper } from '../helpers/email.helper.ts';
 import { ProjectAnalysis, WeeklyStats } from '../types/app.types.ts';
 

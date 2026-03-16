@@ -1,7 +1,7 @@
-import { ProjectSummary, WeeklyStats } from '../types/app.types.ts';
-import { ClockifyTimeEntry } from '../types/clockify.types.ts';
-import { DBProject } from '../repo/projects.repo.ts';
-import { parseISO8601Duration } from '../utils/date.utils.ts';
+import { ProjectSummary, WeeklyStats } from '../../_shared/types/app.types.ts';
+import { ClockifyTimeEntry } from '../../_shared/types/clockify.types.ts';
+import { DBProject } from '../../_shared/repo/projects.repo.ts';
+import { parseISO8601Duration } from '../../_shared/utils/date.utils.ts';
 
 export class WeeklyStatsHelper {
   static calculateWeeklyStats(

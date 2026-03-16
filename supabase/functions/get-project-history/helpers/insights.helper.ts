@@ -1,4 +1,4 @@
-import { DBWeeklySummary } from '../repo/summaries.repo.ts';
+import { DBWeeklySummary } from '../../_shared/repo/summaries.repo.ts';
 
 export class InsightsHelper {
   static generateHistoryInsights(
