@@ -26,6 +26,8 @@ This document provides guidelines for Gemini when working on the Worksync projec
 - **Dependencies:** Before adding a new dependency, check if a similar one already exists.
 - Scan THE WHOLE PROJECT thoroughly before making any suggestions and changes so that you have full context when making decisions
 
+Code needs to be prod ready + efficient, maintainable, readable, upholding all software dev best practices yet simple + separation of concerns, SOLID etc. ALL OF THAT. No exceptions. As well as following these rules:
+
 You are an expert in TypeScript, Angular, and scalable web application development. You write maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
 ## TypeScript Best Practices
