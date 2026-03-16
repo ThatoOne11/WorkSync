@@ -1,41 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
-import { serve } from '@deno/server';
-import { corsHeaders } from '../_shared/cors.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js';
+import { SUPABASE_CONFIG } from '../_shared/config.ts';
+import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
+import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
+import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
+import { SummariesRepository } from '../_shared/repo/summaries.repo.ts';
+import { DeleteUserDataService } from './services/delete-user-data.service.ts';
+import { DeleteUserDataController } from './controllers/delete.controller.ts';
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+Deno.serve(
+  withEdgeWrapper('Delete-User-Data', async (req: Request) => {
+    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-  try {
-    const { browserId } = await req.json();
-    if (!browserId) {
-      throw new Error('Browser ID not provided.');
-    }
+    const settingsRepo = new SettingsRepository(supabase);
+    const projectsRepo = new ProjectsRepository(supabase);
+    const summariesRepo = new SummariesRepository(supabase);
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
+    const service = new DeleteUserDataService(
+      settingsRepo,
+      projectsRepo,
+      summariesRepo,
     );
+    const controller = new DeleteUserDataController(service);
 
-    // Concurrently delete from all tables
-    await Promise.all([
-      supabase.from('settings').delete().eq('user_id', browserId),
-      supabase.from('projects').delete().eq('user_id', browserId),
-      supabase.from('weekly_summaries').delete().eq('user_id', browserId),
-    ]);
-
-    return new Response(
-      JSON.stringify({ message: 'User data deleted successfully.' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    });
-  }
-});
+    return await controller.handleRequest(req);
+  }),
+);
