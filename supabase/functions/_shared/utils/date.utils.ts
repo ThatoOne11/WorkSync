@@ -43,35 +43,50 @@ export function getPassedWorkdays(today: Date): number {
 
 export function getWeekOfMonth(date: Date): number {
   const d = new Date(date);
-  const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
-  const offsetDate = d.getDate() + firstDayOfMonth - 1;
-  return Math.floor(offsetDate / 7) + 1;
+  const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  const firstDayWeekday = firstDayOfMonth.getDay(); // 0 (Sun) to 6 (Sat)
+
+  // Align offsets so Monday is the start of a standard week
+  const offset =
+    firstDayWeekday === 1 ? 0 : firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+  const adjustedDate = d.getDate() + offset;
+
+  return Math.ceil(adjustedDate / 7);
 }
 
 export function getWeekDates(
   today: Date,
   weekNumber: number,
 ): { start: string; end: string } {
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const firstMonday = new Date(firstDayOfMonth);
-  if (firstDayOfMonth.getDay() !== 1) {
-    firstMonday.setDate(
-      firstMonday.getDate() + ((8 - firstDayOfMonth.getDay()) % 7),
-    );
-  }
+  const year = today.getFullYear();
+  const month = today.getMonth();
 
-  let weekStartDate: Date;
+  const firstDayOfMonth = new Date(year, month, 1);
+  let start: Date;
+  let end: Date;
+
   if (weekNumber === 1) {
-    weekStartDate = firstDayOfMonth;
+    start = new Date(firstDayOfMonth);
+    // Find the first Sunday
+    const daysToSunday = (7 - start.getDay()) % 7;
+    end = new Date(year, month, 1 + daysToSunday);
   } else {
-    weekStartDate = new Date(firstMonday);
-    weekStartDate.setDate(firstMonday.getDate() + (weekNumber - 2) * 7);
+    // Find the first Monday
+    const daysToFirstMonday = (8 - firstDayOfMonth.getDay()) % 7;
+    const firstMonday = new Date(year, month, 1 + daysToFirstMonday);
+
+    start = new Date(year, month, firstMonday.getDate() + (weekNumber - 2) * 7);
+    end = new Date(year, month, start.getDate() + 6);
   }
-  weekStartDate.setHours(0, 0, 0, 0);
 
-  const weekEndDate = new Date(weekStartDate);
-  weekEndDate.setDate(weekStartDate.getDate() + 6);
-  weekEndDate.setHours(23, 59, 59, 999);
+  // Cap the end date to the end of the month so weeks don't bleed into the next month
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  if (end > lastDayOfMonth) {
+    end = lastDayOfMonth;
+  }
 
-  return { start: weekStartDate.toISOString(), end: weekEndDate.toISOString() };
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
+  return { start: start.toISOString(), end: end.toISOString() };
 }
