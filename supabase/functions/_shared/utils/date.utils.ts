@@ -24,7 +24,7 @@ export function getWorkdaysInMonth(year: number, month: number): number {
       workdays++;
     }
   }
-  return workdays > 0 ? workdays : 20; // Default to 20 for safety
+  return workdays > 0 ? workdays : 20;
 }
 
 export function getPassedWorkdays(today: Date): number {
@@ -46,4 +46,32 @@ export function getWeekOfMonth(date: Date): number {
   const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
   const offsetDate = d.getDate() + firstDayOfMonth - 1;
   return Math.floor(offsetDate / 7) + 1;
+}
+
+export function getWeekDates(
+  today: Date,
+  weekNumber: number,
+): { start: string; end: string } {
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const firstMonday = new Date(firstDayOfMonth);
+  if (firstDayOfMonth.getDay() !== 1) {
+    firstMonday.setDate(
+      firstMonday.getDate() + ((8 - firstDayOfMonth.getDay()) % 7),
+    );
+  }
+
+  let weekStartDate: Date;
+  if (weekNumber === 1) {
+    weekStartDate = firstDayOfMonth;
+  } else {
+    weekStartDate = new Date(firstMonday);
+    weekStartDate.setDate(firstMonday.getDate() + (weekNumber - 2) * 7);
+  }
+  weekStartDate.setHours(0, 0, 0, 0);
+
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate() + 6);
+  weekEndDate.setHours(23, 59, 59, 999);
+
+  return { start: weekStartDate.toISOString(), end: weekEndDate.toISOString() };
 }
