@@ -1,4 +1,4 @@
-import { EmailTheme } from '../constants/email.constants.ts';
+import { EmailTheme } from '../../_shared/constants/email.constants.ts';
 
 export function buildPacingDigestTemplate(projectRowsHtml: string): string {
   return `

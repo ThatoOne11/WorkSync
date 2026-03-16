@@ -10,6 +10,8 @@ import {
 } from '../../_shared/utils/date.utils.ts';
 import { ProjectAnalysis } from '../../_shared/types/app.types.ts';
 import { PacingAlertResult } from '../types/pacing.types.ts';
+import { PacingHelper } from '../helpers/pacing.helper.ts';
+import { buildPacingDigestTemplate } from '../templates/pacing-digest.template.ts';
 
 export class PacingAlertService {
   constructor(
@@ -36,18 +38,14 @@ export class PacingAlertService {
     const passedWorkdays = getPassedWorkdays(today);
 
     for (const [userId, user] of Object.entries(usersSettings)) {
-      if (user.enablePacingAlerts !== 'true' || !user.notificationEmail) {
+      if (user.enablePacingAlerts !== 'true' || !user.notificationEmail)
         continue;
-      }
-
       if (
         !user.clockifyApiKey ||
         !user.clockifyWorkspaceId ||
         !user.clockifyUserId
-      ) {
-        messages.push(`Skipped user ${userId}: Missing Clockify credentials.`);
+      )
         continue;
-      }
 
       try {
         const projects = await this.projectsRepo.getActiveProjects(userId);
@@ -72,11 +70,12 @@ export class PacingAlertService {
             );
 
           const loggedHours = loggedSeconds / 3600;
-          const dailyBurnRate = loggedHours / passedWorkdays;
-          const projectedHours = dailyBurnRate * totalWorkdays;
-          const variance = projectedHours - p.target_hours;
-
-          return { id: p.id, name: p.name, variance };
+          const projectedHours = (loggedHours / passedWorkdays) * totalWorkdays;
+          return {
+            id: p.id,
+            name: p.name,
+            variance: projectedHours - p.target_hours,
+          };
         });
 
         const projectsToAlert = projectAnalysis.filter(
@@ -84,9 +83,14 @@ export class PacingAlertService {
         );
 
         if (projectsToAlert.length > 0) {
-          await this.emailService.sendPacingDigest(
+          // Construct the email locally
+          const rowsHtml = PacingHelper.buildProjectRows(projectsToAlert);
+          const emailHtml = buildPacingDigestTemplate(rowsHtml);
+
+          await this.emailService.sendEmail(
             user.notificationEmail,
-            projectsToAlert,
+            'Your Daily Pacing Digest',
+            emailHtml,
           );
           messages.push(`Pacing digest sent to ${user.notificationEmail}.`);
 

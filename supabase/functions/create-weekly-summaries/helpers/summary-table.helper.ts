@@ -1,48 +1,9 @@
-import { EmailTheme } from '../constants/email.constants.ts';
-import { ProjectAnalysis, ProjectSummary } from '../types/app.types.ts';
-import { getWeekOfMonth } from '../utils/date.utils.ts';
+import { EmailTheme } from '../../_shared/constants/email.constants.ts';
+import { ProjectSummary } from '../../_shared/types/app.types.ts';
+import { getWeekOfMonth } from '../../_shared/utils/date.utils.ts';
 
-export class EmailHelper {
-  // PACING DIGEST HELPERS
-  static buildPacingProjectRows(projects: ProjectAnalysis[]): string {
-    return projects
-      .map((p) => {
-        const isOver = p.variance > 0;
-        const statusColor = isOver
-          ? EmailTheme.WARNING_COLOR
-          : EmailTheme.DANGER_COLOR;
-        const statusLabel = isOver ? 'Overshooting' : 'Falling Behind';
-        const varianceText =
-          (p.variance > 0 ? '+' : '') + p.variance.toFixed(1);
-
-        return `
-          <tr>
-            <td style="padding: 12px 0; border-bottom: 1px solid ${EmailTheme.DIVIDER_COLOR};">
-              <strong style="color: ${EmailTheme.PRIMARY_TEXT};">${p.name}</strong><br>
-              <span style="color: ${statusColor}; font-size: 12px; font-weight: 700;">${statusLabel}</span>
-            </td>
-            <td style="padding: 12px 0; border-bottom: 1px solid ${EmailTheme.DIVIDER_COLOR}; text-align: right;">
-              <strong style="color: ${statusColor}; font-size: 16px;">${varianceText} hrs</strong>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
-  }
-
-  // WEEKLY SUMMARY HELPERS
-  static getStatusColor(
-    status: 'On Pace' | 'Over Shooting' | 'Under Shooting',
-  ): string {
-    if (status === 'Over Shooting') return EmailTheme.DANGER_COLOR;
-    if (status === 'Under Shooting') return EmailTheme.INFO_COLOR;
-    return EmailTheme.SUCCESS_COLOR;
-  }
-
-  static buildWeeklyTableHeaders(
-    weekNumber: number,
-    isLastWeekOfMonth: boolean,
-  ): string {
+export class SummaryTableHelper {
+  static buildHeaders(weekNumber: number, isLastWeekOfMonth: boolean): string {
     if (isLastWeekOfMonth) {
       return `
         <th style="padding: 10px 20px; text-align: left; font-weight: 700;">Project</th>
@@ -70,13 +31,12 @@ export class EmailHelper {
     return headers;
   }
 
-  static buildWeeklyTableRows(
+  static buildRows(
     summariesForEmail: ProjectSummary[],
     allMonthlyData: ProjectSummary[],
     weekNumber: number,
     isLastWeekOfMonth: boolean,
   ): string {
-    // Scenario 1: It is the last week of the month (Simplified Table)
     if (isLastWeekOfMonth) {
       return summariesForEmail
         .map((s) => {
@@ -102,7 +62,6 @@ export class EmailHelper {
         .join('');
     }
 
-    // Scenario 2: Standard Mid-Month Week (Detailed Table mapped by Week)
     const projectData: Record<
       number,
       {

@@ -1,5 +1,4 @@
 import { EmailTheme } from '../../_shared/constants/email.constants.ts';
-import { EmailHelper } from '../../_shared/helpers/email.helper.ts';
 import { WeeklyStats } from '../../_shared/types/app.types.ts';
 
 export function buildWeeklySummaryTemplate(
@@ -8,7 +7,13 @@ export function buildWeeklySummaryTemplate(
   tableRowsHtml: string,
   weeklyStats: WeeklyStats,
 ): string {
-  const statusColor = EmailHelper.getStatusColor(weeklyStats.overallStatus);
+  const getStatusColor = (status: string) => {
+    if (status === 'Over Shooting') return EmailTheme.DANGER_COLOR;
+    if (status === 'Under Shooting') return EmailTheme.INFO_COLOR;
+    return EmailTheme.SUCCESS_COLOR;
+  };
+
+  const statusColor = getStatusColor(weeklyStats.overallStatus);
 
   return `
     <!DOCTYPE html>
