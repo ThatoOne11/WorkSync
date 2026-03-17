@@ -1,59 +1,52 @@
-<div class="projects-container">
-  <div class="header-actions">
-    <h2>Projects</h2>
+<div class="projects-view">
+  <header class="page-header">
+    <div class="header-content">
+      <h2>Projects</h2>
+      <p class="u-text-muted">
+        Manage your project allocations and billing cycles.
+      </p>
+    </div>
     <button
       mat-flat-button
       color="warn"
       (click)="onMonthlyRollover()"
-      class="rollover-button"
+      class="action-button"
     >
-      <mat-icon>archive</mat-icon>
+      <mat-icon>history_toggle_off</mat-icon>
       Start New Month
     </button>
-  </div>
+  </header>
 
   <div class="projects-layout">
-    <mat-card class="project-form-card">
-      <mat-card-header>
-        <mat-card-title class="card-title">{{
-          selectedProject() ? "Edit Project Allocation" : "Add New Project"
-        }}</mat-card-title>
-        <mat-card-subtitle class="u-text-secondary">{{
-          selectedProject()
-            ? "Only Allocated Hours can be changed."
-            : "Link a Clockify project and set an hour target."
-        }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <app-project-form
-          [project]="selectedProject()"
-          [clockifyProjects]="availableClockifyProjects()"
-          (save)="onSaveProject($event)"
-          (cancel)="onCancelEdit()"
-        />
-      </mat-card-content>
-    </mat-card>
+    <section class="card form-section">
+      <header class="card-header">
+        <h3>{{ selectedProject() ? "Edit Allocation" : "New Project" }}</h3>
+      </header>
+      <app-project-form
+        [project]="selectedProject()"
+        [clockifyProjects]="availableClockifyProjects()"
+        (save)="onSaveProject($event)"
+        (cancel)="onCancelEdit()"
+      />
+    </section>
 
-    <mat-card class="project-list-card">
-      <mat-card-header>
-        <mat-card-title class="card-title">Active Projects</mat-card-title>
-        <mat-card-subtitle class="u-text-secondary"
-          >Manage hour targets and view history.</mat-card-subtitle
-        >
-      </mat-card-header>
-      <mat-card-content class="list-card-content">
-        @if (projects().length > 0) {
+    <section class="card list-section">
+      <header class="card-header">
+        <h3>Active Projects</h3>
+      </header>
+      @if (projects().length > 0) {
         <app-project-list
           [projects]="projects()"
           (edit)="onEditProject($event)"
           (delete)="onDeleteProject($event)"
         />
-        } @else {
-        <p class="no-projects-message u-text-secondary">
-          No active projects. Add one using the form above.
-        </p>
-        }
-      </mat-card-content>
-    </mat-card>
+      } @else {
+        <div class="empty-state">
+          <p class="u-text-muted">
+            No active projects. Link a Clockify project to begin.
+          </p>
+        </div>
+      }
+    </section>
   </div>
 </div>

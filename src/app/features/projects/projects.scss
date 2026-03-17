@@ -1,102 +1,43 @@
-.projects-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0;
-}
+@import "../../../styles/variables";
+@import "../../../styles/mixins";
 
-h2 {
-  font-size: 2.5em;
-  font-weight: 300;
-  margin: 0;
-  letter-spacing: -1px;
-}
-
-.header-actions {
+.projects-view {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-// --- UNIQUE ROLLOVER BUTTON (Fun, Prominent) ---
-.rollover-button {
-  border-radius: 12px !important;
-  font-weight: 600;
-  padding: 10px 28px;
-  height: 52px;
-  letter-spacing: 0.75px;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(244, 67, 54, 0.3);
-  }
+.page-header {
+  @include page-header;
 }
 
-// --- RESPONSIVE LAYOUT FOR FORM & LIST ---
 .projects-layout {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 40px;
+  grid-template-columns: 350px 1fr;
+  align-items: flex-start;
+  gap: 2rem;
 }
 
-@media (max-width: 959px) {
+.card {
+  @include surface-card;
+
+  .card-header {
+    margin-bottom: 1.5rem;
+    h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
   .projects-layout {
     grid-template-columns: 1fr;
-    gap: 32px;
-  }
-}
-
-// --- CARD STYLING ---
-.project-list-card .list-card-content {
-  padding: 0 !important;
-}
-
-.no-projects-message {
-  padding: 32px;
-  text-align: center;
-  color: var(--color-text-secondary);
-}
-
-// --- PROJECT LIST TABLE STYLING (Aggressive Minimalist) ---
-::ng-deep .mat-mdc-table {
-  width: 100%;
-  border-radius: 0;
-  background-color: var(--color-background-surface) !important;
-
-  .mat-mdc-row,
-  .mat-mdc-header-row {
-    padding: 0 32px; // Match global card padding
-
-    .mat-mdc-cell:first-of-type,
-    .mat-mdc-header-cell:first-of-type {
-      padding-left: 0;
-    }
-    .mat-mdc-cell:last-of-type,
-    .mat-mdc-header-cell:last-of-type {
-      padding-right: 0;
-      text-align: right;
-    }
-  }
-
-  .mat-mdc-header-row {
-    border-color: var(--color-border);
-    border-bottom-width: 2px;
-  }
-
-  .mat-column-name {
-    font-weight: 600;
-    font-size: 1.1em;
-  }
-
-  .mat-column-actions {
-    min-width: 140px;
-    .mat-icon-button {
-      opacity: 0.8;
-      transition: opacity 0.15s;
-      &:hover {
-        opacity: 1;
-      }
-    }
   }
 }
