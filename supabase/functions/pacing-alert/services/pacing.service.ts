@@ -40,12 +40,15 @@ export class PacingAlertService {
     for (const [userId, user] of Object.entries(usersSettings)) {
       if (user.enablePacingAlerts !== 'true' || !user.notificationEmail)
         continue;
+
       if (
         !user.clockifyApiKey ||
         !user.clockifyWorkspaceId ||
         !user.clockifyUserId
-      )
+      ) {
+        messages.push(`Skipped user ${userId}: Missing Clockify credentials.`);
         continue;
+      }
 
       try {
         const projects = await this.projectsRepo.getActiveProjects(userId);
