@@ -4,7 +4,6 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -15,12 +14,7 @@ import { of } from 'rxjs';
 
 @Component({
   selector: 'app-today-focus',
-  imports: [
-    MatCardModule,
-    MatListModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [MatListModule, MatIconModule, MatProgressSpinnerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './today-focus.html',
 })

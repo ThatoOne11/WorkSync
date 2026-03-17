@@ -2,17 +2,15 @@
   <header class="page-header">
     <div class="header-content">
       <h2>Projects</h2>
-      <p class="u-text-muted">
-        Manage your project allocations and billing cycles.
-      </p>
+      <p class="u-text-muted">Manage your monthly hour allocations.</p>
     </div>
     <button
-      mat-flat-button
+      mat-stroked-button
       color="warn"
       (click)="onMonthlyRollover()"
-      class="action-button"
+      class="rollover-btn"
     >
-      <mat-icon>history_toggle_off</mat-icon>
+      <mat-icon>auto_delete</mat-icon>
       Start New Month
     </button>
   </header>

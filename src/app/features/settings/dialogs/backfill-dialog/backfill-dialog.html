@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>Historical Targets</h2>
+<mat-dialog-content>
+  <p class="u-text-muted">
+    Set allocated hours for the past 3 months to populate your charts.
+  </p>
+
+  <form [formGroup]="form" class="dialog-form">
+    <div formArrayName="projects">
+      @for (projectGroup of projectsArray.controls; track $index) {
+        <div [formGroupName]="$index" class="project-entry">
+          <h4>{{ projectGroup.get("projectName")?.value }}</h4>
+          <div class="month-inputs">
+            @for (month of months; track month) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ month }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  [formControlName]="month.toLowerCase()"
+                />
+              </mat-form-field>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSave()">
+    Start Backfill
+  </button>
+</mat-dialog-actions>

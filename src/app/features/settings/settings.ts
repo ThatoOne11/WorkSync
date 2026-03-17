@@ -28,9 +28,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
 import { ProjectService } from '../../core/services/project.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClockifyUserSchema, Project } from '../../shared/schemas/app.schemas';
+import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 
 @Component({
   selector: 'app-settings',

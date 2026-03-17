@@ -28,3 +28,82 @@ body {
   text-transform: none !important;
   font-weight: 500 !important;
 }
+
+// 1. Textbox & Dropdown Refinement
+.mat-mdc-form-field {
+  width: 100%;
+
+  .mat-mdc-text-field-wrapper {
+    background-color: var(--color-surface) !important;
+    border-radius: 8px !important;
+  }
+
+  // Fixes illegible text in dark mode inputs
+  .mat-mdc-form-field-input-control {
+    color: var(--color-text-main) !important;
+  }
+}
+
+// 2. Global Button Look
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-flat-button {
+  padding: 0 24px !important;
+  height: 44px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+}
+
+// 3. Dropdown Menu (Overlay) Fixes
+.cdk-overlay-pane .mat-mdc-select-panel {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+
+  .mat-mdc-option {
+    color: var(--color-text-main) !important;
+    &:hover {
+      background-color: var(--color-primary-light);
+    }
+  }
+}
+
+// 1. Fix Dark Mode Table Text & Global Backgrounds
+.dark-theme {
+  .mat-mdc-table,
+  .mat-mdc-row,
+  .mat-mdc-cell {
+    color: var(
+      --color-text-main
+    ) !important; // Forces text to white/grey in dark mode
+  }
+}
+
+// 2. Soften All Textboxes & Dropdowns Globally
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    border-radius: var(--input-radius) !important;
+    padding-top: 8px !important;
+  }
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--color-border) !important;
+  }
+}
+
+// 3. Unified Button Styling (Soft & Consistent)
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-flat-button,
+.mat-stroked-button {
+  border-radius: var(--input-radius) !important;
+  height: var(--btn-height) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  &.mat-stroked-button {
+    border: 1.5px solid var(--color-border) !important;
+  }
+}

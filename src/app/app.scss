@@ -2,6 +2,7 @@
 
 .app-shell {
   height: calc(100vh - 64px);
+  background-color: var(--color-bg); // Ensures the container has a solid base
 }
 
 .app-header {
@@ -15,6 +16,12 @@
     letter-spacing: -0.5px;
     color: var(--color-primary);
   }
+}
+
+mat-sidenav {
+  width: 280px;
+  background-color: var(--color-surface) !important;
+  border-right: 1px solid var(--color-border) !important;
 }
 
 .side-nav {
