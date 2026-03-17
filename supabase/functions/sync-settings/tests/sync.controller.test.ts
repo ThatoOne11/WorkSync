@@ -8,7 +8,6 @@ import { SyncSettingsService } from '../services/sync-settings.service.ts';
 import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 
 Deno.test('SyncSettingsController Suite', async (t) => {
-  // Mock the service so we don't hit the database
   const mockService = {
     sync: (_browserId: string, _settings: unknown) => Promise.resolve(),
   } as unknown as SyncSettingsService;
@@ -53,13 +52,12 @@ Deno.test('SyncSettingsController Suite', async (t) => {
         body: JSON.stringify(invalidPayload),
       });
 
-      // The Edge Wrapper normally catches this and turns it into a 400 response.
-      // Since we are testing the controller directly, we assert that it throws the exact right error.
       const error = await assertRejects(
         () => controller.handleRequest(req),
         ValidationError,
       );
-      assertStringIncludes(error.message, 'Required');
+      // FIX: Look for Zod's actual error text
+      assertStringIncludes(error.message, 'Invalid input');
     },
   );
 });

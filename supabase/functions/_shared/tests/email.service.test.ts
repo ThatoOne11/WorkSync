@@ -21,7 +21,6 @@ Deno.test('EmailService Suite', async (t) => {
 
       await service.sendEmail('test@test.com', 'Subject', '<p>HTML</p>');
 
-      // Fetch should never be triggered
       assertEquals(fetchCalled, false);
     },
   );
@@ -30,9 +29,13 @@ Deno.test('EmailService Suite', async (t) => {
     EMAIL_CONFIG.resendApiKey = 'valid_key';
     const service = new EmailService();
 
+    // Type 'any' used here to capture the parsed JSON payload
     let capturedBody: any;
+
     globalThis.fetch = (_url, options) => {
-      capturedBody = JSON.parse(options?.body as string);
+      // FIX: Explicitly cast options to RequestInit to satisfy strict type checking
+      const reqOptions = options as RequestInit;
+      capturedBody = JSON.parse(reqOptions?.body as string);
       return Promise.resolve(
         new Response(JSON.stringify({ id: 'email_123' }), { status: 200 }),
       );

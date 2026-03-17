@@ -48,7 +48,6 @@ Deno.test('FocusController Suite', async (t) => {
         browserId: 'browser_123',
         settings: {
           apiKey: 'api_key',
-          // Missing workspaceId and userId
         },
       };
 
@@ -61,7 +60,8 @@ Deno.test('FocusController Suite', async (t) => {
         () => controller.handleRequest(req),
         ValidationError,
       );
-      assertStringIncludes(error.message, 'Required');
+      // FIX: Look for Zod's actual error text
+      assertStringIncludes(error.message, 'Invalid input');
     },
   );
 });
