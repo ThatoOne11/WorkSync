@@ -12,7 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
-import { Project } from '../../core/models/project.model';
+import { Project } from '../../shared/schemas/app.schemas';
 
 interface DialogData {
   projects: Project[];
@@ -68,7 +68,7 @@ export class BackfillDialog implements OnInit {
       // Now addControl works without a type error
       group.addControl(
         month.toLowerCase(),
-        this.fb.control(null, [Validators.min(0)])
+        this.fb.control(null, [Validators.min(0)]),
       );
     });
     return group;

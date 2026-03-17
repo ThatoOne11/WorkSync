@@ -1,7 +1,13 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { ProjectService } from '../../core/services/project.service';
 import { ClockifyService } from '../../core/services/clockify.service';
-import { Project } from '../../core/models/project.model';
+import { Project } from '../../shared/schemas/app.schemas';
 import { ProjectList } from './components/project-list/project-list';
 import { ProjectForm } from './components/project-form/project-form';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
 import { SettingsService } from '../../core/services/settings.service';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { switchMap, map, catchError, of } from 'rxjs';
 
 interface ClockifyProject {
   id: string;
@@ -17,7 +25,6 @@ interface ClockifyProject {
 
 @Component({
   selector: 'app-projects',
-  standalone: true,
   imports: [
     ProjectList,
     ProjectForm,
@@ -27,76 +34,73 @@ interface ClockifyProject {
   ],
   templateUrl: './projects.html',
   styleUrl: './projects.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Projects implements OnInit {
-  private projectService = inject(ProjectService);
-  private clockifyService = inject(ClockifyService);
-  private snackBar = inject(MatSnackBar);
-  private settingsService = inject(SettingsService);
+export class Projects {
+  private readonly projectService = inject(ProjectService);
+  private readonly clockifyService = inject(ClockifyService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly settingsService = inject(SettingsService);
 
-  projects = signal<Project[]>([]);
-  clockifyProjects = signal<ClockifyProject[]>([]);
-  selectedProject = signal<Project | undefined>(undefined);
+  readonly selectedProject = signal<Project | undefined>(undefined);
+  private readonly reloadTrigger = signal(0);
 
-  availableClockifyProjects = computed(() => {
+  readonly projects = toSignal(
+    toObservable(this.reloadTrigger).pipe(
+      switchMap(() => this.projectService.getProjects()),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] as Project[] },
+  );
+
+  readonly clockifyProjects = toSignal(
+    toObservable(this.settingsService.settings).pipe(
+      switchMap((settings) => {
+        if (settings?.apiKey && settings?.workspaceId) {
+          return this.clockifyService
+            .getClockifyProjects(settings.apiKey, settings.workspaceId)
+            .pipe(map((res) => res as ClockifyProject[]));
+        }
+        return of([]);
+      }),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] as ClockifyProject[] },
+  );
+
+  readonly availableClockifyProjects = computed(() => {
     const existingProjectIds = new Set(
-      this.projects().map((p) => p.clockify_project_id)
+      this.projects().map((p) => p.clockify_project_id),
     );
     return this.clockifyProjects().filter(
-      (cp) => !existingProjectIds.has(cp.id)
+      (cp) => !existingProjectIds.has(cp.id),
     );
   });
-
-  ngOnInit() {
-    this.loadProjects();
-    this.loadClockifyProjects();
-  }
-
-  loadProjects() {
-    this.projectService.getProjects().subscribe((projects) => {
-      this.projects.set(projects ?? []);
-    });
-  }
-
-  loadClockifyProjects() {
-    const settings = this.settingsService.getSettings();
-    if (settings && settings.apiKey && settings.workspaceId) {
-      this.clockifyService
-        .getClockifyProjects(settings.apiKey, settings.workspaceId)
-        .subscribe((projects: ClockifyProject[]) => {
-          this.clockifyProjects.set(projects ?? []);
-        });
-    } else {
-      this.clockifyProjects.set([]);
-    }
-  }
 
   onEditProject(project: Project) {
     this.selectedProject.set(project);
   }
 
   onDeleteProject(id: number) {
-    this.projectService.deleteProject(id).subscribe(() => this.loadProjects());
+    this.projectService
+      .deleteProject(id)
+      .subscribe(() => this.reloadTrigger.update((v) => v + 1));
   }
 
   onSaveProject(projectData: Partial<Project>) {
     let operation;
 
     if (projectData.id) {
-      // This is an update operation.
       operation = this.projectService.updateProject(
         projectData.id,
-        projectData
+        projectData,
       );
     } else {
-      // This is a create operation.
       const selectedClockifyProject = this.clockifyProjects().find(
-        (p) => p.id === projectData.clockify_project_id
+        (p) => p.id === projectData.clockify_project_id,
       );
 
-      // FIX: Destructure to remove the 'id' property, letting the database generate it.
       const { id: _id, ...newProjectData } = projectData;
-
       const projectToSave: Partial<Project> = {
         ...newProjectData,
         name: selectedClockifyProject?.name,
@@ -105,7 +109,7 @@ export class Projects implements OnInit {
     }
 
     operation.subscribe(() => {
-      this.loadProjects();
+      this.reloadTrigger.update((v) => v + 1);
       this.selectedProject.set(undefined);
     });
   }
@@ -114,33 +118,23 @@ export class Projects implements OnInit {
     this.selectedProject.set(undefined);
   }
 
-  onNewProject() {
-    this.selectedProject.set(undefined);
-  }
-
   onMonthlyRollover() {
-    const isConfirmed = confirm(
-      'Are you sure you want to start a new month? This will archive all current projects.'
-    );
-
-    if (isConfirmed) {
+    if (
+      confirm(
+        'Are you sure you want to start a new month? This will archive all current projects.',
+      )
+    ) {
       this.projectService.archiveAllProjects().subscribe({
         next: () => {
-          this.loadProjects();
+          this.reloadTrigger.update((v) => v + 1);
           this.snackBar.open(
             'All projects have been archived. Ready for the new month!',
             'Close',
-            { duration: 3000 }
+            { duration: 3000 },
           );
         },
-        error: (err) => {
-          console.error('Error during monthly rollover:', err);
-          this.snackBar.open(
-            'An error occurred. Please check the console.',
-            'Close',
-            { duration: 3000 }
-          );
-        },
+        error: () =>
+          this.snackBar.open('An error occurred.', 'Close', { duration: 3000 }),
       });
     }
   }

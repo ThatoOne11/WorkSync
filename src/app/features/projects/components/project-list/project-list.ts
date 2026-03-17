@@ -4,11 +4,11 @@ import {
   input,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { Project } from '../../../../core/models/project.model';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
+import { Project } from '../../../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-project-list',

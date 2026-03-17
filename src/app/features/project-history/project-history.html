@@ -1,128 +1,128 @@
 <div class="history-container">
   <div class="header">
-    <a routerLink="/projects" mat-icon-button>
+    <a routerLink="/projects" mat-icon-button aria-label="Back to projects">
       <mat-icon>arrow_back</mat-icon>
     </a>
-    <h2>History for: {{ projectName }}</h2>
+    <h2>History for: {{ projectData()?.projectName }}</h2>
   </div>
 
-  @if (isLoading) {
-  <div class="spinner-container">
-    <mat-spinner></mat-spinner>
-  </div>
-  } @else if (keyMetrics) {
-  <div class="history-layout">
-    <div class="metrics-grid">
-      <mat-card class="metric-card">
-        <mat-card-header>
-          <mat-card-title>Total Progress</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <span class="metric-value"
-            >{{ keyMetrics.totalLoggedHours.toFixed(2) }} /
-            {{ keyMetrics.targetHours.toFixed(2) }}</span
-          >
-          <span class="metric-label">Hours Logged</span>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="metric-card">
-        <mat-card-header>
-          <mat-card-title>Pacing Variance</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <span
-            class="metric-value"
-            [class.positive]="keyMetrics.pacingVariance >= 0"
-            [class.negative]="keyMetrics.pacingVariance < 0"
-          >
-            {{ keyMetrics.pacingVariance >= 0 ? "+" : ""
-            }}{{ keyMetrics.pacingVariance.toFixed(2) }}
-          </span>
-          <span class="metric-label">Hours</span>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="metric-card">
-        <mat-card-header>
-          <mat-card-title>Avg. Weekly Burn</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <span class="metric-value">{{
-            keyMetrics.averageWeeklyBurn.toFixed(2)
-          }}</span>
-          <span class="metric-label">Hours / Week</span>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="metric-card">
-        <mat-card-header>
-          <mat-card-title>Peak Week</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <span class="metric-value">{{
-            keyMetrics.mostProductiveWeek.logged_hours.toFixed(2)
-          }}</span>
-          <span class="metric-label"
-            >Hours (ending
-            {{ keyMetrics.mostProductiveWeek.week_ending_on }})</span
-          >
-        </mat-card-content>
-      </mat-card>
+  @if (!projectData()) {
+    <div class="spinner-container">
+      <mat-spinner></mat-spinner>
     </div>
+  } @else {
+    <div class="history-layout">
+      <div class="metrics-grid">
+        <mat-card class="metric-card">
+          <mat-card-header>
+            <mat-card-title>Total Progress</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <span class="metric-value"
+              >{{ projectData()?.keyMetrics?.totalLoggedHours?.toFixed(2) }} /
+              {{ projectData()?.keyMetrics?.targetHours?.toFixed(2) }}</span
+            >
+            <span class="metric-label">Hours Logged</span>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="metric-card">
+          <mat-card-header>
+            <mat-card-title>Pacing Variance</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <span
+              class="metric-value"
+              [class.positive]="projectData()?.keyMetrics?.pacingVariance! >= 0"
+              [class.negative]="projectData()?.keyMetrics?.pacingVariance! < 0"
+            >
+              {{ projectData()?.keyMetrics?.pacingVariance! >= 0 ? "+" : ""
+              }}{{ projectData()?.keyMetrics?.pacingVariance?.toFixed(2) }}
+            </span>
+            <span class="metric-label">Hours</span>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="metric-card">
+          <mat-card-header>
+            <mat-card-title>Avg. Weekly Burn</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <span class="metric-value">{{
+              projectData()?.keyMetrics?.averageWeeklyBurn?.toFixed(2)
+            }}</span>
+            <span class="metric-label">Hours / Week</span>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="metric-card">
+          <mat-card-header>
+            <mat-card-title>Peak Week</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <span class="metric-value">{{
+              projectData()?.keyMetrics?.mostProductiveWeek?.logged_hours?.toFixed(
+                2
+              )
+            }}</span>
+            <span class="metric-label"
+              >Hours (ending
+              {{
+                projectData()?.keyMetrics?.mostProductiveWeek?.week_ending_on
+              }})</span
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
 
-    <div class="data-grid">
-      <mat-card class="chart-card">
+      <div class="data-grid">
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title>Weekly Performance</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #weeklyChart></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <mat-card class="monthly-card">
         <mat-card-header>
-          <mat-card-title>Weekly Performance</mat-card-title>
+          <mat-card-title>Monthly Breakdown</mat-card-title>
         </mat-card-header>
-        <mat-card-content>
-          <div class="chart-container">
-            <canvas #weeklyChart></canvas>
+        <mat-card-content class="monthly-layout">
+          <div class="monthly-chart-container">
+            <canvas #monthlyChart></canvas>
+          </div>
+          <div class="monthly-table-container">
+            <table class="monthly-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Target</th>
+                  <th>Logged</th>
+                  <th>Variance</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of monthlyDataForTable(); track row.month) {
+                  <tr>
+                    <td>{{ row.month }}</td>
+                    <td>{{ row.target.toFixed(2) }}</td>
+                    <td>{{ row.logged.toFixed(2) }}</td>
+                    <td
+                      [class.positive]="row.variance >= 0"
+                      [class.negative]="row.variance < 0"
+                    >
+                      {{ row.variance >= 0 ? "+" : ""
+                      }}{{ row.variance.toFixed(2) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         </mat-card-content>
       </mat-card>
     </div>
-
-    <mat-card class="monthly-card">
-      <mat-card-header>
-        <mat-card-title>Monthly Breakdown</mat-card-title>
-      </mat-card-header>
-      <mat-card-content class="monthly-layout">
-        <div class="monthly-chart-container">
-          <canvas #monthlyChart></canvas>
-        </div>
-        <div class="monthly-table-container">
-          <table class="monthly-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Target</th>
-                <th>Logged</th>
-                <th>Variance</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of monthlyDataForTable; track row.month) {
-              <tr>
-                <td>{{ row.month }}</td>
-                <td>{{ row.target.toFixed(2) }}</td>
-                <td>{{ row.logged.toFixed(2) }}</td>
-                <td
-                  [class.positive]="row.variance >= 0"
-                  [class.negative]="row.variance < 0"
-                >
-                  {{ row.variance >= 0 ? "+" : ""
-                  }}{{ row.variance.toFixed(2) }}
-                </td>
-              </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
-  } @else {
-  <p class="no-data-message u-text-secondary">
-    No historical data found for this project.
-  </p>
   }
 </div>

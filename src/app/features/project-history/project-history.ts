@@ -1,187 +1,143 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  OnInit,
+  effect,
   inject,
-  ViewChild,
-  ElementRef,
-  ChangeDetectorRef,
+  viewChild,
   OnDestroy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Chart, ChartConfiguration } from 'chart.js/auto';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { switchMap, map, catchError, of } from 'rxjs';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { ProjectHistoryService } from '../../core/services/project-history.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
 
-interface KeyMetrics {
-  totalLoggedHours: number;
-  targetHours: number;
-  averageWeeklyBurn: number;
-  pacingVariance: number;
-  mostProductiveWeek: {
-    logged_hours: number;
-    week_ending_on: string;
+// Define the interface so strict mode knows what properties exist in the template
+export interface HistoryPayload {
+  projectName: string;
+  keyMetrics: {
+    totalLoggedHours: number;
+    targetHours: number;
+    averageWeeklyBurn: number;
+    pacingVariance: number;
+    mostProductiveWeek: {
+      logged_hours: number;
+      week_ending_on: string;
+    };
   };
+  chartData: any;
+  monthlyChartData: any;
+  insights: string[];
 }
 
 @Component({
   selector: 'app-project-history',
-  standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatProgressSpinnerModule,
     MatCardModule,
     MatIconModule,
-    MatListModule,
   ],
   templateUrl: './project-history.html',
   styleUrls: ['./project-history.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectHistory implements OnInit, OnDestroy {
-  @ViewChild('weeklyChart') weeklyChartCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('monthlyChart') monthlyChartCanvas!: ElementRef<HTMLCanvasElement>;
+export class ProjectHistory implements OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly projectHistoryService = inject(ProjectHistoryService);
 
-  private route = inject(ActivatedRoute);
-  private projectHistoryService = inject(ProjectHistoryService);
-  private cdr = inject(ChangeDetectorRef);
-  private destroy$ = new Subject<void>();
+  readonly weeklyChartCanvas =
+    viewChild<import('@angular/core').ElementRef<HTMLCanvasElement>>(
+      'weeklyChart',
+    );
+  readonly monthlyChartCanvas =
+    viewChild<import('@angular/core').ElementRef<HTMLCanvasElement>>(
+      'monthlyChart',
+    );
 
-  isLoading = true;
-  keyMetrics: KeyMetrics | undefined;
-  insights: string[] = [];
-  projectName = '';
-  weeklyChart: Chart | undefined;
-  monthlyChart: Chart | undefined;
-  monthlyDataForTable: any[] = [];
+  private weeklyChartInstance: Chart | undefined;
+  private monthlyChartInstance: Chart | undefined;
 
-  ngOnInit() {
-    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      const projectId = Number(params.get('id'));
-      if (projectId) {
-        this.loadHistory(projectId);
+  // Explicitly type the signal to HistoryPayload | null
+  readonly projectData = toSignal<HistoryPayload | null>(
+    this.route.paramMap.pipe(
+      switchMap((params) => {
+        const projectId = Number(params.get('id'));
+        if (!projectId) return of(null);
+        return this.projectHistoryService.getProjectHistory(projectId).pipe(
+          map((res) => res as HistoryPayload), // Cast the unknown response to our interface
+          catchError(() => of(null)),
+        );
+      }),
+    ),
+    { initialValue: null },
+  );
+
+  readonly monthlyDataForTable = toSignal(
+    toObservable(this.projectData).pipe(
+      map((data) => {
+        if (!data?.monthlyChartData?.labels) return [];
+        return data.monthlyChartData.labels.map(
+          (label: string, index: number) => ({
+            month: label,
+            target: data.monthlyChartData.datasets[1].data[index],
+            logged: data.monthlyChartData.datasets[0].data[index],
+            variance:
+              data.monthlyChartData.datasets[0].data[index] -
+              data.monthlyChartData.datasets[1].data[index],
+          }),
+        );
+      }),
+    ),
+    { initialValue: [] as any[] },
+  );
+
+  constructor() {
+    effect(() => {
+      const data = this.projectData();
+      const wCanvas = this.weeklyChartCanvas();
+      const mCanvas = this.monthlyChartCanvas();
+
+      if (data && wCanvas && mCanvas) {
+        this.createWeeklyChart(wCanvas.nativeElement, data.chartData);
+        this.createMonthlyChart(mCanvas.nativeElement, data.monthlyChartData);
       }
     });
   }
 
   ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.weeklyChart?.destroy();
-    this.monthlyChart?.destroy();
+    this.weeklyChartInstance?.destroy();
+    this.monthlyChartInstance?.destroy();
   }
 
-  private loadHistory(projectId: number): void {
-    this.isLoading = true;
-    this.projectHistoryService
-      .getProjectHistory(projectId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data: any) => {
-          this.projectName = data.projectName;
-          this.keyMetrics = data.keyMetrics;
-          this.insights = data.insights;
-          this.prepareMonthlyTableData(data.monthlyChartData);
-          this.isLoading = false;
-          this.cdr.detectChanges();
-          setTimeout(() => {
-            // --- FIX: Use the correct property 'chartData' ---
-            this.createWeeklyChart(data.chartData);
-            this.createMonthlyChart(data.monthlyChartData);
-          }, 0);
-        },
-        error: (err) => {
-          console.error('Error fetching project history:', err);
-          this.isLoading = false;
-        },
-      });
-  }
-
-  private prepareMonthlyTableData(monthlyChartData: any) {
-    if (!monthlyChartData || !monthlyChartData.labels) {
-      this.monthlyDataForTable = [];
-      return;
-    }
-    this.monthlyDataForTable = monthlyChartData.labels.map(
-      (label: string, index: number) => {
-        const logged = monthlyChartData.datasets[0].data[index];
-        const target = monthlyChartData.datasets[1].data[index];
-        return {
-          month: label,
-          target: target,
-          logged: logged,
-          variance: logged - target,
-        };
-      }
-    );
-  }
-
-  private createWeeklyChart(chartData: any) {
-    if (!this.weeklyChartCanvas) return;
-
-    const chartConfig: ChartConfiguration = {
+  private createWeeklyChart(canvas: HTMLCanvasElement, chartData: any) {
+    if (this.weeklyChartInstance) this.weeklyChartInstance.destroy();
+    const config: ChartConfiguration = {
       type: 'line',
-      data: chartData, // This is now correct
+      data: chartData,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Hours',
-            },
-          },
-        },
+        plugins: { tooltip: { mode: 'index', intersect: false } },
       },
     };
-
-    if (this.weeklyChart) {
-      this.weeklyChart.destroy();
-    }
-    this.weeklyChart = new Chart(
-      this.weeklyChartCanvas.nativeElement,
-      chartConfig
-    );
+    this.weeklyChartInstance = new Chart(canvas, config);
   }
 
-  private createMonthlyChart(chartData: any) {
-    if (!this.monthlyChartCanvas) return;
-
-    const chartConfig: ChartConfiguration = {
+  private createMonthlyChart(canvas: HTMLCanvasElement, chartData: any) {
+    if (this.monthlyChartInstance) this.monthlyChartInstance.destroy();
+    const config: ChartConfiguration = {
       type: 'bar',
       data: chartData,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
-          x: { grid: { display: false } },
-        },
+        scales: { x: { grid: { display: false } } },
       },
     };
-
-    if (this.monthlyChart) {
-      this.monthlyChart.destroy();
-    }
-    this.monthlyChart = new Chart(
-      this.monthlyChartCanvas.nativeElement,
-      chartConfig
-    );
+    this.monthlyChartInstance = new Chart(canvas, config);
   }
 }

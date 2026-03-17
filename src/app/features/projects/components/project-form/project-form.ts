@@ -12,11 +12,11 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { Project } from '../../../../core/models/project.model';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { Project } from '../../../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-project-form',
