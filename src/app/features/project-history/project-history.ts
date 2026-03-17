@@ -12,8 +12,8 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { switchMap, map, catchError, of } from 'rxjs';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { ProjectHistoryService } from '../../core/services/project-history.service';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { DecimalPipe } from '@angular/common';
 
 export type HistoryPayload = {
   projectName: string;
@@ -41,12 +41,7 @@ type MonthlyTableRow = {
 
 @Component({
   selector: 'app-project-history',
-  imports: [
-    RouterModule,
-    MatProgressSpinnerModule,
-    MatCardModule,
-    MatIconModule,
-  ],
+  imports: [RouterModule, MatProgressSpinnerModule, MatIconModule, DecimalPipe],
   templateUrl: './project-history.html',
   styleUrls: ['./project-history.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,7 +61,6 @@ export class ProjectHistory implements OnDestroy {
 
   private weeklyChartInstance: Chart | undefined;
   private monthlyChartInstance: Chart | undefined;
-
   readonly projectData = toSignal<HistoryPayload | null>(
     this.route.paramMap.pipe(
       switchMap((params) => {
