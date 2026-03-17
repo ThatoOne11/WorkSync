@@ -1,34 +1,17 @@
 import { Injectable, inject } from '@angular/core';
-import { from } from 'rxjs';
-import { SupabaseService } from './supabase.service';
-import { SettingsService } from './settings.service';
-
-const BROWSER_ID_KEY = 'workSyncBrowserId';
+import { Observable } from 'rxjs';
+import { EdgeApiService } from './edge-api.service';
+import { SUPABASE_FUNCTIONS } from '../../shared/constants/supabase.constants';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectHistoryService {
-  private supabase = inject(SupabaseService).supabase;
-  private settingsService = inject(SettingsService);
-  private getBrowserId = () => localStorage.getItem(BROWSER_ID_KEY);
+  private readonly api = inject(EdgeApiService);
 
-  getProjectHistory(projectId: number) {
-    const browserId = this.getBrowserId();
-    const settings = this.settingsService.getSettings();
-
-    if (!browserId || !settings) {
-      return from(Promise.reject('User not properly configured.'));
-    }
-
-    const promise = this.supabase.functions
-      .invoke('get-project-history', {
-        body: { projectId, browserId, settings },
-      })
-      .then(({ data, error }) => {
-        if (error) throw error;
-        return data;
-      });
-    return from(promise);
+  getProjectHistory(projectId: number): Observable<unknown> {
+    return this.api.invoke<unknown>(SUPABASE_FUNCTIONS.GET_PROJECT_HISTORY, {
+      projectId,
+    });
   }
 }
