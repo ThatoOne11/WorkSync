@@ -31,7 +31,7 @@ import { ProjectService } from '../../core/services/project.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Project } from '../../shared/schemas/app.schemas';
+import { ClockifyUserSchema, Project } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-settings',
@@ -254,27 +254,29 @@ export class Settings implements OnInit, OnDestroy {
   fetchUserId(): void {
     const apiKey = this.form.get('apiKey')?.value;
     const workspaceId = this.form.get('workspaceId')?.value;
+
     if (!apiKey || !workspaceId) {
       this.snackBar.open(
         'Please enter both API Key and Workspace ID.',
         'Close',
-        {
-          duration: 3000,
-        },
+        { duration: 3000 },
       );
       return;
     }
 
     this.isFetchingUserId.set(true);
+
     this.clockifyService.getCurrentUserId(apiKey).subscribe({
-      next: (user: any) => {
-        if (user && user.id) {
+      // FIXED: Safely parse as unknown first, then validate with Zod!
+      next: (response: unknown) => {
+        try {
+          const user = ClockifyUserSchema.parse(response);
           this.form.patchValue({ userId: user.id });
           this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
           this.snackBar.open('User ID fetched successfully!', 'Close', {
             duration: 3000,
           });
-        } else {
+        } catch (e) {
           this.snackBar.open(
             'Could not fetch User ID. Check your API Key.',
             'Close',

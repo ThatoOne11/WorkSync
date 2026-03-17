@@ -7,6 +7,7 @@ import {
   SUPABASE_FUNCTIONS,
   SUPABASE_TABLES,
 } from '../../shared/constants/supabase.constants';
+import { HistoricalTarget } from '../../shared/schemas/app.schemas';
 
 export type WeeklySummary = {
   id: number;
@@ -43,7 +44,7 @@ export class HistoricalDataService {
   }
 
   backfillHistory(
-    historicalTargets: unknown[],
+    historicalTargets: HistoricalTarget[],
   ): Observable<{ message: string }> {
     return this.api.invoke<{ message: string }>(
       SUPABASE_FUNCTIONS.BACKFILL_HISTORY,

@@ -19,5 +19,16 @@ export const ProjectSchema = z.object({
   user_id: z.string().uuid().optional(),
 });
 
+export const ClockifyUserSchema = z.object({
+  id: z.string(),
+});
+
+export const HistoricalTargetSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.null()]),
+);
+
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
+export type ClockifyUser = z.infer<typeof ClockifyUserSchema>;
+export type HistoricalTarget = z.infer<typeof HistoricalTargetSchema>;

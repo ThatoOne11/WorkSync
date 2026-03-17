@@ -7,7 +7,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Chart, ChartConfiguration } from 'chart.js/auto';
+import { Chart, ChartConfiguration, ChartData } from 'chart.js/auto';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { switchMap, map, catchError, of } from 'rxjs';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
@@ -15,8 +15,7 @@ import { ProjectHistoryService } from '../../core/services/project-history.servi
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
-// Define the interface so strict mode knows what properties exist in the template
-export interface HistoryPayload {
+export type HistoryPayload = {
   projectName: string;
   keyMetrics: {
     totalLoggedHours: number;
@@ -28,10 +27,17 @@ export interface HistoryPayload {
       week_ending_on: string;
     };
   };
-  chartData: any;
-  monthlyChartData: any;
+  chartData: ChartData<'line'>;
+  monthlyChartData: ChartData<'bar'>;
   insights: string[];
-}
+};
+
+type MonthlyTableRow = {
+  month: string;
+  target: number;
+  logged: number;
+  variance: number;
+};
 
 @Component({
   selector: 'app-project-history',
@@ -61,14 +67,13 @@ export class ProjectHistory implements OnDestroy {
   private weeklyChartInstance: Chart | undefined;
   private monthlyChartInstance: Chart | undefined;
 
-  // Explicitly type the signal to HistoryPayload | null
   readonly projectData = toSignal<HistoryPayload | null>(
     this.route.paramMap.pipe(
       switchMap((params) => {
         const projectId = Number(params.get('id'));
         if (!projectId) return of(null);
         return this.projectHistoryService.getProjectHistory(projectId).pipe(
-          map((res) => res as HistoryPayload), // Cast the unknown response to our interface
+          map((res) => res as HistoryPayload),
           catchError(() => of(null)),
         );
       }),
@@ -78,21 +83,33 @@ export class ProjectHistory implements OnDestroy {
 
   readonly monthlyDataForTable = toSignal(
     toObservable(this.projectData).pipe(
-      map((data) => {
-        if (!data?.monthlyChartData?.labels) return [];
-        return data.monthlyChartData.labels.map(
-          (label: string, index: number) => ({
-            month: label,
-            target: data.monthlyChartData.datasets[1].data[index],
-            logged: data.monthlyChartData.datasets[0].data[index],
-            variance:
-              data.monthlyChartData.datasets[0].data[index] -
-              data.monthlyChartData.datasets[1].data[index],
-          }),
-        );
+      map((data: HistoryPayload | null) => {
+        if (
+          !data?.monthlyChartData?.labels ||
+          !data.monthlyChartData.datasets[0] ||
+          !data.monthlyChartData.datasets[1]
+        ) {
+          return [] as MonthlyTableRow[];
+        }
+
+        return data.monthlyChartData.labels.map((label, index) => {
+          const loggedData = data.monthlyChartData.datasets[0].data[
+            index
+          ] as number;
+          const targetData = data.monthlyChartData.datasets[1].data[
+            index
+          ] as number;
+
+          return {
+            month: String(label),
+            target: targetData,
+            logged: loggedData,
+            variance: loggedData - targetData,
+          };
+        });
       }),
     ),
-    { initialValue: [] as any[] },
+    { initialValue: [] as MonthlyTableRow[] },
   );
 
   constructor() {
@@ -113,9 +130,12 @@ export class ProjectHistory implements OnDestroy {
     this.monthlyChartInstance?.destroy();
   }
 
-  private createWeeklyChart(canvas: HTMLCanvasElement, chartData: any) {
+  private createWeeklyChart(
+    canvas: HTMLCanvasElement,
+    chartData: ChartData<'line'>,
+  ) {
     if (this.weeklyChartInstance) this.weeklyChartInstance.destroy();
-    const config: ChartConfiguration = {
+    const config: ChartConfiguration<'line'> = {
       type: 'line',
       data: chartData,
       options: {
@@ -124,12 +144,15 @@ export class ProjectHistory implements OnDestroy {
         plugins: { tooltip: { mode: 'index', intersect: false } },
       },
     };
-    this.weeklyChartInstance = new Chart(canvas, config);
+    this.weeklyChartInstance = new Chart<'line'>(canvas, config);
   }
 
-  private createMonthlyChart(canvas: HTMLCanvasElement, chartData: any) {
+  private createMonthlyChart(
+    canvas: HTMLCanvasElement,
+    chartData: ChartData<'bar'>,
+  ) {
     if (this.monthlyChartInstance) this.monthlyChartInstance.destroy();
-    const config: ChartConfiguration = {
+    const config: ChartConfiguration<'bar'> = {
       type: 'bar',
       data: chartData,
       options: {
@@ -138,6 +161,6 @@ export class ProjectHistory implements OnDestroy {
         scales: { x: { grid: { display: false } } },
       },
     };
-    this.monthlyChartInstance = new Chart(canvas, config);
+    this.monthlyChartInstance = new Chart<'bar'>(canvas, config);
   }
 }
