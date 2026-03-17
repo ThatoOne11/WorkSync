@@ -1,52 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
-import { serve } from '@deno/server';
-import { corsHeaders } from '../_shared/cors.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js';
+import { SUPABASE_CONFIG } from '../_shared/config.ts';
+import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
+import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
+import { SyncSettingsService } from './services/sync-settings.service.ts';
+import { SyncSettingsController } from './controllers/sync.controller.ts';
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+Deno.serve(
+  withEdgeWrapper('Sync-Settings', async (req: Request) => {
+    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-  try {
-    const { settings, browserId } = await req.json();
-    if (!settings || !browserId) {
-      throw new Error('Settings or Browser ID not provided.');
-    }
+    const repo = new SettingsRepository(supabase);
+    const service = new SyncSettingsService(repo);
+    const controller = new SyncSettingsController(service);
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    );
-
-    const updates = [
-      { key: 'clockifyApiKey', value: settings.apiKey || '' },
-      { key: 'clockifyWorkspaceId', value: settings.workspaceId || '' },
-      { key: 'clockifyUserId', value: settings.userId || '' },
-      { key: 'notificationEmail', value: settings.notificationEmail || '' },
-      {
-        key: 'enableEmailNotifications',
-        value: String(settings.enableEmailNotifications),
-      },
-      { key: 'enablePacingAlerts', value: String(settings.enablePacingAlerts) },
-    ].map((item) => ({ ...item, user_id: browserId }));
-
-    const { error } = await supabase.from('settings').upsert(updates, {
-      onConflict: 'user_id, key',
-    });
-
-    if (error) throw error;
-
-    return new Response(
-      JSON.stringify({ message: 'Settings synced successfully.' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    });
-  }
-});
+    return await controller.handleRequest(req);
+  }),
+);
