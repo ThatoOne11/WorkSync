@@ -1,60 +1,62 @@
-<div class="dashboard-container">
-  <div class="dashboard-panels">
-    <app-suggestions></app-suggestions>
-    <app-today-focus></app-today-focus>
+<div class="dashboard-grid">
+  <div class="panel-row">
+    <app-suggestions />
+    <app-today-focus />
   </div>
+
+  <header class="section-header">
+    <h2>Active Projects</h2>
+    <p class="u-text-muted">
+      Tracking your current monthly pace and allocations.
+    </p>
+  </header>
 
   @if (projects().length > 0) {
-  <div class="project-cards-container">
-    @for (project of projects(); track project.id) {
-    <mat-card
-      class="project-card"
-      [class.on-pace]="project.balance >= 0"
-      [class.falling-behind]="project.balance < 0"
-    >
-      <mat-card-header>
-        <mat-card-title class="project-title">{{
-          project.name
-        }}</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="project-stats">
-          <div class="stat-item">
-            <span class="stat-label">Allocated </span>
-            <span class="stat-value">{{ project.target_hours }} hrs</span>
+    <div class="project-grid">
+      @for (project of projects(); track project.id) {
+        <section class="card project-card">
+          <div class="card-header">
+            <h3>{{ project.name }}</h3>
+            <span class="status-badge" [class.is-behind]="project.balance < 0">
+              {{ project.balance < 0 ? "Behind" : "On Track" }}
+            </span>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">Logged </span>
-            <span class="stat-value">{{ project.loggedHours }} hrs</span>
-          </div>
-        </div>
 
-        <div class="progress-wrapper">
-          <div class="progress-label u-text-secondary">
-            Progress:
-            {{
-              (project.loggedHours / project.target_hours) * 100
-                | number : "1.0-0"
-            }}%
+          <div class="stats-row">
+            <div class="stat">
+              <label>Allocated</label>
+              <span class="value">{{ project.target_hours }}h</span>
+            </div>
+            <div class="stat">
+              <label>Logged</label>
+              <span class="value">{{ project.loggedHours }}h</span>
+            </div>
           </div>
-          <mat-progress-bar
-            mode="determinate"
-            [value]="(project.loggedHours / project.target_hours) * 100"
-          >
-          </mat-progress-bar>
-        </div>
 
-        <div class="balance-container">
-          <span class="balance-label">Remaining</span>
-          <span class="balance-value">{{ project.balance }} hrs</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-    }
-  </div>
+          <div class="progress-container">
+            <mat-progress-bar
+              mode="determinate"
+              [value]="(project.loggedHours / project.target_hours) * 100"
+            />
+            <div class="progress-labels">
+              <span
+                >{{
+                  (project.loggedHours / project.target_hours) * 100
+                    | number: "1.0-0"
+                }}% Complete</span
+              >
+              <span class="balance" [class.negative]="project.balance < 0">
+                {{ project.balance }}h remaining
+              </span>
+            </div>
+          </div>
+        </section>
+      }
+    </div>
   } @else {
-  <p class="no-projects-message u-text-secondary">
-    No active projects found. Go to the Projects page to add new ones.
-  </p>
+    <div class="empty-state">
+      <mat-icon>assignment_late</mat-icon>
+      <p>No active projects found. Start by adding one in the Projects page.</p>
+    </div>
   }
 </div>

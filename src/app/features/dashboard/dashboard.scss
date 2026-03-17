@@ -1,154 +1,102 @@
-.dashboard-container {
-  padding: 0;
+@import "../../../styles/variables";
+@import "../../../styles/mixins";
+
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
 }
 
-// --- RESPONSIVE PANEL LAYOUT ---
-.dashboard-panels {
+.panel-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 32px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
 }
 
-// --- PROJECT CARD DESIGN (Data Widget Look) ---
-.project-cards-container {
+.section-header {
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
 }
 
 .project-card {
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 6px;
-    border-radius: var(--border-radius-base) 0 0 var(--border-radius-base);
-    transition: background-color 0.3s;
-  }
-
-  &.on-pace::before {
-    background-color: var(--color-success);
-  }
-
-  &.falling-behind::before {
-    background-color: var(--color-danger);
-  }
-
-  .project-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    padding-left: 12px;
-    letter-spacing: -0.5px;
-  }
-
-  .mat-mdc-card-header {
-    margin-bottom: 24px;
-    margin-left: -12px;
-    margin-right: -12px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-}
-
-.project-stats {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 24px;
-
-  .stat-label {
-    font-size: 0.85em;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-
-  .stat-value {
-    font-size: 1.1em;
-    font-weight: 400;
-    color: var(--color-text-primary);
-  }
-}
-
-.progress-wrapper {
-  margin-bottom: 24px;
-
-  .progress-label {
-    font-size: 0.9em;
-    font-weight: 500;
-    margin-bottom: 8px;
-    display: block;
-    letter-spacing: 0.5px;
-  }
-}
-
-mat-progress-bar {
-  height: 10px;
-  border-radius: 5px;
-  .mat-mdc-progress-bar-primary {
-    --mdc-linear-progress-track-color: var(--color-border);
-    --mdc-linear-progress-active-indicator-color: var(--color-accent);
-  }
-}
-
-.balance-container {
+  @include surface-card;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 24px 0 0 0;
-  border-top: 1px dashed var(--color-border);
+  gap: 1.5rem;
 
-  .balance-label {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
-  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 
-  .balance-value {
-    // FIX: Reduced font size for Balance
-    font-size: 2.2em;
-    font-weight: 300;
-    line-height: 1;
-    color: var(--color-text-primary);
+    h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
   }
 }
 
-.no-projects-message {
-  padding: 32px;
-  text-align: center;
-  color: var(--color-text-secondary);
-}
+.stats-row {
+  display: flex;
+  gap: 2rem;
 
-// --- STYLES FOR TODAY'S FOCUS CARD ---
-.focus-hours {
-  font-weight: 600;
-  color: var(--color-accent);
-  font-size: 1.1em;
-}
-
-// --- RESPONSIVE ADJUSTMENTS ---
-@media (max-width: 599px) {
-  .dashboard-panels {
+  .stat {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      font-weight: 600;
+    }
+    .value {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
   }
-  .project-cards-container {
-    gap: 24px;
+}
+
+.progress-container {
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+
+    .balance.negative {
+      color: var(--color-danger);
+    }
   }
-  .project-card::before {
-    height: 4px;
-    width: 100%;
-    border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+}
+
+.status-badge {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 700;
+  text-transform: uppercase;
+
+  &.is-behind {
+    background: #fee2e2;
+    color: var(--color-danger);
+  }
+}
+
+@media (max-width: 600px) {
+  .panel-row {
+    grid-template-columns: 1fr;
   }
 }

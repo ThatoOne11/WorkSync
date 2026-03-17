@@ -4,8 +4,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
 import { interval, combineLatest, switchMap, catchError, of, map } from 'rxjs';
 import {
@@ -34,8 +34,8 @@ interface ProjectWithTime extends Project {
 @Component({
   selector: 'app-dashboard',
   imports: [
-    MatCardModule,
     MatProgressBarModule,
+    MatIconModule,
     SuggestionsComponent,
     TodayFocusComponent,
     DecimalPipe,
@@ -49,17 +49,14 @@ export class Dashboard {
   private readonly clockifyService = inject(ClockifyService);
   private readonly settingsService = inject(SettingsService);
 
-  // Hidden trigger to force a refresh every 2 minutes
   private readonly refreshTrigger = signal(0);
 
   constructor() {
-    // Polls every 2 minutes. Auto-cleans up on destroy!
     interval(120000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.refreshTrigger.update((v) => v + 1));
   }
 
-  // Purely reactive derivation of projects + time entries
   readonly projects = toSignal(
     combineLatest([
       toObservable(this.settingsService.settings),
@@ -102,18 +99,17 @@ export class Dashboard {
                   const entries = (timeEntries as TimeEntry[]) || [];
 
                   return projects.map((p) => {
-                    const filteredTimeEntries = entries.filter(
+                    const filtered = entries.filter(
                       (te) =>
                         p.clockify_project_id &&
                         te.projectId === p.clockify_project_id,
                     );
-                    const totalDurationSeconds = filteredTimeEntries.reduce(
+                    const totalSecs = filtered.reduce(
                       (acc, te) =>
                         acc + parseISO8601Duration(te.timeInterval.duration),
                       0,
                     );
-                    const loggedHours = totalDurationSeconds / 3600;
-
+                    const loggedHours = totalSecs / 3600;
                     return {
                       ...p,
                       loggedHours: Math.round(loggedHours * 100) / 100,
