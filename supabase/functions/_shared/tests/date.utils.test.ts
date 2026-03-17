@@ -4,13 +4,13 @@ import {
   getWorkdaysInMonth,
   getPassedWorkdays,
   getWeekOfMonth,
+  getWeekDates,
 } from '../utils/date.utils.ts';
 
 Deno.test('Date Utils Suite', async (t) => {
   await t.step(
     'parseISO8601Duration - correctly parses hours, minutes, and seconds',
     () => {
-      // 2 hours, 30 mins, 15 secs = 7200 + 1800 + 15 = 9015 seconds
       const seconds = parseISO8601Duration('PT2H30M15S');
       assertEquals(seconds, 9015);
     },
@@ -30,9 +30,7 @@ Deno.test('Date Utils Suite', async (t) => {
   await t.step(
     'getWorkdaysInMonth - calculates correct workdays excluding weekends',
     () => {
-      // February 2026 starts on a Sunday and has exactly 28 days.
-      // It has exactly 4 full weeks -> 20 workdays.
-      const workdays = getWorkdaysInMonth(2026, 1); // 1 = February (0-indexed)
+      const workdays = getWorkdaysInMonth(2026, 1); // Feb 2026 has exactly 20 workdays
       assertEquals(workdays, 20);
     },
   );
@@ -40,8 +38,6 @@ Deno.test('Date Utils Suite', async (t) => {
   await t.step(
     'getPassedWorkdays - calculates workdays up to a specific date',
     () => {
-      // February 11th, 2026 is a Wednesday.
-      // Workdays passed: 2nd-6th (5) + 9th-11th (3) = 8 workdays.
       const mockToday = new Date(2026, 1, 11);
       const passed = getPassedWorkdays(mockToday);
       assertEquals(passed, 8);
@@ -49,10 +45,42 @@ Deno.test('Date Utils Suite', async (t) => {
   );
 
   await t.step('getWeekOfMonth - calculates the correct week number', () => {
-    // Feb 1st, 2026 is a Sunday (Week 1)
     assertEquals(getWeekOfMonth(new Date(2026, 1, 1)), 1);
-
-    // Feb 11th, 2026 is a Wednesday (Week 3)
     assertEquals(getWeekOfMonth(new Date(2026, 1, 11)), 3);
   });
+
+  await t.step(
+    'getWeekDates - correctly calculates week boundaries for a month',
+    () => {
+      const mockToday = new Date(2026, 3, 15); // Month is 0-indexed, so 3 is April
+
+      // Helper to check local dates, ignoring the exact UTC hour shift
+      const assertDate = (
+        isoString: string,
+        expectedYear: number,
+        expectedMonth: number,
+        expectedDate: number,
+      ) => {
+        const d = new Date(isoString);
+        assertEquals(d.getFullYear(), expectedYear);
+        assertEquals(d.getMonth(), expectedMonth);
+        assertEquals(d.getDate(), expectedDate);
+      };
+
+      // Week 1: April 1st (Wed) -> April 5th (Sun)
+      const aprilWeek1 = getWeekDates(mockToday, 1);
+      assertDate(aprilWeek1.start, 2026, 3, 1);
+      assertDate(aprilWeek1.end, 2026, 3, 5);
+
+      // Week 2: April 6th (Mon) -> April 12th (Sun)
+      const aprilWeek2 = getWeekDates(mockToday, 2);
+      assertDate(aprilWeek2.start, 2026, 3, 6);
+      assertDate(aprilWeek2.end, 2026, 3, 12);
+
+      // Week 5 (End of month cap): April 27th (Mon) -> April 30th (Thu)
+      const aprilWeek5 = getWeekDates(mockToday, 5);
+      assertDate(aprilWeek5.start, 2026, 3, 27);
+      assertDate(aprilWeek5.end, 2026, 3, 30);
+    },
+  );
 });

@@ -27,16 +27,31 @@ export class ClockifyService {
     if (!this.workspaceId)
       throw new Error('Workspace ID required for time entries.');
 
-    const params = new URLSearchParams({
-      start,
-      end,
-      'page-size': pageSize.toString(),
-    });
+    let page = 1;
+    const allEntries: ClockifyTimeEntry[] = [];
 
-    const url = `${this.baseUrl}/workspaces/${this.workspaceId}/user/${userId}/time-entries?${params.toString()}`;
-    const data = await this.get(url);
+    while (true) {
+      const params = new URLSearchParams({
+        start,
+        end,
+        'page-size': pageSize.toString(),
+        page: page.toString(),
+      });
 
-    return z.array(ClockifyTimeEntrySchema).parse(data);
+      const url = `${this.baseUrl}/workspaces/${this.workspaceId}/user/${userId}/time-entries?${params.toString()}`;
+      const data = await this.get(url);
+
+      const parsedPage = z.array(ClockifyTimeEntrySchema).parse(data);
+      allEntries.push(...parsedPage);
+
+      if (parsedPage.length < pageSize) {
+        break;
+      }
+
+      page++;
+    }
+
+    return allEntries;
   }
 
   async getCurrentUser(): Promise<unknown> {
