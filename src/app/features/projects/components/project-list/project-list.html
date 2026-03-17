@@ -1,4 +1,4 @@
-<table mat-table [dataSource]="projects" class="mat-elevation-z8">
+<table mat-table [dataSource]="projects()" class="mat-elevation-z8">
   <ng-container matColumnDef="name">
     <th mat-header-cell *matHeaderCellDef>Project Name</th>
     <td mat-cell *matCellDef="let project">{{ project.name }}</td>
@@ -18,13 +18,24 @@
         mat-icon-button
         color="accent"
         [routerLink]="['/projects', project.id, 'history']"
+        aria-label="View Project History"
       >
         <mat-icon>trending_up</mat-icon>
       </a>
-      <button mat-icon-button color="primary" (click)="onEdit(project)">
+      <button
+        mat-icon-button
+        color="primary"
+        (click)="edit.emit(project)"
+        aria-label="Edit Project"
+      >
         <mat-icon>edit</mat-icon>
       </button>
-      <button mat-icon-button color="warn" (click)="onDelete(project.id)">
+      <button
+        mat-icon-button
+        color="warn"
+        (click)="delete.emit(project.id)"
+        aria-label="Delete Project"
+      >
         <mat-icon>delete</mat-icon>
       </button>
     </td>
