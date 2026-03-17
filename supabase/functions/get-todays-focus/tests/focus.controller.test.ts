@@ -60,8 +60,7 @@ Deno.test('FocusController Suite', async (t) => {
         () => controller.handleRequest(req),
         ValidationError,
       );
-      // FIX: Look for Zod's actual error text
-      assertStringIncludes(error.message, 'Invalid input');
+      assertStringIncludes(error.message, 'invalid_type');
     },
   );
 });
