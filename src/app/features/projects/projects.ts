@@ -13,25 +13,18 @@ import { ProjectForm } from './components/project-form/project-form';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatCardModule } from '@angular/material/card';
 import { SettingsService } from '../../core/services/settings.service';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { switchMap, map, catchError, of } from 'rxjs';
 
-interface ClockifyProject {
+type ClockifyProject = {
   id: string;
   name: string;
-}
+};
 
 @Component({
   selector: 'app-projects',
-  imports: [
-    ProjectList,
-    ProjectForm,
-    MatButtonModule,
-    MatIconModule,
-    MatCardModule,
-  ],
+  imports: [ProjectList, ProjectForm, MatButtonModule, MatIconModule],
   templateUrl: './projects.html',
   styleUrl: './projects.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

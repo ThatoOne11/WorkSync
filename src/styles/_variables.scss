@@ -1,0 +1,35 @@
+// --- BRAND & SEMANTIC COLORS ---
+:root {
+  --color-primary: #2563eb; // Clean Blue (Trust/Action)
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #ea580c;
+
+  // Neutral Scale (Surface & Text)
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+
+  // Layout & Elevation
+  --radius-base: 8px; // Professional, not too "round"
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --page-padding: 2rem;
+
+  --input-radius: 12px; // Soft, modern corners
+  --input-bg: var(--color-surface);
+  --btn-height: 48px;
+}
+
+.dark-theme {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(255, 255, 255, 0.08);
+}

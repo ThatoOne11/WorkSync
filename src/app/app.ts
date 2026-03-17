@@ -7,7 +7,6 @@ import {
 import { RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { ThemeService } from './core/services/theme.service';
@@ -21,7 +20,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
     RouterModule,
     MatToolbarModule,
     MatSidenavModule,
-    MatListModule,
     MatIconModule,
     MatButtonModule,
   ],
@@ -30,12 +28,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  title = 'WorkSync';
-  themeService = inject(ThemeService);
-
+  readonly title = 'WorkSync';
+  readonly themeService = inject(ThemeService);
   private readonly breakpointObserver = inject(BreakpointObserver);
 
-  // Automatically subscribes and unsubscribes, surfacing the state as a Signal
   readonly isHandset = toSignal(
     this.breakpointObserver
       .observe(Breakpoints.Handset)
@@ -45,13 +41,9 @@ export class App {
 
   constructor() {
     effect(() => {
-      if (this.themeService.isDarkTheme()) {
-        document.body.classList.add('dark-theme');
-        document.body.classList.remove('light-theme');
-      } else {
-        document.body.classList.add('light-theme');
-        document.body.classList.remove('dark-theme');
-      }
+      const isDark = this.themeService.isDarkTheme();
+      document.body.classList.toggle('dark-theme', isDark);
+      document.body.classList.toggle('light-theme', !isDark);
     });
   }
 }

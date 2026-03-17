@@ -1,222 +1,109 @@
 @use "@angular/material" as mat;
+@import "styles/variables";
+@import "styles/mixins";
 
 @include mat.core();
 
-// --- CUSTOM DESIGN VARIABLES (Final, Harder) ---
-:root {
-  // Color Palette (Light)
-  --color-text-primary: #18191d;
-  --color-text-secondary: #58697b;
-  --color-background-default: #f3f5f9;
-  --color-background-surface: #ffffff;
-  --color-border: rgba(24, 25, 29, 0.08);
-
-  // Elevation and Spacing (Neo-Minimalist Floating)
-  --border-radius-base: 16px;
-  --shadow-key: 0 16px 40px -8px rgba(24, 25, 29, 0.1);
-  --shadow-ambient: 0 4px 12px 0 rgba(24, 25, 29, 0.05);
-
-  // Accent Color (Red Palette)
-  --color-accent: #ff3b30;
-  --color-success: #34c759;
-  --color-danger: #ff3b30;
-}
-
-.dark-theme {
-  // Color Palette (Dark - Deep Blue/Grey)
-  --color-text-primary: #f0f4f8;
-  --color-text-secondary: #a3b1c6;
-  --color-background-default: #0e1218;
-  --color-background-surface: #1e2430;
-  --color-border: rgba(255, 255, 255, 0.08);
-
-  --shadow-key: 0 16px 40px -8px rgba(0, 0, 0, 0.4);
-  --shadow-ambient: 0 4px 12px 0 rgba(0, 0, 0, 0.2);
-
-  --color-accent: #ff3b30;
-  --color-success: #69f0ae;
-  --color-danger: #ff3b30;
-}
-
-// Map custom variables to Angular Material theming
-$worksync-light-primary: mat.m2-define-palette(mat.$m2-grey-palette, 800);
-$worksync-light-accent: mat.m2-define-palette(
-  mat.$m2-red-palette,
-  A400,
-  A200,
-  A700
-);
-$worksync-light-warn: mat.m2-define-palette(mat.$m2-red-palette);
-
-$worksync-light-theme: mat.m2-define-light-theme(
-  (
-    color: (
-      primary: $worksync-light-primary,
-      accent: $worksync-light-accent,
-      warn: $worksync-light-warn,
-    ),
-  )
-);
-
-$worksync-dark-primary: mat.m2-define-palette(mat.$m2-grey-palette, 200);
-$worksync-dark-accent: mat.m2-define-palette(
-  mat.$m2-red-palette,
-  A200,
-  A100,
-  A400
-);
-$worksync-dark-warn: mat.m2-define-palette(mat.$m2-red-palette);
-
-$worksync-dark-theme: mat.m2-define-dark-theme(
-  (
-    color: (
-      primary: $worksync-dark-primary,
-      accent: $worksync-dark-accent,
-      warn: $worksync-dark-warn,
-    ),
-  )
-);
-
-// --- APPLY THEMES & TYPOGRAPHY FIX ---
 html,
 body {
   height: 100%;
-  // New Font Stack: Prioritize modern, clean system fonts, falling back to Roboto
-  font-family: "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
-    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  font-weight: 400;
   margin: 0;
-  background-color: var(--color-background-default);
-  color: var(--color-text-primary);
-  transition: background-color 0.3s, color 0.3s;
+  font-family: "Inter", sans-serif; // Switched to Inter as discussed
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
 }
 
-.light-theme {
-  @include mat.all-component-themes($worksync-light-theme);
+// Simplified Global Layout Utilities
+.u-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--page-padding);
 }
 
-.dark-theme {
-  @include mat.all-component-themes($worksync-dark-theme);
+// Professional Button Reset
+.mat-mdc-button,
+.mat-mdc-raised-button {
+  border-radius: 8px !important; // Overriding material defaults globally
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
 
-  // FIX: Override Material component backgrounds (Input/Select fields)
+// 1. Textbox & Dropdown Refinement
+.mat-mdc-form-field {
+  width: 100%;
+
   .mat-mdc-text-field-wrapper {
-    background-color: var(--color-background-surface) !important;
+    background-color: var(--color-surface) !important;
+    border-radius: 8px !important;
   }
 
-  .mat-mdc-select-trigger,
-  .mat-mdc-select-value {
-    background-color: var(--color-background-surface) !important;
-  }
-
-  // FIX: Ensure mat-select panel uses the correct background color
-  .mat-mdc-select-panel {
-    background: var(--color-background-surface) !important;
-  }
-
-  // FIX: Ensure inputs/text is visible and consistent
+  // Fixes illegible text in dark mode inputs
   .mat-mdc-form-field-input-control {
-    color: var(--color-text-primary) !important;
-    caret-color: var(--color-accent) !important;
-  }
-
-  // FIX: Reinforce table cell text color to address #424242 issue
-  // The mat-mdc-cell inherits text color. We force it to primary text color.
-  ::ng-deep .mat-mdc-table {
-    .mat-mdc-row,
-    .mat-mdc-cell {
-      color: var(--color-text-primary) !important;
-    }
+    color: var(--color-text-main) !important;
   }
 }
 
-// --- GLOBAL CARD & SURFACE STYLES (Floating/Lifted) ---
-.mat-mdc-card,
-.today-focus-card,
-.project-form-card,
-.project-list-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-base) !important;
-  box-shadow: var(--shadow-ambient), var(--shadow-key) !important;
-  transition: all 0.2s ease-in-out;
-  background-color: var(--color-background-surface) !important;
-  padding: 32px !important;
-
-  .mat-mdc-card-header {
-    padding: 0;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 16px;
-  }
-}
-
-.mat-mdc-card-content {
-  padding: 0 !important;
-}
-
-// Global button style refinement
-.mat-mdc-button.mat-accent,
-.mat-mdc-button.mat-raised-button.mat-primary {
-  border-radius: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-// Card header titles for consistency
-.card-title {
-  font-size: 1.5rem !important;
+// 2. Global Button Look
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-flat-button {
+  padding: 0 24px !important;
+  height: 44px !important;
   font-weight: 600 !important;
-  letter-spacing: -0.5px;
-
-  .mat-icon {
-    font-size: 1.8rem;
-    height: 1.8rem;
-    width: 1.8rem;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
+  letter-spacing: 0.2px !important;
 }
 
-// Utilities
-.u-text-secondary {
-  color: var(--color-text-secondary) !important;
-  font-size: 0.95rem;
-}
+// 3. Dropdown Menu (Overlay) Fixes
+.cdk-overlay-pane .mat-mdc-select-panel {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 
-// FIX: Text wrapping for suggestions
-.suggestion-item.mat-mdc-list-item {
-  height: auto !important;
-  .mdc-list-item__primary-text {
-    white-space: normal !important;
-    overflow: visible !important;
-    padding: 12px 0;
-    font-size: 0.95rem;
-  }
-  .mdc-list-item__content {
-    white-space: normal !important;
-  }
-}
-
-// --- GLOBAL TABLE STYLES (Clean & Consistent) ---
-::ng-deep .mat-mdc-table {
-  .mat-mdc-row {
-    border-color: var(--color-border);
-    transition: background-color 0.15s;
-
+  .mat-mdc-option {
+    color: var(--color-text-main) !important;
     &:hover {
-      background-color: rgba(var(--color-text-primary), 0.05);
+      background-color: var(--color-primary-light);
     }
   }
+}
 
-  .mat-mdc-header-cell {
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    padding: 16px 24px;
-    letter-spacing: 0.75px;
-  }
-
+// 1. Fix Dark Mode Table Text & Global Backgrounds
+.dark-theme {
+  .mat-mdc-table,
+  .mat-mdc-row,
   .mat-mdc-cell {
-    padding: 16px 24px;
+    color: var(
+      --color-text-main
+    ) !important; // Forces text to white/grey in dark mode
+  }
+}
+
+// 2. Soften All Textboxes & Dropdowns Globally
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    border-radius: var(--input-radius) !important;
+    padding-top: 8px !important;
+  }
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--color-border) !important;
+  }
+}
+
+// 3. Unified Button Styling (Soft & Consistent)
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-flat-button,
+.mat-stroked-button {
+  border-radius: var(--input-radius) !important;
+  height: var(--btn-height) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  &.mat-stroked-button {
+    border: 1.5px solid var(--color-border) !important;
   }
 }
