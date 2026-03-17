@@ -1,53 +1,54 @@
 import { Injectable, inject } from '@angular/core';
-import { from } from 'rxjs';
+import { Observable, from } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { SettingsService } from './settings.service';
+import { EdgeApiService } from './edge-api.service';
+import {
+  SUPABASE_FUNCTIONS,
+  SUPABASE_TABLES,
+} from '../../shared/constants/supabase.constants';
+import { HistoricalTarget } from '../../shared/schemas/app.schemas';
 
-export interface WeeklySummary {
+export type WeeklySummary = {
   id: number;
   project_id: number;
   target_hours: number;
   logged_hours: number;
   week_ending_on: string;
-}
-
-const BROWSER_ID_KEY = 'workSyncBrowserId';
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class HistoricalDataService {
-  private supabase = inject(SupabaseService).supabase;
-  private settingsService = inject(SettingsService);
-  private getBrowserId = () => localStorage.getItem(BROWSER_ID_KEY);
+  private readonly supabase = inject(SupabaseService).supabase;
+  private readonly settingsService = inject(SettingsService);
+  private readonly api = inject(EdgeApiService);
 
-  getWeeklySummaries(projectId: number) {
-    const browserId = this.getBrowserId();
-    if (!browserId) return from(Promise.resolve([] as WeeklySummary[]));
+  getWeeklySummaries(projectId: number): Observable<WeeklySummary[]> {
+    const browserId = this.settingsService.getBrowserId();
+    if (!browserId) return from(Promise.resolve([]));
 
     const promise = this.supabase
-      .from('weekly_summaries')
+      .from(SUPABASE_TABLES.WEEKLY_SUMMARIES)
       .select('*')
       .eq('project_id', projectId)
       .eq('user_id', browserId)
       .order('week_ending_on', { ascending: true })
-      .then(({ data }) => data as WeeklySummary[]);
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data as WeeklySummary[];
+      });
 
     return from(promise);
   }
 
-  backfillHistory(historicalTargets: any[]) {
-    const settings = this.settingsService.getSettings();
-    const browserId = this.getBrowserId();
-
-    const promise = this.supabase.functions
-      .invoke('backfill-history', {
-        body: { settings, browserId, historicalTargets }, // Pass new data
-      })
-      .then(({ data, error }) => {
-        if (error) throw error;
-        return data;
-      });
-    return from(promise);
+  backfillHistory(
+    historicalTargets: HistoricalTarget[],
+  ): Observable<{ message: string }> {
+    return this.api.invoke<{ message: string }>(
+      SUPABASE_FUNCTIONS.BACKFILL_HISTORY,
+      { historicalTargets },
+    );
   }
 }

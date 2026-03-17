@@ -1,45 +1,43 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  FocusProject,
-  TodayFocusService,
-} from '../../core/services/today-focus.service';
-import { Observable, of } from 'rxjs';
+import { TodayFocusService } from '../../core/services/today-focus.service';
 import { catchError } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-today-focus',
-  standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatListModule,
     MatIconModule,
     MatProgressSpinnerModule,
   ],
-  templateUrl: './today-focus.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './today-focus.html',
 })
 export class TodayFocusComponent {
-  private todayFocusService = inject(TodayFocusService);
-  protected focusList$: Observable<FocusProject[]>;
+  private readonly todayFocusService = inject(TodayFocusService);
 
-  // helper to check if today is a weekend
-  protected isWeekend(): boolean {
+  readonly isWeekend = computed(() => {
     const day = new Date().getDay();
-    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
-  }
+    return day === 0 || day === 6;
+  });
 
-  constructor() {
-    this.focusList$ = this.todayFocusService.getTodaysFocus().pipe(
+  readonly focusList = toSignal(
+    this.todayFocusService.getTodaysFocus().pipe(
       catchError((err) => {
         console.error("Error fetching today's focus:", err);
         return of([]);
-      })
-    );
-  }
+      }),
+    ),
+  );
 }

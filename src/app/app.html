@@ -1,12 +1,20 @@
 <mat-toolbar color="primary" class="app-toolbar">
-  @if (isHandset) {
-  <button mat-icon-button (click)="sidenav.toggle()">
-    <mat-icon>menu</mat-icon>
-  </button>
+  @if (isHandset()) {
+    <button
+      mat-icon-button
+      (click)="sidenav.toggle()"
+      aria-label="Toggle navigation menu"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
   }
   <span class="app-title">{{ title }}</span>
   <span class="spacer"></span>
-  <button mat-icon-button (click)="themeService.toggleTheme()">
+  <button
+    mat-icon-button
+    (click)="themeService.toggleTheme()"
+    aria-label="Toggle dark mode"
+  >
     <mat-icon>{{
       themeService.isDarkTheme() ? "dark_mode" : "light_mode"
     }}</mat-icon>
@@ -16,8 +24,8 @@
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav
     #sidenav
-    [mode]="isHandset ? 'over' : 'side'"
-    [opened]="!isHandset"
+    [mode]="isHandset() ? 'over' : 'side'"
+    [opened]="!isHandset()"
     class="app-sidenav"
   >
     <mat-nav-list>
@@ -25,7 +33,7 @@
         mat-list-item
         routerLink="/dashboard"
         routerLinkActive="active"
-        (click)="isHandset ? sidenav.close() : null"
+        (click)="isHandset() ? sidenav.close() : null"
       >
         <mat-icon>dashboard</mat-icon>
         <span>Dashboard</span>
@@ -34,7 +42,7 @@
         mat-list-item
         routerLink="/projects"
         routerLinkActive="active"
-        (click)="isHandset ? sidenav.close() : null"
+        (click)="isHandset() ? sidenav.close() : null"
       >
         <mat-icon>assignment</mat-icon>
         <span>Projects</span>
@@ -43,7 +51,7 @@
         mat-list-item
         routerLink="/settings"
         routerLinkActive="active"
-        (click)="isHandset ? sidenav.close() : null"
+        (click)="isHandset() ? sidenav.close() : null"
       >
         <mat-icon>settings</mat-icon>
         <span>Settings</span>

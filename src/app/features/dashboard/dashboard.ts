@@ -1,157 +1,136 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  OnInit,
-  OnDestroy,
   inject,
   signal,
-  ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { Subscription, interval } from 'rxjs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { Project } from '../../core/models/project.model';
-import { SuggestionsComponent } from '../suggestions/suggestions';
+import { DecimalPipe } from '@angular/common';
+import { interval, combineLatest, switchMap, catchError, of, map } from 'rxjs';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { ProjectService } from '../../core/services/project.service';
 import { ClockifyService } from '../../core/services/clockify.service';
-import {
-  AppSettings,
-  SettingsService,
-} from '../../core/services/settings.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { SuggestionsComponent } from '../suggestions/suggestions';
 import { TodayFocusComponent } from '../today-focus/today-focus';
+import { Project } from '../../shared/schemas/app.schemas';
+import { parseISO8601Duration } from '../../shared/utils/date.utils';
 
-interface TimeEntry {
+type TimeEntry = {
   projectId: string;
-  timeInterval: {
-    duration: string;
-  };
-}
+  timeInterval: { duration: string };
+};
 
 interface ProjectWithTime extends Project {
   loggedHours: number;
   balance: number;
 }
 
-// Helper function to parse ISO 8601 duration (e.g., "PT2H6M17S") to seconds
-function parseISO8601Duration(duration: string): number {
-  if (!duration) return 0;
-  const regex = /P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
-  const matches = duration.match(regex);
-
-  if (!matches) {
-    return 0;
-  }
-
-  const days = parseInt(matches[1] || '0', 10);
-  const hours = parseInt(matches[2] || '0', 10);
-  const minutes = parseInt(matches[3] || '0', 10);
-  const seconds = parseInt(matches[4] || '0', 10);
-
-  return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
-}
-
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
-    MatGridListModule,
-    SuggestionsComponent,
     MatProgressBarModule,
+    SuggestionsComponent,
     TodayFocusComponent,
+    DecimalPipe,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Dashboard implements OnInit, OnDestroy {
-  private projectService = inject(ProjectService);
-  private clockifyService = inject(ClockifyService);
-  private settingsService = inject(SettingsService);
+export class Dashboard {
+  private readonly projectService = inject(ProjectService);
+  private readonly clockifyService = inject(ClockifyService);
+  private readonly settingsService = inject(SettingsService);
 
-  projects = signal<ProjectWithTime[]>([]);
-  private pollingSubscription?: Subscription;
+  // Hidden trigger to force a refresh every 2 minutes
+  private readonly refreshTrigger = signal(0);
 
-  ngOnInit() {
-    this.loadData();
-
-    this.pollingSubscription = interval(120000).subscribe(() => {
-      console.log('Polling for new Clockify data...');
-      this.loadData();
-    });
+  constructor() {
+    // Polls every 2 minutes. Auto-cleans up on destroy!
+    interval(120000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.refreshTrigger.update((v) => v + 1));
   }
 
-  ngOnDestroy() {
-    this.pollingSubscription?.unsubscribe();
-  }
+  // Purely reactive derivation of projects + time entries
+  readonly projects = toSignal(
+    combineLatest([
+      toObservable(this.settingsService.settings),
+      toObservable(this.refreshTrigger),
+    ]).pipe(
+      switchMap(([settings]) => {
+        if (!settings?.apiKey || !settings?.workspaceId || !settings?.userId)
+          return of([]);
 
-  loadData() {
-    // FIX: Call getSettings() synchronously and check for the result.
-    const settings = this.settingsService.getSettings();
-    if (
-      settings &&
-      settings.apiKey &&
-      settings.workspaceId &&
-      settings.userId
-    ) {
-      this.fetchProjectsAndEntries(settings);
-    } else {
-      console.log('Dashboard: Settings are not fully configured.');
-      this.projects.set([]);
-    }
-  }
+        const today = new Date();
+        const start = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          1,
+        ).toISOString();
+        const end = new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ).toISOString();
 
-  fetchProjectsAndEntries(settings: AppSettings) {
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
+        return this.projectService.getProjects().pipe(
+          switchMap((projects) => {
+            if (!projects || projects.length === 0) return of([]);
 
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    endOfMonth.setHours(23, 59, 59, 999);
+            return this.clockifyService
+              .getTimeEntries(
+                settings.apiKey,
+                settings.workspaceId,
+                settings.userId,
+                start,
+                end,
+              )
+              .pipe(
+                map((timeEntries: unknown) => {
+                  const entries = (timeEntries as TimeEntry[]) || [];
 
-    const start = startOfMonth.toISOString();
-    const end = endOfMonth.toISOString();
+                  return projects.map((p) => {
+                    const filteredTimeEntries = entries.filter(
+                      (te) =>
+                        p.clockify_project_id &&
+                        te.projectId === p.clockify_project_id,
+                    );
+                    const totalDurationSeconds = filteredTimeEntries.reduce(
+                      (acc, te) =>
+                        acc + parseISO8601Duration(te.timeInterval.duration),
+                      0,
+                    );
+                    const loggedHours = totalDurationSeconds / 3600;
 
-    this.projectService.getProjects().subscribe((projects) => {
-      if (!projects || projects.length === 0) {
-        this.projects.set([]);
-        return;
-      }
-
-      this.clockifyService
-        .getTimeEntries(
-          settings.apiKey,
-          settings.workspaceId,
-          settings.userId,
-          start,
-          end
-        )
-        .subscribe((timeEntries: TimeEntry[] | null) => {
-          if (!timeEntries) {
-            timeEntries = [];
-          }
-
-          const projectsWithTime: ProjectWithTime[] = projects.map((p) => {
-            const filteredTimeEntries = timeEntries.filter(
-              (te) =>
-                p.clockify_project_id && te.projectId === p.clockify_project_id
-            );
-            const totalDurationSeconds = filteredTimeEntries.reduce(
-              (acc, te) => acc + parseISO8601Duration(te.timeInterval.duration),
-              0
-            );
-            const loggedHours = totalDurationSeconds / 3600;
-
-            return {
-              ...p,
-              loggedHours: Math.round(loggedHours * 100) / 100,
-              balance: Math.round((p.target_hours - loggedHours) * 100) / 100,
-            };
-          });
-          this.projects.set(projectsWithTime);
-        });
-    });
-  }
+                    return {
+                      ...p,
+                      loggedHours: Math.round(loggedHours * 100) / 100,
+                      balance:
+                        Math.round((p.target_hours - loggedHours) * 100) / 100,
+                    };
+                  });
+                }),
+              );
+          }),
+        );
+      }),
+      catchError((err) => {
+        console.error('Error fetching dashboard data:', err);
+        return of([]);
+      }),
+    ),
+    { initialValue: [] as ProjectWithTime[] },
+  );
 }

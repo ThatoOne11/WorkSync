@@ -1,29 +1,27 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
-import { Project } from '../../../../core/models/project.model';
+import {
+  Component,
+  output,
+  input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
+import { Project } from '../../../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-project-list',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatTableModule, MatButtonModule, MatIconModule, RouterModule],
   templateUrl: './project-list.html',
   styleUrl: './project-list.scss',
 })
 export class ProjectList {
-  @Input() projects: Project[] = [];
-  @Output() edit = new EventEmitter<Project>();
-  @Output() delete = new EventEmitter<number>();
+  projects = input.required<Project[]>();
+
+  edit = output<Project>();
+  delete = output<number>();
 
   displayedColumns: string[] = ['name', 'target_hours', 'actions'];
-
-  onEdit(project: Project) {
-    this.edit.emit(project);
-  }
-
-  onDelete(id: number) {
-    this.delete.emit(id);
-  }
 }

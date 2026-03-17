@@ -20,10 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import {
-  AppSettings,
-  SettingsService,
-} from '../../core/services/settings.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -31,9 +28,10 @@ import { HistoricalDataService } from '../../core/services/historical-data.servi
 import { MatIconModule } from '@angular/material/icon';
 import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
 import { ProjectService } from '../../core/services/project.service';
-import { Project } from '../../core/models/project.model';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ClockifyUserSchema, Project } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-settings',
@@ -105,20 +103,16 @@ export class Settings implements OnInit, OnDestroy {
   }
 
   private setupConditionalEmailValidation(): void {
-    const weeklySummaryToggle = this.form.get('enableEmailNotifications');
-    const pacingAlertsToggle = this.form.get('enablePacingAlerts');
+    const weeklyToggle = this.form.get('enableEmailNotifications');
+    const pacingToggle = this.form.get('enablePacingAlerts');
     const emailField = this.form.get('notificationEmail');
 
-    if (weeklySummaryToggle && pacingAlertsToggle && emailField) {
+    if (weeklyToggle && pacingToggle && emailField) {
       combineLatest([
-        weeklySummaryToggle.valueChanges.pipe(
-          startWith(weeklySummaryToggle.value)
-        ),
-        pacingAlertsToggle.valueChanges.pipe(
-          startWith(pacingAlertsToggle.value)
-        ),
+        weeklyToggle.valueChanges.pipe(startWith(weeklyToggle.value)),
+        pacingToggle.valueChanges.pipe(startWith(pacingToggle.value)),
       ])
-        .pipe(takeUntil(this.destroy$))
+        .pipe(takeUntilDestroyed())
         .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
           if (isWeeklyEnabled || isPacingEnabled) {
             emailField.setValidators([Validators.required, Validators.email]);
@@ -128,59 +122,54 @@ export class Settings implements OnInit, OnDestroy {
           }
           emailField.updateValueAndValidity();
 
-          const isCurrentWeeklyEnabled = weeklySummaryToggle.value;
-          const isCurrentPacingEnabled = pacingAlertsToggle.value;
-
           const weeklyChanged =
-            isCurrentWeeklyEnabled !==
+            weeklyToggle.value !==
             this.initialToggleValues.enableEmailNotifications;
           const pacingChanged =
-            isCurrentPacingEnabled !==
-            this.initialToggleValues.enablePacingAlerts;
-
+            pacingToggle.value !== this.initialToggleValues.enablePacingAlerts;
           this.isToggleDirty.set(weeklyChanged || pacingChanged);
         });
     }
   }
 
   private loadSettings(): void {
-    const settings = this.settingsService.getSettings();
+    const settings = this.settingsService.settings(); // Instantly read the signal from core!
+
     if (settings) {
       this.form.patchValue(settings);
       this.form.get('apiKey')?.disable();
       this.form.get('workspaceId')?.disable();
       this.form.get('userId')?.disable();
 
-      // --- FIX 4: Store initial toggle values ---
-      this.initialToggleValues.enableEmailNotifications =
-        settings.enableEmailNotifications;
-      this.initialToggleValues.enablePacingAlerts = settings.enablePacingAlerts;
-      // ------------------------------------------
+      this.initialToggleValues = {
+        enableEmailNotifications: settings.enableEmailNotifications,
+        enablePacingAlerts: settings.enablePacingAlerts,
+      };
 
       this.settingsExist.set(true);
-      // FIX 1: The email field should be in edit mode only if no email is saved.
       this.emailEditMode.set(!settings.notificationEmail);
     } else {
       this.form.enable();
       this.form.get('userId')?.disable();
       this.settingsExist.set(false);
       this.emailEditMode.set(true);
-
-      // Reset initial values for a fresh start
-      this.initialToggleValues.enableEmailNotifications = false;
-      this.initialToggleValues.enablePacingAlerts = false;
+      this.initialToggleValues = {
+        enableEmailNotifications: false,
+        enablePacingAlerts: false,
+      };
     }
+
     this.checkActiveProjects();
     this.form.markAsPristine();
-    this.isToggleDirty.set(false); // Reset toggle dirty state on load
+    this.isToggleDirty.set(false);
   }
 
   protected getOriginalEmail(): string {
-    return this.settingsService.getSettings()?.notificationEmail || '';
+    return this.settingsService.settings()?.notificationEmail || '';
   }
 
   onCancelChanges(): void {
-    const settings = this.settingsService.getSettings();
+    const settings = this.settingsService.settings();
     const emailField = this.form.get('notificationEmail');
     const weeklyToggle = this.form.get('enableEmailNotifications');
     const pacingToggle = this.form.get('enablePacingAlerts');
@@ -207,7 +196,7 @@ export class Settings implements OnInit, OnDestroy {
     if (this.emailEditMode()) {
       // If exiting edit mode (clicking 'cancel' icon), reset the field value
       const originalEmail =
-        this.settingsService.getSettings()?.notificationEmail || '';
+        this.settingsService.settings()?.notificationEmail || '';
       this.form.get('notificationEmail')?.setValue(originalEmail);
     }
     this.emailEditMode.update((v) => !v);
@@ -258,38 +247,40 @@ export class Settings implements OnInit, OnDestroy {
       'Close',
       {
         duration: 3000,
-      }
+      },
     );
   }
 
   fetchUserId(): void {
     const apiKey = this.form.get('apiKey')?.value;
     const workspaceId = this.form.get('workspaceId')?.value;
+
     if (!apiKey || !workspaceId) {
       this.snackBar.open(
         'Please enter both API Key and Workspace ID.',
         'Close',
-        {
-          duration: 3000,
-        }
+        { duration: 3000 },
       );
       return;
     }
 
     this.isFetchingUserId.set(true);
+
     this.clockifyService.getCurrentUserId(apiKey).subscribe({
-      next: (user: any) => {
-        if (user && user.id) {
+      // FIXED: Safely parse as unknown first, then validate with Zod!
+      next: (response: unknown) => {
+        try {
+          const user = ClockifyUserSchema.parse(response);
           this.form.patchValue({ userId: user.id });
           this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
           this.snackBar.open('User ID fetched successfully!', 'Close', {
             duration: 3000,
           });
-        } else {
+        } catch (e) {
           this.snackBar.open(
             'Could not fetch User ID. Check your API Key.',
             'Close',
-            { duration: 3000 }
+            { duration: 3000 },
           );
         }
         this.isFetchingUserId.set(false);
@@ -299,7 +290,7 @@ export class Settings implements OnInit, OnDestroy {
         this.snackBar.open(
           'Error fetching User ID. Check the console for details.',
           'Close',
-          { duration: 3000 }
+          { duration: 3000 },
         );
         this.isFetchingUserId.set(false);
       },
@@ -334,7 +325,7 @@ export class Settings implements OnInit, OnDestroy {
             this.snackBar.open(
               'An error occurred during backfill. Check the console.',
               'Close',
-              { duration: 5000 }
+              { duration: 5000 },
             );
             this.isBackfilling.set(false);
           },
@@ -350,7 +341,7 @@ export class Settings implements OnInit, OnDestroy {
         this.snackBar.open(
           'Weekly summary function ran successfully. Check your email!',
           'Close',
-          { duration: 5000 }
+          { duration: 5000 },
         );
         this.isTestingEmail.set(false);
       },
@@ -359,7 +350,7 @@ export class Settings implements OnInit, OnDestroy {
         this.snackBar.open(
           'An error occurred. Please check the console.',
           'Close',
-          { duration: 5000 }
+          { duration: 5000 },
         );
         this.isTestingEmail.set(false);
       },
