@@ -22,7 +22,6 @@ import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SettingsService } from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HistoricalDataService } from '../../core/services/historical-data.service';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,7 +43,6 @@ import { ClockifyUserSchema, Project } from '../../shared/schemas/app.schemas';
     MatButtonModule,
     MatSnackBarModule,
     MatSlideToggleModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatDialogModule,
