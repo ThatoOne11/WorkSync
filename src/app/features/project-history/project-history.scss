@@ -1,34 +1,24 @@
-@use "mixins" as *;
-
 .history-view {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--space-lg);
 }
-
-.page-header {
-  @include page-header;
-}
-
 .title-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-left: -0.75rem;
+  gap: var(--space-xs);
+  margin-left: calc(var(--space-sm) * -1);
 }
-
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
-
 .metric-card {
-  @include surface-card;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 
   label {
     font-size: 0.8rem;
@@ -47,48 +37,26 @@
     color: var(--color-text-muted);
     margin-left: 4px;
   }
-
-  .is-positive {
-    color: var(--color-success);
-  }
-  .is-negative {
-    color: var(--color-danger);
-  }
 }
-
 .charts-layout {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 1.5rem;
+  gap: var(--space-md);
 }
-
-.history-card {
-  @include surface-card;
-  .card-header {
-    margin-bottom: 1.5rem;
-    h3 {
-      margin: 0;
-      font-size: 1.1rem;
-    }
-  }
-}
-
 .chart-container {
   height: 400px;
   position: relative;
 }
-
 .monthly-content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--space-lg);
 
   .mini-chart {
     height: 250px;
     position: relative;
   }
 }
-
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -96,7 +64,7 @@
 
   th,
   td {
-    padding: 12px;
+    padding: var(--space-sm);
     text-align: left;
     border-bottom: 1px solid var(--color-border);
   }
@@ -106,25 +74,15 @@
     text-transform: uppercase;
     font-size: 0.75rem;
   }
-
-  .is-positive {
-    color: var(--color-success);
-  }
-  .is-negative {
-    color: var(--color-danger);
-  }
 }
-
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 5rem;
-  gap: 1rem;
-  color: var(--color-text-muted);
+  padding: var(--space-xl);
+  gap: var(--space-sm);
 }
-
 @media (max-width: 1100px) {
   .charts-layout {
     grid-template-columns: 1fr;

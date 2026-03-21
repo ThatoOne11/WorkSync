@@ -1,15 +1,8 @@
-@use "mixins" as *;
-
 .settings-view {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
-
-.page-header {
-  @include page-header;
-}
-
 .settings-layout {
   display: flex;
   flex-direction: column;
@@ -19,25 +12,13 @@
   width: 100%;
 }
 
-.settings-card {
-  @include surface-card;
-
+/* Settings-specific overrides for the global card-header */
+.connection-section,
+.notification-section,
+.management-section {
   .card-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--color-border);
     padding-bottom: 1rem;
-
-    mat-icon {
-      color: var(--color-primary);
-    }
-    h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
   }
 }
 
@@ -56,7 +37,6 @@
   span {
     flex: 1 1 auto;
   }
-
   mat-icon {
     font-size: 20px;
     width: 20px;
@@ -64,15 +44,12 @@
     flex-shrink: 0;
   }
 }
-
-/* NEW: Polished Setting Rows for Toggles */
 .settings-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
-
 .setting-row {
   display: flex;
   justify-content: space-between;
@@ -87,26 +64,22 @@
     flex-direction: column;
     gap: 0.25rem;
   }
-
   .setting-title {
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--color-text-main);
   }
-
   .setting-desc {
     font-size: 0.85rem;
   }
 }
-
 .user-id-action,
 .email-config {
   display: flex;
   align-items: center;
   gap: 1rem;
-
   button {
-    height: 56px; /* Match form field height */
+    height: 56px;
     min-width: 140px;
     display: flex;
     gap: 8px;
@@ -114,7 +87,6 @@
     justify-content: center;
   }
 }
-
 .management-content {
   display: flex;
   justify-content: space-between;
@@ -124,25 +96,21 @@
     margin: 0;
     flex: 1;
   }
-
   button {
     display: flex;
     gap: 8px;
     align-items: center;
   }
 }
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   padding: 1rem 0 3rem;
 }
-
 .flex-grow {
   flex: 1;
 }
-
 @media (max-width: 600px) {
   .user-id-action,
   .email-config,
@@ -150,13 +118,11 @@
     flex-direction: column;
     align-items: stretch;
   }
-
   .user-id-action button,
   .email-config button,
   .management-content button {
     width: 100%;
   }
-
   .setting-row {
     flex-direction: column;
     align-items: flex-start;

@@ -6,6 +6,7 @@ import {
   viewChild,
   OnDestroy,
   computed,
+  DestroyRef,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Chart, ChartConfiguration, ChartData } from 'chart.js/auto';
@@ -25,9 +26,10 @@ import { HistoryPayload } from '../../shared/schemas/app.schemas';
   styleUrls: ['./project-history.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectHistory implements OnDestroy {
+export class ProjectHistory {
   private readonly route = inject(ActivatedRoute);
   private readonly projectHistoryService = inject(ProjectHistoryService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly weeklyChartCanvas =
     viewChild<import('@angular/core').ElementRef<HTMLCanvasElement>>(
@@ -59,6 +61,11 @@ export class ProjectHistory implements OnDestroy {
   });
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.weeklyChartInstance?.destroy();
+      this.monthlyChartInstance?.destroy();
+    });
+
     effect(() => {
       const data = this.projectData();
       const wCanvas = this.weeklyChartCanvas();
@@ -75,11 +82,6 @@ export class ProjectHistory implements OnDestroy {
         );
       }
     });
-  }
-
-  ngOnDestroy() {
-    this.weeklyChartInstance?.destroy();
-    this.monthlyChartInstance?.destroy();
   }
 
   private createWeeklyChart(

@@ -14,7 +14,7 @@
   @if (projects().length > 0) {
     <div class="project-grid">
       @for (project of projects(); track project.id) {
-        <section class="card project-card">
+        <section class="surface-card project-card">
           <div class="card-header">
             <h3>{{ project.name }}</h3>
             <span class="status-badge" [class.is-behind]="project.balance < 0">

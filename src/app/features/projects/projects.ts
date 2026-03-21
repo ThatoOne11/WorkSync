@@ -4,6 +4,7 @@ import {
   inject,
   signal,
   computed,
+  DestroyRef,
 } from '@angular/core';
 import { Project } from '../../shared/schemas/app.schemas';
 import { ProjectList } from './components/project-list/project-list';
@@ -11,7 +12,11 @@ import { ProjectForm } from './components/project-form/project-form';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { switchMap, map, catchError, of } from 'rxjs';
 import { ProjectService } from './services/project.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -34,6 +39,7 @@ export class Projects {
   private readonly clockifyService = inject(ClockifyService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly settingsService = inject(SettingsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedProject = signal<Project | undefined>(undefined);
   private readonly reloadTrigger = signal(0);
@@ -77,6 +83,7 @@ export class Projects {
   onDeleteProject(id: number) {
     this.projectService
       .deleteProject(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.reloadTrigger.update((v) => v + 1));
   }
 
@@ -101,7 +108,7 @@ export class Projects {
       operation = this.projectService.addProject(projectToSave);
     }
 
-    operation.subscribe(() => {
+    operation.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.reloadTrigger.update((v) => v + 1);
       this.selectedProject.set(undefined);
     });
@@ -117,18 +124,23 @@ export class Projects {
         'Are you sure you want to start a new month? This will archive all current projects.',
       )
     ) {
-      this.projectService.archiveAllProjects().subscribe({
-        next: () => {
-          this.reloadTrigger.update((v) => v + 1);
-          this.snackBar.open(
-            'All projects have been archived. Ready for the new month!',
-            'Close',
-            { duration: 3000 },
-          );
-        },
-        error: () =>
-          this.snackBar.open('An error occurred.', 'Close', { duration: 3000 }),
-      });
+      this.projectService
+        .archiveAllProjects()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.reloadTrigger.update((v) => v + 1);
+            this.snackBar.open(
+              'All projects have been archived. Ready for the new month!',
+              'Close',
+              { duration: 3000 },
+            );
+          },
+          error: () =>
+            this.snackBar.open('An error occurred.', 'Close', {
+              duration: 3000,
+            }),
+        });
     }
   }
 }
