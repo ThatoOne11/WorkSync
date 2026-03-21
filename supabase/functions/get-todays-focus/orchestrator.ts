@@ -1,27 +1,31 @@
-import { SuggestionsService } from './services/suggestions.service.ts';
-import { GenerateSuggestionsSchema } from './types/suggestions.types.ts';
+import { FocusService } from './services/focus.service.ts';
+import { GetTodaysFocusSchema } from './types/focus.types.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { parseRequest, jsonResponse } from '../_shared/utils/api.utils.ts';
 import { createAuthenticatedClockify } from '../_shared/helpers/clockify.helpers.ts';
 
-export class SuggestionsOrchestrator {
+export class FocusOrchestrator {
   constructor(
-    private readonly service: SuggestionsService,
+    private readonly service: FocusService,
     private readonly settingsRepo: SettingsRepository,
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, GenerateSuggestionsSchema);
+    // 1. Parse and validate the request instantly
+    const body = await parseRequest(req, GetTodaysFocusSchema);
 
+    // 2. Safely get the authenticated third-party service
     const { clockifyService, clockifyUserId } =
       await createAuthenticatedClockify(body.browserId, this.settingsRepo);
 
-    const suggestions = await this.service.getSuggestions(
+    // 3. Execute business logic
+    const focusList = await this.service.calculateTodaysFocus(
       body.browserId,
       clockifyService,
       clockifyUserId,
     );
 
-    return jsonResponse({ suggestions });
+    // 4. Return clean response
+    return jsonResponse({ focusList });
   }
 }

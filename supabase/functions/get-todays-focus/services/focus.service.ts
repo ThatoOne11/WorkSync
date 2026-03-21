@@ -3,6 +3,7 @@ import { ProjectsRepository } from '../../_shared/repo/projects.repo.ts';
 import { parseISO8601Duration } from '../../_shared/utils/date.utils.ts';
 import { FocusProjectResult } from '../types/focus.types.ts';
 import { GeminiService } from '../../_shared/services/gemini.service.ts';
+import { FocusAIConfig } from '../configs/prompts.ts';
 
 export class FocusService {
   private readonly geminiService: GeminiService;
@@ -17,29 +18,23 @@ export class FocusService {
     userId: string,
   ): Promise<FocusProjectResult[]> {
     const projects = await this.projectsRepo.getActiveProjects(browserId);
-
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
-    if (isWeekend || projects.length === 0) {
-      return [];
-    }
+    if (isWeekend || projects.length === 0) return [];
 
     const startOfMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
       1,
     ).toISOString();
-
     const timeEntries = await clockify.fetchUserTimeEntries(
       userId,
       startOfMonth,
       today.toISOString(),
     );
-
     const remainingWorkdays = this.getRemainingWorkdays(today);
 
-    // 1. Calculate the raw mathematical baseline
     const baselineList = projects
       .map((p) => {
         const loggedSeconds = timeEntries
@@ -63,11 +58,20 @@ export class FocusService {
 
     if (baselineList.length === 0) return [];
 
-    // 2. Get the current day name
     const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
+    const prompt = FocusAIConfig.buildPrompt(baselineList, dayOfWeek);
 
-    // 3. Ask Gemini to optimize the pacing
-    return await this.geminiService.optimizeDailyFocus(baselineList, dayOfWeek);
+    try {
+      // Use the generic SDK wrapper
+      return await this.geminiService.generateStructuredContent<
+        FocusProjectResult[]
+      >(prompt, FocusAIConfig.schema, 0.5);
+    } catch (e) {
+      return baselineList.map((b) => ({
+        name: b.name,
+        requiredHoursToday: b.baselineHours,
+      }));
+    }
   }
 
   private getRemainingWorkdays(today: Date): number {
@@ -79,9 +83,7 @@ export class FocusService {
     for (let day = today.getDate(); day <= daysInMonth; day++) {
       const currentDate = new Date(year, month, day);
       const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek > 0 && dayOfWeek < 6) {
-        remainingWorkdays++;
-      }
+      if (dayOfWeek > 0 && dayOfWeek < 6) remainingWorkdays++;
     }
     return remainingWorkdays > 0 ? remainingWorkdays : 1;
   }

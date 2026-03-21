@@ -12,6 +12,7 @@ import {
   getWeekOfMonth,
 } from '../../_shared/utils/date.utils.ts';
 import { WeeklySummariesResult } from '../types/summaries.types.ts';
+import { SummariesAIConfig } from '../configs/prompts.ts';
 
 export class WeeklySummariesService {
   private readonly geminiService: GeminiService;
@@ -28,7 +29,6 @@ export class WeeklySummariesService {
   async processSummaries(): Promise<WeeklySummariesResult> {
     const usersSettings = await this.settingsRepo.getAllUsersSettings();
     const globalMessages: string[] = [];
-
     const today = new Date();
     const endOfLastWeek = new Date(
       today.getFullYear(),
@@ -61,8 +61,6 @@ export class WeeklySummariesService {
           user.clockifyApiKey,
           user.clockifyWorkspaceId,
         );
-
-        // 1. Data Aggregation
         const { allMonthlyData, summariesToUpsert, thisWeeksTimeEntries } =
           await ClockifyAggregator.fetchAndAggregate(
             clockify,
@@ -74,10 +72,8 @@ export class WeeklySummariesService {
             workdaysInMonth,
           );
 
-        // 2. Database Persistence
         await this.summariesRepo.upsertSummaries(summariesToUpsert);
 
-        // 3. Stats Calculation
         const thisWeekData = allMonthlyData.filter(
           (d) => d.week_ending_on === endOfLastWeek.toISOString().split('T')[0],
         );
@@ -88,14 +84,21 @@ export class WeeklySummariesService {
           allMonthlyData,
         );
 
-        // Ask Gemini for the customized intro paragraph
-        const insightText =
-          await this.geminiService.generateWeeklySummaryInsight(
+        let insightText: string;
+        try {
+          const prompt = SummariesAIConfig.buildPrompt(
             weeklyStats,
             thisWeekData,
           );
+          const aiResponse =
+            await this.geminiService.generateStructuredContent<{
+              insightHtml: string;
+            }>(prompt, SummariesAIConfig.schema, 0.7);
+          insightText = aiResponse.insightHtml;
+        } catch (e) {
+          insightText = `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(2)} hours</span> this week. Keep up the great work keeping your projects synced!`;
+        }
 
-        // 4. Report Generation & Dispatch
         await ReportGenerator.generateAndSend(
           this.emailService,
           user.notificationEmail,

@@ -3,7 +3,7 @@ import { ENV } from '../_shared/configs/env.ts';
 import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { SyncSettingsService } from './services/sync-settings.service.ts';
-import { SyncSettingsController } from './controllers/sync.controller.ts';
+import { SyncSettingsOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Sync-Settings', async (req: Request) => {
@@ -14,8 +14,8 @@ Deno.serve(
 
     const repo = new SettingsRepository(supabase);
     const service = new SyncSettingsService(repo);
-    const controller = new SyncSettingsController(service);
+    const orchestrator = new SyncSettingsOrchestrator(service);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );

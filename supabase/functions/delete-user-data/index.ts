@@ -5,7 +5,7 @@ import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
 import { SummariesRepository } from '../_shared/repo/summaries.repo.ts';
 import { DeleteUserDataService } from './services/delete-user-data.service.ts';
-import { DeleteUserDataController } from './controllers/delete.controller.ts';
+import { DeleteUserDataOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Delete-User-Data', async (req: Request) => {
@@ -20,8 +20,8 @@ Deno.serve(
       projectsRepo,
       summariesRepo,
     );
-    const controller = new DeleteUserDataController(service);
+    const orchestrator = new DeleteUserDataOrchestrator(service);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );

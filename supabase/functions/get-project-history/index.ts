@@ -4,7 +4,7 @@ import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
 import { SummariesRepository } from '../_shared/repo/summaries.repo.ts';
 import { HistoryService } from './services/history.service.ts';
-import { HistoryController } from './controllers/history.controller.ts';
+import { HistoryOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Get-Project-History', async (req: Request) => {
@@ -14,8 +14,8 @@ Deno.serve(
     const summariesRepo = new SummariesRepository(supabase);
 
     const service = new HistoryService(projectsRepo, summariesRepo);
-    const controller = new HistoryController(service);
+    const orchestrator = new HistoryOrchestrator(service);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );
