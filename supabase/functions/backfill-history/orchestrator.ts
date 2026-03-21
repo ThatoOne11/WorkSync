@@ -1,12 +1,8 @@
 import { BackfillService } from './services/backfill.service.ts';
-import { ClockifyService } from '../_shared/services/clockify.service.ts';
-import {
-  BackfillRequest,
-  BackfillRequestSchema,
-} from './types/backfill.types.ts';
-import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../_shared/utils/error.utils.ts';
+import { BackfillRequestSchema } from './types/backfill.types.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
+import { parseRequest, jsonResponse } from '../_shared/utils/api.utils.ts';
+import { createAuthenticatedClockify } from '../_shared/helpers/clockify.helpers.ts';
 
 export class BackfillOrchestrator {
   constructor(
@@ -15,42 +11,18 @@ export class BackfillOrchestrator {
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    let body: BackfillRequest;
+    const body = await parseRequest(req, BackfillRequestSchema);
 
-    try {
-      const rawBody = await req.json();
-      body = BackfillRequestSchema.parse(rawBody);
-    } catch (err: unknown) {
-      throw new ValidationError(`Invalid payload: ${toSafeError(err).message}`);
-    }
+    const { clockifyService, clockifyUserId } =
+      await createAuthenticatedClockify(body.browserId, this.settingsRepo);
 
-    const userSettings = await this.settingsRepo.getUserSettings(
-      body.browserId,
-    );
-    if (
-      !userSettings?.clockifyApiKey ||
-      !userSettings?.clockifyWorkspaceId ||
-      !userSettings?.clockifyUserId
-    ) {
-      throw new ValidationError(
-        'Missing or incomplete secure Clockify credentials.',
-      );
-    }
-
-    const clockifyService = new ClockifyService(
-      userSettings.clockifyApiKey,
-      userSettings.clockifyWorkspaceId,
-    );
     const result = await this.service.runBackfill(
       body.browserId,
       body.historicalTargets,
       clockifyService,
-      userSettings.clockifyUserId,
+      clockifyUserId,
     );
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(result);
   }
 }

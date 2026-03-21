@@ -1,12 +1,8 @@
 import { FocusService } from './services/focus.service.ts';
-import { ClockifyService } from '../_shared/services/clockify.service.ts';
-import {
-  GetTodaysFocusRequest,
-  GetTodaysFocusSchema,
-} from './types/focus.types.ts';
-import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../_shared/utils/error.utils.ts';
+import { GetTodaysFocusSchema } from './types/focus.types.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
+import { parseRequest, jsonResponse } from '../_shared/utils/api.utils.ts';
+import { createAuthenticatedClockify } from '../_shared/helpers/clockify.helpers.ts';
 
 export class FocusOrchestrator {
   constructor(
@@ -15,41 +11,21 @@ export class FocusOrchestrator {
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    let body: GetTodaysFocusRequest;
+    // 1. Parse and validate the request instantly
+    const body = await parseRequest(req, GetTodaysFocusSchema);
 
-    try {
-      const rawBody = await req.json();
-      body = GetTodaysFocusSchema.parse(rawBody);
-    } catch (err: unknown) {
-      throw new ValidationError(`Invalid payload: ${toSafeError(err).message}`);
-    }
+    // 2. Safely get the authenticated third-party service
+    const { clockifyService, clockifyUserId } =
+      await createAuthenticatedClockify(body.browserId, this.settingsRepo);
 
-    const userSettings = await this.settingsRepo.getUserSettings(
-      body.browserId,
-    );
-    if (
-      !userSettings?.clockifyApiKey ||
-      !userSettings?.clockifyWorkspaceId ||
-      !userSettings?.clockifyUserId
-    ) {
-      throw new ValidationError(
-        'Missing or incomplete secure Clockify credentials.',
-      );
-    }
-
-    const clockifyService = new ClockifyService(
-      userSettings.clockifyApiKey,
-      userSettings.clockifyWorkspaceId,
-    );
+    // 3. Execute business logic
     const focusList = await this.service.calculateTodaysFocus(
       body.browserId,
       clockifyService,
-      userSettings.clockifyUserId,
+      clockifyUserId,
     );
 
-    return new Response(JSON.stringify({ focusList }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // 4. Return clean response
+    return jsonResponse({ focusList });
   }
 }
