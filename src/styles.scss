@@ -297,6 +297,16 @@ button[disabled],
   }
 }
 
+/* ------------------------------------------------------
+   FORCE MATERIAL SPINNERS TO BE VISIBLE WITH CUSTOM THEME
+   ------------------------------------------------------ */
+mat-spinner,
+.mat-mdc-progress-spinner {
+  circle {
+    stroke: var(--color-primary) !important;
+  }
+}
+
 /* Dark Mode specifics */
 .dark-theme {
   .mat-mdc-table,

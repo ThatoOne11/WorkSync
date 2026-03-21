@@ -14,6 +14,10 @@ import {
 export class SettingsService {
   private readonly supabase = inject(SupabaseService).supabase;
 
+  private invalidateAiCache(): void {
+    localStorage.removeItem(STORAGE_CONSTANTS.AI_INSIGHTS_CACHE_KEY);
+  }
+
   // Expose settings as a read-only signal for reactive UI updates globally
   readonly settings = signal<AppSettings | null>(
     this.loadSettingsFromStorage(),
@@ -58,16 +62,7 @@ export class SettingsService {
 
     const browserId = this.createOrGetBrowserId();
 
-    // 1. Save to local storage for immediate UI use
-    localStorage.setItem(
-      STORAGE_CONSTANTS.SETTINGS_KEY,
-      JSON.stringify(newSettings),
-    );
-
-    // 2. Update Signal state (this will instantly update the UI anywhere it's used)
-    this.settings.set(newSettings);
-
-    // 3. Sync to Supabase for background cron jobs
+    // 1. Sync to Supabase FIRST with the real API key
     const { error } = await this.supabase.functions.invoke(
       SUPABASE_FUNCTIONS.SYNC_SETTINGS,
       {
@@ -79,6 +74,22 @@ export class SettingsService {
       console.error('Error syncing settings to server:', error);
       throw error;
     }
+
+    // 2. SECURE THE CLIENT: Mask the key so it NEVER sits in plain text in the browser
+    const safeSettings: AppSettings = {
+      ...newSettings,
+      apiKey: newSettings.apiKey ? '••••••••••••••••' : '',
+    };
+
+    // 3. Save the safe, masked version to LocalStorage and the Signal state
+    localStorage.setItem(
+      STORAGE_CONSTANTS.SETTINGS_KEY,
+      JSON.stringify(safeSettings),
+    );
+    this.settings.set(safeSettings);
+
+    // Bust the AI cache because the user just changed their settings!
+    this.invalidateAiCache();
   }
 
   async clearSettings(): Promise<void> {
@@ -87,6 +98,7 @@ export class SettingsService {
     // 1. Clear local storage
     localStorage.removeItem(STORAGE_CONSTANTS.SETTINGS_KEY);
     localStorage.removeItem(STORAGE_CONSTANTS.BROWSER_ID_KEY);
+    this.invalidateAiCache();
 
     // 2. Clear Signal state
     this.settings.set(null);

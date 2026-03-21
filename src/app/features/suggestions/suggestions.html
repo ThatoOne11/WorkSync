@@ -6,21 +6,15 @@
     </div>
   </div>
 
-  @if (suggestions() !== undefined) {
-    <div class="suggestions-content">
-      @if (suggestions()!.length > 0) {
-        @for (suggestion of suggestions(); track $index) {
-          <div class="suggestion-bubble" [innerHTML]="suggestion"></div>
-        }
-      } @else {
-        <p class="u-text-muted" style="margin: 0">
-          Keep tracking time to generate new AI insights.
-        </p>
+  <div class="suggestions-content">
+    @if (suggestions() && suggestions()!.length > 0) {
+      @for (suggestion of suggestions(); track $index) {
+        <div class="suggestion-bubble" [innerHTML]="suggestion"></div>
       }
-    </div>
-  } @else {
-    <div class="loading-wrapper">
-      <mat-spinner diameter="30"></mat-spinner>
-    </div>
-  }
+    } @else {
+      <p class="u-text-muted" style="margin: 0">
+        Keep tracking time to generate new AI insights.
+      </p>
+    }
+  </div>
 </section>
