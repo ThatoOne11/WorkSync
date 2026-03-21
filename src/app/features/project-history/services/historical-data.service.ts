@@ -1,13 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from } from 'rxjs';
-import { SupabaseService } from './supabase.service';
-import { SettingsService } from './settings.service';
-import { EdgeApiService } from './edge-api.service';
+import { SettingsService } from '../../../core/services/settings.service';
+import { EdgeApiService } from '../../../core/services/edge-api.service';
 import {
   SUPABASE_TABLES,
   SUPABASE_FUNCTIONS,
-} from '../shared/constants/supabase.constants';
-import { HistoricalTarget } from '../shared/schemas/app.schemas';
+} from '../../../shared/constants/supabase.constants';
+import { HistoricalTarget } from '../../../shared/schemas/app.schemas';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 export type WeeklySummary = {
   id: number;

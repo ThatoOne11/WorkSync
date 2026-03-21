@@ -13,9 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { switchMap, map, catchError, of } from 'rxjs';
-import { ClockifyService } from '../../services/clockify.service';
-import { ProjectService } from '../../services/project.service';
-import { SettingsService } from '../../services/settings.service';
+import { ProjectService } from './services/project.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { ClockifyService } from '../../core/services/clockify.service';
 
 type ClockifyProject = {
   id: string;

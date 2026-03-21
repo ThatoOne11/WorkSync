@@ -7,8 +7,8 @@
       </p>
     </div>
     @if (settingsExist()) {
-      <button mat-stroked-button color="warn" (click)="onReset()">
-        <mat-icon>lock_reset</mat-icon> Reset All Data
+      <button mat-stroked-button color="warn" type="button" (click)="onReset()">
+        <mat-icon>lock_reset</mat-icon> <span>Reset All Data</span>
       </button>
     }
   </header>
@@ -55,21 +55,27 @@
               [disabled]="
                 !form.get('apiKey')?.value ||
                 !form.get('workspaceId')?.value ||
-                isFetchingUserId()
+                state.isFetchingUserId()
               "
             >
-              @if (isFetchingUserId()) {
-                <mat-spinner diameter="20" />
+              @if (state.isFetchingUserId()) {
+                <mat-spinner diameter="20"></mat-spinner>
               } @else {
-                <mat-icon>person_search</mat-icon> Fetch
+                <mat-icon>person_search</mat-icon>
               }
+              <span>{{
+                state.isFetchingUserId() ? "Fetching..." : "Fetch ID"
+              }}</span>
             </button>
           </div>
         } @else {
-          <p class="status-box">
+          <div class="status-box">
             <mat-icon>check_circle</mat-icon>
-            Your account is connected. To change credentials, reset your data.
-          </p>
+            <span
+              >Your account is connected. To change credentials, reset your
+              data.</span
+            >
+          </div>
         }
       </div>
     </section>
@@ -80,13 +86,31 @@
         <h3>Email Notifications</h3>
       </header>
 
-      <div class="toggle-group">
-        <mat-slide-toggle formControlName="enableEmailNotifications">
-          Weekly Summary Email
-        </mat-slide-toggle>
-        <mat-slide-toggle formControlName="enablePacingAlerts">
-          Smart Pacing Alerts
-        </mat-slide-toggle>
+      <div class="settings-list">
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Weekly Summary Email</span>
+            <span class="setting-desc u-text-muted"
+              >Receive a detailed pacing report every week.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enableEmailNotifications"
+          ></mat-slide-toggle>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Smart Pacing Alerts</span>
+            <span class="setting-desc u-text-muted"
+              >Get notified daily if you fall behind or exceed your
+              targets.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enablePacingAlerts"
+          ></mat-slide-toggle>
+        </div>
       </div>
 
       @if (
@@ -122,14 +146,17 @@
             type="button"
             (click)="onTestEmail()"
             [disabled]="
-              isTestingEmail() || !settingsExist() || !getOriginalEmail()
+              state.isTestingEmail() || !settingsExist() || !getOriginalEmail()
             "
           >
-            @if (isTestingEmail()) {
-              <mat-spinner diameter="20" />
+            @if (state.isTestingEmail()) {
+              <mat-spinner diameter="20"></mat-spinner>
             } @else {
-              Send Test
+              <mat-icon>send</mat-icon>
             }
+            <span>{{
+              state.isTestingEmail() ? "Sending..." : "Send Test"
+            }}</span>
           </button>
         </div>
       }
@@ -151,21 +178,26 @@
           type="button"
           (click)="onBackfillHistory()"
           [disabled]="
-            isBackfilling() || !settingsExist() || !hasActiveProjects()
+            state.isBackfilling() ||
+            !settingsExist() ||
+            !state.hasActiveProjects()
           "
         >
-          @if (isBackfilling()) {
-            <mat-spinner diameter="20" />
+          @if (state.isBackfilling()) {
+            <mat-spinner diameter="20"></mat-spinner>
           } @else {
-            <mat-icon>history</mat-icon> Backfill Now
+            <mat-icon>history</mat-icon>
           }
+          <span>{{
+            state.isBackfilling() ? "Processing..." : "Backfill Now"
+          }}</span>
         </button>
       </div>
     </section>
 
     <footer class="form-actions">
-      @if (settingsExist() && (emailEditMode() || isToggleDirty())) {
-        <button mat-button (click)="onCancelChanges()" type="button">
+      @if (settingsExist() && isFormDirty()) {
+        <button mat-stroked-button (click)="onCancelChanges()" type="button">
           Cancel Changes
         </button>
       }
@@ -175,7 +207,7 @@
         type="submit"
         [disabled]="
           form.invalid ||
-          (settingsExist() && !form.dirty) ||
+          (settingsExist() && !isFormDirty()) ||
           (!settingsExist() && !form.get('userId')?.getRawValue())
         "
       >

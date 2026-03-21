@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemeService } from './services/theme.service';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',

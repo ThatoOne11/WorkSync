@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { from, Observable } from 'rxjs';
-import { SupabaseService } from './supabase.service';
-import { SettingsService } from './settings.service';
-import { SUPABASE_TABLES } from '../shared/constants/supabase.constants';
-import { Project } from '../shared/schemas/app.schemas';
+import { z } from 'zod';
+import { SettingsService } from '../../../core/services/settings.service';
+import { SUPABASE_TABLES } from '../../../shared/constants/supabase.constants';
+import { Project, ProjectSchema } from '../../../shared/schemas/app.schemas';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Injectable({
   providedIn: 'root',
@@ -23,7 +24,7 @@ export class ProjectService {
       .eq('user_id', browserId)
       .then(({ data, error }) => {
         if (error) throw error;
-        return data as Project[];
+        return z.array(ProjectSchema).parse(data);
       });
 
     return from(promise);

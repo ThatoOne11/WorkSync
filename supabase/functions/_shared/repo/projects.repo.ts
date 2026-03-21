@@ -1,12 +1,12 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js';
 import { SupabaseTables } from '../constants/supabase.constants.ts';
 
-export interface DBProject {
+export type DBProject = {
   id: number;
   name: string;
   target_hours: number;
   clockify_project_id: string;
-}
+};
 
 export class ProjectsRepository {
   constructor(private readonly client: SupabaseClient) {}

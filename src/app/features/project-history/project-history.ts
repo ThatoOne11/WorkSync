@@ -13,7 +13,7 @@ import { switchMap, map, catchError, of } from 'rxjs';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
-import { ProjectHistoryService } from '../../services/project-history.service';
+import { ProjectHistoryService } from './services/project-history.service';
 
 export type HistoryPayload = {
   projectName: string;
