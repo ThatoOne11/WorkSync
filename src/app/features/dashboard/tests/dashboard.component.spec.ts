@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Dashboard } from './dashboard';
-import { SupabaseService } from '../../core/services/supabase.service';
-import { SettingsService } from '../../core/services/settings.service';
+import { Dashboard } from '../dashboard';
+import { SupabaseService } from '../../../core/services/supabase.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { signal } from '@angular/core';
 
 describe('Dashboard', () => {

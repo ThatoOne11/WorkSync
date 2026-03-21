@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProjectList } from './project-list';
+import { ProjectList } from '../project-list';
 import { provideRouter } from '@angular/router';
 
 describe('ProjectList', () => {

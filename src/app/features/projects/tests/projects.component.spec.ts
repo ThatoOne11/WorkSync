@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Projects } from './projects';
-import { SupabaseService } from '../../core/services/supabase.service';
-import { SettingsService } from '../../core/services/settings.service';
+import { Projects } from '../projects';
+import { SupabaseService } from '../../../core/services/supabase.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { signal } from '@angular/core';
 
 describe('Projects', () => {

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Settings } from './settings';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { Settings } from '../settings';
+import { SupabaseService } from '../../../core/services/supabase.service';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 describe('Settings', () => {

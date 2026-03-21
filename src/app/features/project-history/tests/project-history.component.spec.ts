@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProjectHistory } from './project-history';
+import { ProjectHistory } from '../project-history';
 import { provideRouter } from '@angular/router';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 describe('ProjectHistory', () => {
   let component: ProjectHistory;
