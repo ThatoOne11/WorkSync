@@ -9,12 +9,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: var(--z-loader);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: var(--space-md);
 
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(8px);
@@ -28,9 +28,8 @@
   }
 }
 
-/* Dark mode glass override */
 :host-context(.dark-theme) .global-loader-overlay {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.7);
 }
 
 .dashboard-grid {
@@ -45,16 +44,12 @@
   }
 }
 
-.dashboard-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
 .panel-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: var(--space-md);
 }
+
 .section-header {
   h2 {
     font-size: 1.5rem;
@@ -62,16 +57,19 @@
     margin-bottom: var(--space-xs);
   }
 }
+
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: var(--space-md);
 }
+
 .project-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
+
 .stats-row {
   display: flex;
   gap: var(--space-lg);
@@ -91,6 +89,7 @@
     }
   }
 }
+
 .progress-container {
   .progress-labels {
     display: flex;
@@ -98,11 +97,9 @@
     margin-top: var(--space-xs);
     font-size: 0.85rem;
     font-weight: 500;
-    .balance.negative {
-      color: var(--color-danger);
-    }
   }
 }
+
 .status-badge {
   font-size: 0.75rem;
   padding: 4px 8px;
@@ -117,6 +114,7 @@
     color: var(--color-danger);
   }
 }
+
 @media (max-width: 600px) {
   .panel-row {
     grid-template-columns: 1fr;

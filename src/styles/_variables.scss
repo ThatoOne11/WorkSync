@@ -37,6 +37,15 @@
 
   --page-padding: var(--space-lg);
   --btn-height: 48px;
+
+  // Layout & Elevation
+  --radius-base: 12px;
+  --radius-lg: 16px;
+  --input-radius: 10px;
+
+  --layout-sidenav-width: 280px;
+  --z-overlay: 1000;
+  --z-loader: 9999;
 }
 
 .dark-theme {

@@ -1,11 +1,10 @@
 <div class="dashboard-wrapper">
   @if (dashboardData() === undefined) {
-    <div class="global-loader-overlay u-fade-in">
+    <div class="global-loader-overlay u-fade-in loader-state">
       <mat-spinner diameter="50" mode="indeterminate"></mat-spinner>
       <p>Syncing projects & analyzing insights...</p>
     </div>
   }
-
   <div
     class="dashboard-grid"
     [class.is-loading]="dashboardData() === undefined"
@@ -31,7 +30,7 @@
                 class="status-badge"
                 [class.is-overbudget]="project.balance < 0"
               >
-                {{ project.balance < 0 ? "Over Budget" : "On Track" }}
+                {{ project.balance < 0 ? "Over Shooting" : "On Track" }}
               </span>
             </div>
 
@@ -58,7 +57,7 @@
                       | number: "1.0-0"
                   }}% Complete</span
                 >
-                <span class="balance" [class.negative]="project.balance < 0">
+                <span class="balance" [class.is-negative]="project.balance < 0">
                   {{ project.balance }}h
                   {{ project.balance < 0 ? "over" : "remaining" }}
                 </span>
