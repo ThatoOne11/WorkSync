@@ -79,7 +79,19 @@ export class Settings implements OnInit {
     });
 
     this.isFormDirty = toSignal(
-      this.form.valueChanges.pipe(map(() => this.form.dirty)),
+      this.form.valueChanges.pipe(
+        map(() => {
+          const saved = this.settingsService.settings();
+          if (!saved) return this.form.dirty;
+          const current = this.form.getRawValue();
+          return (
+            current.notificationEmail !== saved.notificationEmail ||
+            current.enableEmailNotifications !==
+              saved.enableEmailNotifications ||
+            current.enablePacingAlerts !== saved.enablePacingAlerts
+          );
+        }),
+      ),
       { initialValue: false },
     );
   }
