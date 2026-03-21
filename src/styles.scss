@@ -8,102 +8,96 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family: "Inter", sans-serif; // Switched to Inter as discussed
+  font-family: "Inter", sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-main);
   -webkit-font-smoothing: antialiased;
 }
 
-// Simplified Global Layout Utilities
 .u-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--page-padding);
 }
 
-// Professional Button Reset
+/* 1. Global Button Look */
 .mat-mdc-button,
-.mat-mdc-raised-button {
-  border-radius: 8px !important; // Overriding material defaults globally
-  text-transform: none !important;
-  font-weight: 500 !important;
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-flat-button,
+.mat-stroked-button {
+  border-radius: var(--input-radius);
+  height: var(--btn-height);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  white-space: normal; /* Fixes text overflow on smaller screens */
+  line-height: 1.2;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-// 1. Textbox & Dropdown Refinement
+/* Distinct Disabled State for Buttons */
+.mat-mdc-button:disabled,
+.mat-mdc-raised-button:disabled,
+.mat-mdc-unelevated-button:disabled,
+.mat-flat-button:disabled,
+.mat-stroked-button:disabled {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  cursor: not-allowed;
+}
+
+/* 2. Textbox & Dropdown Refinement */
 .mat-mdc-form-field {
   width: 100%;
 
   .mat-mdc-text-field-wrapper {
-    background-color: var(--color-surface) !important;
-    border-radius: 8px !important;
+    background-color: var(--color-surface);
+    border-radius: var(--input-radius);
+    padding-top: 8px; /* softens cramped text */
   }
 
-  // Fixes illegible text in dark mode inputs
   .mat-mdc-form-field-input-control {
-    color: var(--color-text-main) !important;
+    color: var(--color-text-main);
+  }
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--color-border);
   }
 }
 
-// 2. Global Button Look
-.mat-mdc-unelevated-button,
-.mat-mdc-raised-button,
-.mat-flat-button {
-  padding: 0 24px !important;
-  height: 44px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.2px !important;
-}
-
-// 3. Dropdown Menu (Overlay) Fixes
+/* 3. Dropdown Menu (Overlay) Fixes */
 .cdk-overlay-pane .mat-mdc-select-panel {
-  background-color: var(--color-surface) !important;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
+  border-radius: var(--radius-base);
 
   .mat-mdc-option {
-    color: var(--color-text-main) !important;
+    color: var(--color-text-main);
     &:hover {
       background-color: var(--color-primary-light);
     }
   }
 }
 
-// 1. Fix Dark Mode Table Text & Global Backgrounds
+/* 4. Dark Mode Fixes */
 .dark-theme {
+  /* Fix Tables in Dark Mode */
   .mat-mdc-table,
   .mat-mdc-row,
-  .mat-mdc-cell {
-    color: var(
-      --color-text-main
-    ) !important; // Forces text to white/grey in dark mode
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
+    color: var(--color-text-main);
+    background-color: transparent;
+    border-bottom-color: var(--color-border);
   }
-}
 
-// 2. Soften All Textboxes & Dropdowns Globally
-.mat-mdc-form-field {
-  .mat-mdc-text-field-wrapper {
-    border-radius: var(--input-radius) !important;
-    padding-top: 8px !important;
-  }
-  .mdc-notched-outline__leading,
-  .mdc-notched-outline__notch,
-  .mdc-notched-outline__trailing {
-    border-color: var(--color-border) !important;
-  }
-}
-
-// 3. Unified Button Styling (Soft & Consistent)
-.mat-mdc-raised-button,
-.mat-mdc-unelevated-button,
-.mat-flat-button,
-.mat-stroked-button {
-  border-radius: var(--input-radius) !important;
-  height: var(--btn-height) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.3px !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-
-  &.mat-stroked-button {
-    border: 1.5px solid var(--color-border) !important;
-  }
+  /* Fix Toggles and Checkboxes in Dark Mode */
+  --mdc-switch-unselected-track-color: #475569;
+  --mdc-switch-unselected-hover-track-color: #64748b;
+  --mdc-checkbox-unselected-icon-color: #94a3b8;
+  --mdc-checkbox-unselected-hover-icon-color: #cbd5e1;
 }

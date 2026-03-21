@@ -43,6 +43,7 @@
 
 .status-box {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
@@ -51,10 +52,16 @@
   border-radius: 8px;
   font-weight: 500;
   margin: 0;
+
+  span {
+    flex: 1 1 auto;
+  }
+
   mat-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
   }
 }
 
