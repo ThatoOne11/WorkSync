@@ -17,8 +17,11 @@
         <section class="surface-card project-card">
           <div class="card-header">
             <h3>{{ project.name }}</h3>
-            <span class="status-badge" [class.is-behind]="project.balance < 0">
-              {{ project.balance < 0 ? "Behind" : "On Track" }}
+            <span
+              class="status-badge"
+              [class.is-overbudget]="project.balance < 0"
+            >
+              {{ project.balance < 0 ? "Over Shooting" : "On Track" }}
             </span>
           </div>
 
@@ -46,7 +49,8 @@
                 }}% Complete</span
               >
               <span class="balance" [class.negative]="project.balance < 0">
-                {{ project.balance }}h remaining
+                {{ project.balance }}h
+                {{ project.balance < 0 ? "over" : "remaining" }}
               </span>
             </div>
           </div>

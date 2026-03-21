@@ -43,9 +43,9 @@ export class ProjectService {
       .eq('clockify_project_id', project.clockify_project_id)
       .eq('is_archived', true)
       .limit(1)
-      .single()
+      .maybeSingle()
       .then(async ({ data: archivedProject, error }) => {
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error) throw error;
 
         if (archivedProject) {
           const { error: updateError } = await this.supabase
