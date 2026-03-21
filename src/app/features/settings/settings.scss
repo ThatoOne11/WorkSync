@@ -1,11 +1,11 @@
-@import "../../../styles/variables";
-@import "../../../styles/mixins";
+@use "../../../styles/mixins" as *;
 
 .settings-view {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
+
 .page-header {
   @include page-header;
 }

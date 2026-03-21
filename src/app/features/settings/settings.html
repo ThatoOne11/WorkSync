@@ -61,7 +61,10 @@
               @if (isFetchingUserId()) {
                 <mat-spinner diameter="20" />
               } @else {
-                <mat-icon>person_search</mat-icon> Fetch
+                <mat-icon>person_search</mat-icon>
+              }
+              @if (!isFetchingUserId()) {
+                Fetch
               }
             </button>
           </div>
@@ -157,7 +160,10 @@
           @if (isBackfilling()) {
             <mat-spinner diameter="20" />
           } @else {
-            <mat-icon>history</mat-icon> Backfill Now
+            <mat-icon>history</mat-icon>
+          }
+          @if (!isBackfilling()) {
+            Backfill Now
           }
         </button>
       </div>
