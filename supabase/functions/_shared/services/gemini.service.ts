@@ -5,7 +5,8 @@ import {
 } from 'npm:@google/generative-ai';
 import { AI_CONFIG } from '../config.ts';
 import { WeeklyStats, ProjectSummary } from '../types/app.types.ts';
-import { EmailTheme } from '../constants/email.constants.ts';
+import { ENV } from '../configs/env.ts';
+import { EMAIL_THEME } from '../constants/email.constants.ts';
 
 export type ProjectVarianceContext = {
   name: string;
@@ -18,10 +19,7 @@ export class GeminiService {
   private ai: GoogleGenerativeAI;
 
   constructor() {
-    if (!AI_CONFIG.geminiApiKey) {
-      throw new Error('GEMINI_API_KEY is not configured in the environment.');
-    }
-    this.ai = new GoogleGenerativeAI(AI_CONFIG.geminiApiKey);
+    this.ai = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
   }
 
   async generatePacingSuggestions(
@@ -34,7 +32,7 @@ export class GeminiService {
     };
 
     const model = this.ai.getGenerativeModel({
-      model: AI_CONFIG.geminiModel as string,
+      model: ENV.GEMINI_MODEL as string,
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema,
@@ -106,9 +104,9 @@ export class GeminiService {
       - Note their peak day (${weeklyStats.peakDay}) or top project if relevant.
       - Provide a quick pacing assessment (Are they over, under, or perfectly on track?).
       - ALWAYS use inline HTML for emphasis. Use <span style="font-weight: 700;"> for numbers. 
-      - If they are falling behind (undershooting), use <span style="color: ${EmailTheme.INFO_COLOR}; font-weight: 700;"> to highlight the variance.
-      - If they are working too much (overshooting/burnout risk), use <span style="color: ${EmailTheme.DANGER_COLOR}; font-weight: 700;">.
-      - If they are perfectly balanced, use <span style="color: ${EmailTheme.SUCCESS_COLOR}; font-weight: 700;">.
+      - If they are falling behind (undershooting), use <span style="color: ${EMAIL_THEME.INFO_COLOR}; font-weight: 700;"> to highlight the variance.
+      - If they are working too much (overshooting/burnout risk), use <span style="color: ${EMAIL_THEME.DANGER_COLOR}; font-weight: 700;">.
+      - If they are perfectly balanced, use <span style="color: ${EMAIL_THEME.SUCCESS_COLOR}; font-weight: 700;">.
       - DO NOT wrap the output in markdown blocks (e.g., \`\`\`html). Just return the raw HTML string inside the JSON object.
     `;
 
