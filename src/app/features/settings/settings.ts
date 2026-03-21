@@ -285,11 +285,9 @@ export class Settings implements OnInit {
               this.isBackfilling.set(false);
             },
             error: () => {
-              this.snackBar.open(
-                'Error during backfill. Check the console.',
-                'Close',
-                { duration: 5000 },
-              );
+              this.snackBar.open('Error during backfill.', 'Close', {
+                duration: 5000,
+              });
               this.isBackfilling.set(false);
             },
           });
@@ -312,11 +310,7 @@ export class Settings implements OnInit {
           this.isTestingEmail.set(false);
         },
         error: () => {
-          this.snackBar.open(
-            'An error occurred. Please check the console.',
-            'Close',
-            { duration: 5000 },
-          );
+          this.snackBar.open('An error occurred.', 'Close', { duration: 5000 });
           this.isTestingEmail.set(false);
         },
       });
