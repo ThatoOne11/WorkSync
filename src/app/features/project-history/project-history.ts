@@ -5,39 +5,18 @@ import {
   inject,
   viewChild,
   OnDestroy,
+  computed,
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Chart, ChartConfiguration, ChartData } from 'chart.js/auto';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { switchMap, map, catchError, of } from 'rxjs';
-import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
 import { ProjectHistoryService } from './services/project-history.service';
-
-export type HistoryPayload = {
-  projectName: string;
-  keyMetrics: {
-    totalLoggedHours: number;
-    targetHours: number;
-    averageWeeklyBurn: number;
-    pacingVariance: number;
-    mostProductiveWeek: {
-      logged_hours: number;
-      week_ending_on: string;
-    };
-  };
-  chartData: ChartData<'line'>;
-  monthlyChartData: ChartData<'bar'>;
-  insights: string[];
-};
-
-type MonthlyTableRow = {
-  month: string;
-  target: number;
-  logged: number;
-  variance: number;
-};
+import { HistoryViewHelper } from './helpers/history-view.helper';
+import { HistoryPayload } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-project-history',
@@ -75,36 +54,9 @@ export class ProjectHistory implements OnDestroy {
     { initialValue: null },
   );
 
-  readonly monthlyDataForTable = toSignal(
-    toObservable(this.projectData).pipe(
-      map((data: HistoryPayload | null) => {
-        if (
-          !data?.monthlyChartData?.labels ||
-          !data.monthlyChartData.datasets[0] ||
-          !data.monthlyChartData.datasets[1]
-        ) {
-          return [] as MonthlyTableRow[];
-        }
-
-        return data.monthlyChartData.labels.map((label, index) => {
-          const loggedData = data.monthlyChartData.datasets[0].data[
-            index
-          ] as number;
-          const targetData = data.monthlyChartData.datasets[1].data[
-            index
-          ] as number;
-
-          return {
-            month: String(label),
-            target: targetData,
-            logged: loggedData,
-            variance: loggedData - targetData,
-          };
-        });
-      }),
-    ),
-    { initialValue: [] as MonthlyTableRow[] },
-  );
+  readonly monthlyDataForTable = computed(() => {
+    return HistoryViewHelper.extractTableRowsFromChartData(this.projectData());
+  });
 
   constructor() {
     effect(() => {
@@ -113,8 +65,14 @@ export class ProjectHistory implements OnDestroy {
       const mCanvas = this.monthlyChartCanvas();
 
       if (data && wCanvas && mCanvas) {
-        this.createWeeklyChart(wCanvas.nativeElement, data.chartData);
-        this.createMonthlyChart(mCanvas.nativeElement, data.monthlyChartData);
+        this.createWeeklyChart(
+          wCanvas.nativeElement,
+          data.chartData as unknown as ChartData<'line'>,
+        );
+        this.createMonthlyChart(
+          mCanvas.nativeElement,
+          data.monthlyChartData as unknown as ChartData<'bar'>,
+        );
       }
     });
   }

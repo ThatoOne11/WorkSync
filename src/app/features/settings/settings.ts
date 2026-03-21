@@ -7,6 +7,8 @@ import {
   inject,
   signal,
   Signal,
+  computed,
+  DestroyRef,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -22,12 +24,18 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { combineLatest, startWith, map } from 'rxjs';
+import { combineLatest, startWith, map, catchError, of, switchMap } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
+import { getPreviousMonthNames } from '../../shared/utils/date.utils';
+import { ProjectService } from '../projects/services/project.service';
 
 @Component({
   selector: 'app-settings',
@@ -54,14 +62,34 @@ export class Settings implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly isFetchingUserId = signal(false);
+  readonly isTestingEmail = signal(false);
+  readonly isBackfilling = signal(false);
 
   readonly state = inject(SettingsStateService);
+  private readonly projectService = inject(ProjectService);
 
   protected form: FormGroup;
   protected settingsExist = signal(false);
   protected emailEditMode = signal(false);
 
   protected isFormDirty: Signal<boolean>;
+
+  protected formValue: Signal<any>;
+
+  readonly activeProjects = toSignal(
+    toObservable(this.settingsService.settings).pipe(
+      switchMap((settings) =>
+        settings ? this.projectService.getProjects() : of([]),
+      ),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] },
+  );
+
+  readonly hasActiveProjects = computed(() => this.activeProjects().length > 0);
 
   constructor() {
     this.form = this.fb.group({
@@ -73,10 +101,25 @@ export class Settings implements OnInit {
       enablePacingAlerts: [false],
     });
 
-    this.isFormDirty = toSignal(
-      this.form.valueChanges.pipe(map(() => this.form.dirty)),
-      { initialValue: false },
-    );
+    this.formValue = toSignal(this.form.valueChanges, {
+      initialValue: undefined,
+    });
+
+    this.isFormDirty = computed(() => {
+      this.formValue();
+      const saved = this.settingsService.settings();
+      const current = this.form.getRawValue();
+
+      if (!saved) return this.form.dirty;
+
+      return (
+        current.apiKey !== saved.apiKey ||
+        current.workspaceId !== saved.workspaceId ||
+        current.notificationEmail !== saved.notificationEmail ||
+        current.enableEmailNotifications !== saved.enableEmailNotifications ||
+        current.enablePacingAlerts !== saved.enablePacingAlerts
+      );
+    });
   }
 
   ngOnInit(): void {
@@ -94,7 +137,7 @@ export class Settings implements OnInit {
         weeklyToggle.valueChanges.pipe(startWith(weeklyToggle.value)),
         pacingToggle.valueChanges.pipe(startWith(pacingToggle.value)),
       ])
-        .pipe(takeUntilDestroyed())
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
           if (isWeeklyEnabled || isPacingEnabled) {
             emailField.setValidators([Validators.required, Validators.email]);
@@ -102,7 +145,7 @@ export class Settings implements OnInit {
             emailField.clearValidators();
             emailField.addValidators([Validators.email]);
           }
-          emailField.updateValueAndValidity({ emitEvent: false });
+          emailField.updateValueAndValidity();
         });
     }
   }
@@ -124,8 +167,6 @@ export class Settings implements OnInit {
       this.settingsExist.set(false);
       this.emailEditMode.set(true);
     }
-
-    this.state.checkActiveProjects();
 
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -179,51 +220,85 @@ export class Settings implements OnInit {
     );
   }
 
-  async fetchUserId(): Promise<void> {
+  fetchUserId(): void {
     const apiKey = this.form.get('apiKey')?.value;
-    const workspaceId = this.form.get('workspaceId')?.value;
+    if (!apiKey) return;
 
-    if (!apiKey || !workspaceId) {
-      this.snackBar.open(
-        'Please enter both API Key and Workspace ID.',
-        'Close',
-        { duration: 3000 },
-      );
-      return;
-    }
+    this.isFetchingUserId.set(true);
 
-    const fetchedId = await this.state.fetchUserId(apiKey, workspaceId);
-    if (fetchedId) {
-      this.form.patchValue({ userId: fetchedId });
-      this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
-      this.form.markAsDirty();
-      this.form.updateValueAndValidity();
-    }
+    this.state.fetchUserId(apiKey).subscribe({
+      next: (fetchedId) => {
+        this.form.patchValue({ userId: fetchedId });
+        this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+        this.form.markAsDirty();
+        this.form.updateValueAndValidity();
+        this.snackBar.open('User ID fetched successfully!', 'Close', {
+          duration: 3000,
+        });
+        this.isFetchingUserId.set(false);
+      },
+      error: () => {
+        this.snackBar.open(
+          'Could not fetch User ID. Check your API Key.',
+          'Close',
+          { duration: 3000 },
+        );
+        this.isFetchingUserId.set(false);
+      },
+    });
   }
 
   onBackfillHistory(): void {
-    const today = new Date();
-    const months = [...Array(3)].map((_, i) => {
-      const d = new Date(today.getFullYear(), today.getMonth() - (i + 1), 1);
-      return d.toLocaleString('default', { month: 'long' });
-    });
+    const months = getPreviousMonthNames(3);
 
     const dialogRef = this.dialog.open(BackfillDialog, {
       width: '600px',
       data: {
-        projects: this.state.activeProjects(),
+        projects: this.activeProjects(),
         months,
       },
     });
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.state.runBackfill(result);
+        this.isBackfilling.set(true);
+        this.state.runBackfill(result).subscribe({
+          next: (res) => {
+            this.snackBar.open(res.message, 'Close', { duration: 5000 });
+            this.isBackfilling.set(false);
+          },
+          error: () => {
+            this.snackBar.open(
+              'Error during backfill. Check the console.',
+              'Close',
+              { duration: 5000 },
+            );
+            this.isBackfilling.set(false);
+          },
+        });
       }
     });
   }
 
   onTestEmail(): void {
-    this.state.testEmail();
+    this.isTestingEmail.set(true);
+    this.state.testEmail().subscribe({
+      next: () => {
+        this.snackBar.open(
+          'Weekly summary function ran successfully. Check your email!',
+          'Close',
+          { duration: 5000 },
+        );
+        this.isTestingEmail.set(false);
+      },
+      error: () => {
+        this.snackBar.open(
+          'An error occurred. Please check the console.',
+          'Close',
+          { duration: 5000 },
+        );
+        this.isTestingEmail.set(false);
+      },
+    });
   }
 }

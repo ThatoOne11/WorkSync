@@ -1,6 +1,6 @@
 @use "@angular/material" as mat;
-@use "styles/variables";
-@use "styles/mixins" as *;
+@use "variables";
+@use "mixins" as *;
 
 @include mat.core();
 
@@ -20,72 +20,235 @@ body {
   padding: var(--page-padding);
 }
 
-/* 1. Global Button Look */
+.u-text-muted {
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   MATERIAL UI OVERRIDES (Modern, Soft, Breathable)
+   ========================================================================== */
+
+/* 1. BUTTONS */
 .mat-mdc-button,
 .mat-mdc-raised-button,
 .mat-mdc-unelevated-button,
 .mat-flat-button,
 .mat-stroked-button {
-  border-radius: var(--input-radius);
+  border-radius: var(--input-radius) !important;
   height: var(--btn-height);
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   text-transform: none;
-  white-space: normal; /* Fixes text overflow on smaller screens */
-  line-height: 1.2;
+  box-shadow: none !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Unified visible stroke/border for ALL buttons */
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-main) !important;
+  background-color: transparent !important;
 }
 
-/* Distinct Disabled State for Buttons */
+/* PRIMARY BUTTONS */
+.mat-flat-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--color-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  color: #ffffff !important;
+}
+
+/* WARN BUTTONS */
+.mat-flat-button.mat-warn,
+.mat-mdc-raised-button.mat-warn,
+.mat-stroked-button.mat-warn {
+  background-color: var(--color-danger) !important;
+  border-color: var(--color-border) !important;
+  color: #ffffff !important;
+}
+
+/* Hover States for Enabled Buttons */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* BULLETPROOF EXPLICIT DISABLED STATE */
+button:disabled,
+button[disabled],
 .mat-mdc-button:disabled,
 .mat-mdc-raised-button:disabled,
-.mat-mdc-unelevated-button:disabled,
 .mat-flat-button:disabled,
-.mat-stroked-button:disabled {
-  opacity: 0.5;
-  filter: grayscale(100%);
-  cursor: not-allowed;
+.mat-stroked-button:disabled,
+.mat-flat-button.mat-primary:disabled,
+.mat-flat-button.mat-warn:disabled,
+.mat-mdc-raised-button.mat-primary:disabled,
+.mat-mdc-raised-button.mat-warn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--color-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
-/* 2. Textbox & Dropdown Refinement */
+/* 2. FORM FIELDS & INPUTS */
 .mat-mdc-form-field {
   width: 100%;
 
-  .mat-mdc-text-field-wrapper {
-    background-color: var(--color-surface);
+  .mdc-text-field--outlined {
     border-radius: var(--input-radius);
-    padding-top: 8px; /* softens cramped text */
+    background-color: var(--color-surface);
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--color-border) !important;
+      border-width: 1px !important;
+    }
+
+    &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__leading,
+    &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__notch,
+    &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__trailing {
+      border-color: var(--color-text-muted) !important;
+    }
+
+    &.mdc-text-field--focused .mdc-notched-outline__leading,
+    &.mdc-text-field--focused .mdc-notched-outline__notch,
+    &.mdc-text-field--focused .mdc-notched-outline__trailing {
+      border-color: var(--color-primary) !important;
+      border-width: 2px !important;
+    }
   }
 
-  .mat-mdc-form-field-input-control {
-    color: var(--color-text-main);
+  .mat-mdc-form-field-flex {
+    padding: 0 var(--space-sm) !important;
   }
 
-  .mdc-notched-outline__leading,
-  .mdc-notched-outline__notch,
-  .mdc-notched-outline__trailing {
-    border-color: var(--color-border);
+  input.mat-mdc-input-element {
+    padding: var(--space-sm) 0 !important;
+    color: var(--color-text-main) !important;
   }
 }
 
-/* 3. Dropdown Menu (Overlay) Fixes */
+/* 3. TOGGLES & CHECKBOXES (Clean, Modern Switch) */
+.mat-mdc-slide-toggle {
+  /* 2. Nuke the internal checkmark/dash SVGs completely */
+  .mdc-switch__icons {
+    display: none;
+  }
+
+  /* 3. Remove the bulky Material 3 track outline from the pseudo-elements */
+  .mdc-switch__track::before,
+  .mdc-switch__track::after {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* 4. UNSELECTED STATE (Force Colors) */
+  .mdc-switch__track {
+    background-color: var(--color-border) !important;
+    opacity: 1 !important;
+  }
+  .mdc-switch__handle {
+    background-color: var(--color-text-muted) !important;
+  }
+
+  /* 5. SELECTED / CHECKED STATE (Force Colors) */
+  &.mat-mdc-slide-toggle-checked {
+    .mdc-switch__track {
+      background-color: var(--color-primary) !important;
+    }
+    .mdc-switch__handle {
+      background-color: white !important;
+    }
+  }
+
+  /* 6. DISABLED STATE */
+  &.mat-disabled {
+    opacity: 0.5 !important;
+    pointer-events: none;
+  }
+}
+
+/* 4. DIALOGS / MODALS */
+.mat-mdc-dialog-container {
+  .mdc-dialog__surface {
+    border-radius: var(--radius-lg) !important;
+    padding: var(--space-md) !important;
+    background-color: var(--color-surface) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+
+  .mat-mdc-dialog-title {
+    color: var(--color-text-main) !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 0 0 var(--space-sm) 0 !important;
+    margin-bottom: var(--space-sm) !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mat-mdc-dialog-content {
+    color: var(--color-text-main) !important;
+    padding: var(--space-sm) 0 var(--space-md) 0 !important;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 0 !important;
+    gap: var(--space-sm);
+  }
+}
+
+/* 5. DROPDOWNS (OVERLAYS) */
 .cdk-overlay-pane .mat-mdc-select-panel {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
   border-radius: var(--radius-base);
+  padding: 8px 0;
 
   .mat-mdc-option {
     color: var(--color-text-main);
-    &:hover {
+    min-height: 48px;
+    &:hover,
+    &.mdc-list-item--selected {
       background-color: var(--color-primary-light);
     }
   }
 }
 
-/* 4. Dark Mode Fixes */
+/* 6. SNACKBARS (Toast Notifications) */
+.mat-mdc-snack-bar-container {
+  .mdc-snackbar__surface {
+    /* Invert the colors for high contrast! */
+    background-color: var(--color-text-main) !important;
+    color: var(--color-bg) !important;
+
+    border-radius: var(--radius-base) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+
+  .mdc-snackbar__label {
+    color: var(--color-bg) !important;
+    font-weight: 500;
+  }
+
+  /* The action button inside the snackbar (e.g., "Close") */
+  .mat-mdc-button.mat-mdc-snack-bar-action {
+    color: var(--color-bg) !important;
+    border: none !important; /* Remove our global border for this specific button */
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+/* Dark Mode specific fixes */
 .dark-theme {
-  /* Fix Tables in Dark Mode */
   .mat-mdc-table,
   .mat-mdc-row,
   .mat-mdc-cell,
@@ -94,34 +257,8 @@ body {
     background-color: transparent;
     border-bottom-color: var(--color-border);
   }
-
-  /* 1. Fix Dialogs (Backgrounds & Text) */
-  .mdc-dialog__surface {
-    background-color: var(--color-surface) !important;
-  }
-  .mat-mdc-dialog-title,
-  .mat-mdc-dialog-content,
-  .mdc-dialog__content {
-    color: var(--color-text-main) !important;
-  }
-
-  /* 2. Fix Toggles & Checkboxes */
-  --mdc-switch-unselected-track-color: #475569;
-  --mdc-switch-unselected-hover-track-color: #64748b;
-  --mdc-switch-unselected-handle-color: #cbd5e1;
-  --mdc-switch-unselected-icon-color: #1e293b;
-  --mdc-checkbox-unselected-icon-color: #94a3b8;
-
-  /* 3. Fix Input & Dropdown Text */
   .mat-mdc-input-element,
   .mat-mdc-select-value-text {
-    color: var(--color-text-main) !important;
     -webkit-text-fill-color: var(--color-text-main) !important;
   }
-
-  /* Fix Toggles and Checkboxes in Dark Mode */
-  --mdc-switch-unselected-track-color: #475569;
-  --mdc-switch-unselected-hover-track-color: #64748b;
-  --mdc-checkbox-unselected-icon-color: #94a3b8;
-  --mdc-checkbox-unselected-hover-icon-color: #cbd5e1;
 }

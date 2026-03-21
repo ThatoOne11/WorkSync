@@ -1,9 +1,11 @@
-// --- BRAND & SEMANTIC COLORS ---
 :root {
-  --color-primary: #2563eb; // Clean Blue (Trust/Action)
+  // Brand Colors
+  --color-primary: #2563eb;
+  --color-primary-light: #eff6ff;
   --color-success: #16a34a;
   --color-error: #dc2626;
   --color-warning: #ea580c;
+  --color-danger: #ef4444;
 
   // Neutral Scale (Surface & Text)
   --color-bg: #f8fafc;
@@ -12,24 +14,33 @@
   --color-text-main: #0f172a;
   --color-text-muted: #64748b;
 
-  // Layout & Elevation
-  --radius-base: 8px; // Professional, not too "round"
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --page-padding: 2rem;
+  // Standardized Spacing Scale
+  --space-xs: 0.5rem; // 8px
+  --space-sm: 1rem; // 16px
+  --space-md: 1.5rem; // 24px
+  --space-lg: 2rem; // 32px
+  --space-xl: 3rem; // 48px
 
-  --input-radius: 12px; // Soft, modern corners
-  --input-bg: var(--color-surface);
+  // Layout & Elevation
+  --radius-base: 12px;
+  --radius-lg: 16px; // For Dialogs
+  --input-radius: 10px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --page-padding: var(--space-lg);
   --btn-height: 48px;
 }
 
 .dark-theme {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
-  --color-border: #334155;
-  --color-text-main: #f8fafc;
-  --color-text-muted: #94a3b8;
-  --color-text-main: #f8fafc;
-  --color-text-muted: #94a3b8;
   --color-border: rgba(255, 255, 255, 0.08);
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-primary-light: rgba(37, 99, 235, 0.15);
 }

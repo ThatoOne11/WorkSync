@@ -1,8 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { z } from 'zod';
 import { SUPABASE_FUNCTIONS } from '../../shared/constants/supabase.constants';
 import { EdgeApiService } from './edge-api.service';
+import {
+  ClockifyTimeEntry,
+  ClockifyTimeEntrySchema,
+  ClockifyProjectSchema,
+} from '../../shared/schemas/app.schemas';
 
 @Injectable({
   providedIn: 'root',
@@ -16,9 +22,9 @@ export class ClockifyService {
     userId: string,
     start: string,
     end: string,
-  ): Observable<unknown[]> {
+  ): Observable<ClockifyTimeEntry[]> {
     return this.api
-      .invoke<{ data: unknown[] }>(SUPABASE_FUNCTIONS.GET_CLOCKIFY_DATA, {
+      .invoke<{ data: unknown }>(SUPABASE_FUNCTIONS.GET_CLOCKIFY_DATA, {
         action: 'getTimeEntries',
         apiKey,
         workspaceId,
@@ -26,7 +32,7 @@ export class ClockifyService {
         start,
         end,
       })
-      .pipe(map((res) => res.data));
+      .pipe(map((res) => z.array(ClockifyTimeEntrySchema).parse(res.data)));
   }
 
   getCurrentUserId(apiKey: string): Observable<unknown> {
@@ -41,13 +47,13 @@ export class ClockifyService {
   getClockifyProjects(
     apiKey: string,
     workspaceId: string,
-  ): Observable<unknown[]> {
+  ): Observable<{ id: string; name: string }[]> {
     return this.api
-      .invoke<{ data: unknown[] }>(SUPABASE_FUNCTIONS.GET_CLOCKIFY_DATA, {
+      .invoke<{ data: unknown }>(SUPABASE_FUNCTIONS.GET_CLOCKIFY_DATA, {
         action: 'getClockifyProjects',
         apiKey,
         workspaceId,
       })
-      .pipe(map((res) => res.data));
+      .pipe(map((res) => z.array(ClockifyProjectSchema).parse(res.data)));
   }
 }
