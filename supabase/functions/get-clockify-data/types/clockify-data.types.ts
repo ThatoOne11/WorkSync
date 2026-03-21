@@ -7,6 +7,7 @@ export const GetClockifyDataSchema = z.object({
   userId: z.string().optional(),
   start: z.string().optional(),
   end: z.string().optional(),
+  browserId: z.string().optional(),
 });
 
 export type GetClockifyDataRequest = z.infer<typeof GetClockifyDataSchema>;

@@ -6,9 +6,13 @@ import {
 } from '../types/suggestions.types.ts';
 import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 import { toSafeError } from '../../_shared/utils/error.utils.ts';
+import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
 
 export class SuggestionsController {
-  constructor(private readonly service: SuggestionsService) {}
+  constructor(
+    private readonly service: SuggestionsService,
+    private readonly settingsRepo: SettingsRepository,
+  ) {}
 
   async handleRequest(req: Request): Promise<Response> {
     let body: GenerateSuggestionsRequest;
@@ -20,15 +24,28 @@ export class SuggestionsController {
       throw new ValidationError(`Invalid payload: ${toSafeError(err).message}`);
     }
 
+    const userSettings = await this.settingsRepo.getUserSettings(
+      body.browserId,
+    );
+    if (
+      !userSettings?.clockifyApiKey ||
+      !userSettings?.clockifyWorkspaceId ||
+      !userSettings?.clockifyUserId
+    ) {
+      throw new ValidationError(
+        'Missing or incomplete secure Clockify credentials.',
+      );
+    }
+
     const clockifyService = new ClockifyService(
-      body.settings.apiKey,
-      body.settings.workspaceId,
+      userSettings.clockifyApiKey,
+      userSettings.clockifyWorkspaceId,
     );
 
     const suggestions = await this.service.getSuggestions(
       body.browserId,
       clockifyService,
-      body.settings.userId,
+      userSettings.clockifyUserId,
     );
 
     return new Response(JSON.stringify({ suggestions }), {

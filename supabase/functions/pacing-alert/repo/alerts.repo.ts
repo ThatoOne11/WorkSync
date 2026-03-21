@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SupabaseTables } from '../../_shared/constants/supabase.constants.ts';
+import { SUPABASE_TABLES } from '../../_shared/constants/supabase.constants.ts';
 
 export class AlertsRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -10,7 +10,7 @@ export class AlertsRepository {
     if (alerts.length === 0) return;
 
     const { error } = await this.client
-      .from(SupabaseTables.PACING_ALERTS)
+      .from(SUPABASE_TABLES.PACING_ALERTS)
       .upsert(alerts, { onConflict: 'project_id, user_id' });
 
     if (error) throw new Error(`DB Error (Alerts upsert): ${error.message}`);

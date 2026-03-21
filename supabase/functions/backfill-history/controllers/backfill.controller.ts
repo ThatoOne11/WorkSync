@@ -6,9 +6,13 @@ import {
 } from '../types/backfill.types.ts';
 import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 import { toSafeError } from '../../_shared/utils/error.utils.ts';
+import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
 
 export class BackfillController {
-  constructor(private readonly service: BackfillService) {}
+  constructor(
+    private readonly service: BackfillService,
+    private readonly settingsRepo: SettingsRepository,
+  ) {}
 
   async handleRequest(req: Request): Promise<Response> {
     let body: BackfillRequest;
@@ -20,16 +24,29 @@ export class BackfillController {
       throw new ValidationError(`Invalid payload: ${toSafeError(err).message}`);
     }
 
+    const userSettings = await this.settingsRepo.getUserSettings(
+      body.browserId,
+    );
+    if (
+      !userSettings?.clockifyApiKey ||
+      !userSettings?.clockifyWorkspaceId ||
+      !userSettings?.clockifyUserId
+    ) {
+      throw new ValidationError(
+        'Missing or incomplete secure Clockify credentials.',
+      );
+    }
+
     const clockifyService = new ClockifyService(
-      body.settings.apiKey,
-      body.settings.workspaceId,
+      userSettings.clockifyApiKey,
+      userSettings.clockifyWorkspaceId,
     );
 
     const result = await this.service.runBackfill(
       body.browserId,
       body.historicalTargets,
       clockifyService,
-      body.settings.userId,
+      userSettings.clockifyUserId,
     );
 
     return new Response(JSON.stringify(result), {
