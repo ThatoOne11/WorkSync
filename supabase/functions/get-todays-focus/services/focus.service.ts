@@ -2,9 +2,14 @@ import { ClockifyService } from '../../_shared/services/clockify.service.ts';
 import { ProjectsRepository } from '../../_shared/repo/projects.repo.ts';
 import { parseISO8601Duration } from '../../_shared/utils/date.utils.ts';
 import { FocusProjectResult } from '../types/focus.types.ts';
+import { GeminiService } from '../../_shared/services/gemini.service.ts';
 
 export class FocusService {
-  constructor(private readonly projectsRepo: ProjectsRepository) {}
+  private readonly geminiService: GeminiService;
+
+  constructor(private readonly projectsRepo: ProjectsRepository) {
+    this.geminiService = new GeminiService();
+  }
 
   async calculateTodaysFocus(
     browserId: string,
@@ -25,6 +30,7 @@ export class FocusService {
       today.getMonth(),
       1,
     ).toISOString();
+
     const timeEntries = await clockify.fetchUserTimeEntries(
       userId,
       startOfMonth,
@@ -33,7 +39,8 @@ export class FocusService {
 
     const remainingWorkdays = this.getRemainingWorkdays(today);
 
-    const focusList = projects
+    // 1. Calculate the raw mathematical baseline
+    const baselineList = projects
       .map((p) => {
         const loggedSeconds = timeEntries
           .filter((te) => te.projectId === p.clockify_project_id)
@@ -49,12 +56,18 @@ export class FocusService {
 
         return {
           name: p.name,
-          requiredHoursToday: Math.round(requiredDailyPace * 100) / 100,
+          baselineHours: Math.round(requiredDailyPace * 100) / 100,
         };
       })
-      .filter((p) => p.requiredHoursToday > 0);
+      .filter((p) => p.baselineHours > 0);
 
-    return focusList;
+    if (baselineList.length === 0) return [];
+
+    // 2. Get the current day name
+    const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
+
+    // 3. Ask Gemini to optimize the pacing
+    return await this.geminiService.optimizeDailyFocus(baselineList, dayOfWeek);
   }
 
   private getRemainingWorkdays(today: Date): number {

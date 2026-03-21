@@ -123,4 +123,64 @@ export class GeminiService {
       return `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(2)} hours</span> this week. Keep up the great work keeping your projects synced!`;
     }
   }
+
+  async optimizeDailyFocus(
+    baselineList: { name: string; baselineHours: number }[],
+    dayOfWeek: string,
+  ): Promise<{ name: string; requiredHoursToday: number }[]> {
+    // 1. Force a strict array of objects so it maps perfectly to our frontend FocusProjectResult
+    const responseSchema: Schema = {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          name: { type: SchemaType.STRING },
+          requiredHoursToday: { type: SchemaType.NUMBER },
+        },
+        required: ['name', 'requiredHoursToday'],
+      },
+    };
+
+    const model = this.ai.getGenerativeModel({
+      model: AI_CONFIG.geminiModel as string,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema,
+        temperature: 0.5, // Lower temperature so it stays mathematically grounded
+      },
+    });
+
+    // 2. The Prompt: Teach it how to act like a pacing coach
+    const prompt = `
+      You are an AI productivity coach. Below is a user's mathematical baseline for hours they need to log today to stay perfectly on track for the month.
+      Today is ${dayOfWeek}. 
+      
+      Your job is to adjust the "requiredHoursToday" slightly based on typical human productivity curves:
+      - Mondays are for ramping up (slightly lower).
+      - Tuesdays and Wednesdays are for deep work (slightly higher).
+      - Thursdays are steady (baseline).
+      - Fridays are for winding down (lower, but realistic if they are behind).
+
+      Rules:
+      - Adjust the numbers by no more than +/- 15%. 
+      - If the baseline is very high (e.g., > 6 hours for one project), leave it as is or slightly reduce it to prevent burnout.
+      - Return the numbers rounded to 1 decimal place.
+      - DO NOT change the project names.
+
+      Baseline Data: ${JSON.stringify(baselineList)}
+    `;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      return JSON.parse(text) as { name: string; requiredHoursToday: number }[];
+    } catch (error) {
+      console.error('Gemini Generation Error:', error);
+      // Fallback: If AI fails, just return the baseline data mapped to the correct keys
+      return baselineList.map((b) => ({
+        name: b.name,
+        requiredHoursToday: b.baselineHours,
+      }));
+    }
+  }
 }
