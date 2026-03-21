@@ -8,6 +8,7 @@ import {
   signal,
   Signal,
   computed,
+  DestroyRef,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -61,6 +62,7 @@ export class Settings implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly isFetchingUserId = signal(false);
   readonly isTestingEmail = signal(false);
@@ -135,7 +137,7 @@ export class Settings implements OnInit {
         weeklyToggle.valueChanges.pipe(startWith(weeklyToggle.value)),
         pacingToggle.valueChanges.pipe(startWith(pacingToggle.value)),
       ])
-        .pipe(takeUntilDestroyed())
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
           if (isWeeklyEnabled || isPacingEnabled) {
             emailField.setValidators([Validators.required, Validators.email]);
