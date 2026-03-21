@@ -1,6 +1,6 @@
 import { Routes, CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
-import { SettingsService } from './core/services/settings.service';
+import { SettingsService } from './services/settings.service';
 
 const canActivateMainRoutes: CanActivateFn = (): boolean => {
   const settingsService = inject(SettingsService);

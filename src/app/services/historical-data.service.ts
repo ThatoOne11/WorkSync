@@ -4,10 +4,10 @@ import { SupabaseService } from './supabase.service';
 import { SettingsService } from './settings.service';
 import { EdgeApiService } from './edge-api.service';
 import {
-  SUPABASE_FUNCTIONS,
   SUPABASE_TABLES,
-} from '../../shared/constants/supabase.constants';
-import { HistoricalTarget } from '../../shared/schemas/app.schemas';
+  SUPABASE_FUNCTIONS,
+} from '../shared/constants/supabase.constants';
+import { HistoricalTarget } from '../shared/schemas/app.schemas';
 
 export type WeeklySummary = {
   id: number;

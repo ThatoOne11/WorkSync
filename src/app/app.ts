@@ -9,10 +9,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { ThemeService } from './core/services/theme.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',

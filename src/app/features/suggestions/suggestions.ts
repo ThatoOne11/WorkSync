@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { SuggestionsService } from '../../core/services/suggestions.service';
 import { catchError } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
+import { SuggestionsService } from '../../services/suggestions.service';
 
 @Component({
   selector: 'app-suggestions',
