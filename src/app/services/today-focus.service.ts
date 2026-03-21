@@ -19,7 +19,6 @@ export class TodayFocusService {
     return this.api
       .invoke<{ focusList: unknown }>(SUPABASE_FUNCTIONS.GET_TODAYS_FOCUS)
       .pipe(
-        // STRICT ZOD BOUNDARY
         map((response) =>
           z.array(FocusProjectSchema).parse(response.focusList),
         ),
