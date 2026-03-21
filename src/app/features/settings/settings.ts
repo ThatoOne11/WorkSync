@@ -187,7 +187,8 @@ export class Settings implements OnInit {
     setTimeout(() => this.emailInput.nativeElement.focus(), 0);
   }
 
-  onSave(): void {
+  async onSave(): Promise<void> {
+    // Added async
     if (this.form.invalid) {
       this.snackBar.open('Please correct the errors before saving.', 'Close', {
         duration: 3000,
@@ -196,14 +197,23 @@ export class Settings implements OnInit {
     }
 
     const isInitialSave = !this.settingsExist();
-    this.settingsService.saveSettings(this.form.getRawValue());
 
-    const message = isInitialSave
-      ? 'Credentials saved successfully!'
-      : 'Settings have been updated.';
-    this.snackBar.open(message, 'Close', { duration: 3000 });
+    try {
+      // Await the sync to ensure the global Signal is updated before we reload the form
+      await this.settingsService.saveSettings(this.form.getRawValue());
 
-    this.loadSettings();
+      const message = isInitialSave
+        ? 'Credentials saved successfully!'
+        : 'Settings have been updated.';
+      this.snackBar.open(message, 'Close', { duration: 3000 });
+
+      // Re-trigger form state alignment
+      this.loadSettings();
+    } catch (err) {
+      this.snackBar.open('Failed to save settings.', 'Close', {
+        duration: 3000,
+      });
+    }
   }
 
   async onReset() {
