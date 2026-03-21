@@ -3,15 +3,14 @@ import {
   ProjectsRepository,
 } from '../../_shared/repo/projects.repo.ts';
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
-import {
-  GeminiService,
-  ProjectVarianceContext,
-} from '../../_shared/services/gemini.service.ts';
+import { GeminiService } from '../../_shared/services/gemini.service.ts';
 import {
   getWorkdaysInMonth,
   getPassedWorkdays,
   parseISO8601Duration,
 } from '../../_shared/utils/date.utils.ts';
+import { SuggestionsAIConfig } from '../configs/prompts.ts';
+import { ProjectVarianceContext } from '../types/suggestions.types.ts';
 
 export class SuggestionsService {
   private readonly geminiService: GeminiService;
@@ -26,7 +25,6 @@ export class SuggestionsService {
     userId: string,
   ): Promise<string[]> {
     const projects = await this.projectsRepo.getActiveProjects(browserId);
-
     if (projects.length === 0) {
       return [
         'No active projects found. Add one on the Projects page to start tracking your pacing.',
@@ -37,8 +35,6 @@ export class SuggestionsService {
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
     let projectsData: ProjectVarianceContext[];
-
-    // Gather data based on whether it is the weekend (review) or weekday (pacing projection)
     if (isWeekend) {
       projectsData = await this.gatherWeekendData(
         projects,
@@ -55,11 +51,21 @@ export class SuggestionsService {
       );
     }
 
-    // Send the data to Gemini for dynamic AI insights!
-    return await this.geminiService.generatePacingSuggestions(
-      projectsData,
-      isWeekend,
-    );
+    // Get the dynamic prompt and schema from our configs
+    const prompt = SuggestionsAIConfig.buildPrompt(projectsData, isWeekend);
+
+    // Pass them to the generic LLM wrapper
+    try {
+      return await this.geminiService.generateStructuredContent<string[]>(
+        prompt,
+        SuggestionsAIConfig.schema,
+        0.7,
+      );
+    } catch (e) {
+      return [
+        'AI analysis is temporarily unavailable, but keep up the great work!',
+      ];
+    }
   }
 
   private async gatherWeekendData(

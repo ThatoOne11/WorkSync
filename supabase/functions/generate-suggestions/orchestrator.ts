@@ -1,20 +1,20 @@
-import { SuggestionsService } from '../services/suggestions.service.ts';
-import { ClockifyService } from '../../_shared/services/clockify.service.ts';
+import { SuggestionsService } from './services/suggestions.service.ts';
+import { ClockifyService } from '../_shared/services/clockify.service.ts';
 import {
   GenerateSuggestionsRequest,
   GenerateSuggestionsSchema,
-} from '../types/suggestions.types.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../../_shared/utils/error.utils.ts';
-import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
+} from './types/suggestions.types.ts';
+import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
+import { toSafeError } from '../_shared/utils/error.utils.ts';
+import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 
-export class SuggestionsController {
+export class SuggestionsOrchestrator {
   constructor(
     private readonly service: SuggestionsService,
     private readonly settingsRepo: SettingsRepository,
   ) {}
 
-  async handleRequest(req: Request): Promise<Response> {
+  async execute(req: Request): Promise<Response> {
     let body: GenerateSuggestionsRequest;
 
     try {
