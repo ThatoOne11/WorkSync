@@ -55,15 +55,17 @@
               [disabled]="
                 !form.get('apiKey')?.value ||
                 !form.get('workspaceId')?.value ||
-                isFetchingUserId()
+                state.isFetchingUserId()
               "
             >
-              @if (isFetchingUserId()) {
+              @if (state.isFetchingUserId()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
                 <mat-icon>person_search</mat-icon>
               }
-              <span>{{ isFetchingUserId() ? "Fetching..." : "Fetch ID" }}</span>
+              <span>{{
+                state.isFetchingUserId() ? "Fetching..." : "Fetch ID"
+              }}</span>
             </button>
           </div>
         } @else {
@@ -144,15 +146,17 @@
             type="button"
             (click)="onTestEmail()"
             [disabled]="
-              isTestingEmail() || !settingsExist() || !getOriginalEmail()
+              state.isTestingEmail() || !settingsExist() || !getOriginalEmail()
             "
           >
-            @if (isTestingEmail()) {
+            @if (state.isTestingEmail()) {
               <mat-spinner diameter="20"></mat-spinner>
             } @else {
               <mat-icon>send</mat-icon>
             }
-            <span>{{ isTestingEmail() ? "Sending..." : "Send Test" }}</span>
+            <span>{{
+              state.isTestingEmail() ? "Sending..." : "Send Test"
+            }}</span>
           </button>
         </div>
       }
@@ -174,15 +178,19 @@
           type="button"
           (click)="onBackfillHistory()"
           [disabled]="
-            isBackfilling() || !settingsExist() || !hasActiveProjects()
+            state.isBackfilling() ||
+            !settingsExist() ||
+            !state.hasActiveProjects()
           "
         >
-          @if (isBackfilling()) {
+          @if (state.isBackfilling()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
             <mat-icon>history</mat-icon>
           }
-          <span>{{ isBackfilling() ? "Processing..." : "Backfill Now" }}</span>
+          <span>{{
+            state.isBackfilling() ? "Processing..." : "Backfill Now"
+          }}</span>
         </button>
       </div>
     </section>
