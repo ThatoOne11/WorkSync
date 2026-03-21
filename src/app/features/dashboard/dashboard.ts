@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
@@ -12,7 +7,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { SuggestionsComponent } from '../suggestions/suggestions';
 import { SettingsService } from '../../core/services/settings.service';
 import { DashboardService } from './services/dashboard.service';
-import { ProjectWithTime } from '../../shared/schemas/app.schemas';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,6 +15,7 @@ import { ProjectWithTime } from '../../shared/schemas/app.schemas';
     MatProgressBarModule,
     MatIconModule,
     SuggestionsComponent,
+    MatProgressSpinnerModule,
     DecimalPipe,
   ],
   templateUrl: './dashboard.html',
@@ -30,7 +26,6 @@ export class Dashboard {
   private readonly settingsService = inject(SettingsService);
   private readonly dashboardService = inject(DashboardService);
 
-  // Polls every 2 minutes. startWith(0) ensures it fires immediately.
   private readonly refreshTrigger$ = interval(120000).pipe(startWith(0));
 
   readonly projects = toSignal(
@@ -42,6 +37,6 @@ export class Dashboard {
         this.dashboardService.getDashboardProjects(settings),
       ),
     ),
-    { initialValue: [] as ProjectWithTime[] },
+    { initialValue: undefined },
   );
 }

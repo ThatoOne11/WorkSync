@@ -11,7 +11,20 @@
     </p>
   </header>
 
-  @if (projects().length > 0) {
+  @if (projects() === undefined) {
+    <div
+      class="empty-state"
+      style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      "
+    >
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="u-text-muted">Syncing projects from Clockify...</p>
+    </div>
+  } @else if (projects()!.length > 0) {
     <div class="project-grid">
       @for (project of projects(); track project.id) {
         <section class="surface-card project-card">
@@ -21,7 +34,7 @@
               class="status-badge"
               [class.is-overbudget]="project.balance < 0"
             >
-              {{ project.balance < 0 ? "Over Shooting" : "On Track" }}
+              {{ project.balance < 0 ? "Over Budget" : "On Track" }}
             </span>
           </div>
 

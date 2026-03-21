@@ -297,6 +297,11 @@ button[disabled],
   }
 }
 
+/* Fix for Material Spinner missing theme color */
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--color-primary);
+}
+
 /* Dark Mode specifics */
 .dark-theme {
   .mat-mdc-table,
