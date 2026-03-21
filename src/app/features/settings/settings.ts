@@ -36,6 +36,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
 import { getPreviousMonthNames } from '../../shared/utils/date.utils';
 import { ProjectService } from '../projects/services/project.service';
+import { AppSettings } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-settings',
@@ -77,7 +78,7 @@ export class Settings implements OnInit {
 
   protected isFormDirty: Signal<boolean>;
 
-  protected formValue: Signal<any>;
+  protected formValue: Signal<Partial<AppSettings> | undefined>;
 
   readonly activeProjects = toSignal(
     toObservable(this.settingsService.settings).pipe(
@@ -226,26 +227,29 @@ export class Settings implements OnInit {
 
     this.isFetchingUserId.set(true);
 
-    this.state.fetchUserId(apiKey).subscribe({
-      next: (fetchedId) => {
-        this.form.patchValue({ userId: fetchedId });
-        this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
-        this.form.markAsDirty();
-        this.form.updateValueAndValidity();
-        this.snackBar.open('User ID fetched successfully!', 'Close', {
-          duration: 3000,
-        });
-        this.isFetchingUserId.set(false);
-      },
-      error: () => {
-        this.snackBar.open(
-          'Could not fetch User ID. Check your API Key.',
-          'Close',
-          { duration: 3000 },
-        );
-        this.isFetchingUserId.set(false);
-      },
-    });
+    this.state
+      .fetchUserId(apiKey)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (fetchedId) => {
+          this.form.patchValue({ userId: fetchedId });
+          this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+          this.form.markAsDirty();
+          this.form.updateValueAndValidity();
+          this.snackBar.open('User ID fetched successfully!', 'Close', {
+            duration: 3000,
+          });
+          this.isFetchingUserId.set(false);
+        },
+        error: () => {
+          this.snackBar.open(
+            'Could not fetch User ID. Check your API Key.',
+            'Close',
+            { duration: 3000 },
+          );
+          this.isFetchingUserId.set(false);
+        },
+      });
   }
 
   onBackfillHistory(): void {
@@ -262,43 +266,49 @@ export class Settings implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.isBackfilling.set(true);
-        this.state.runBackfill(result).subscribe({
-          next: (res) => {
-            this.snackBar.open(res.message, 'Close', { duration: 5000 });
-            this.isBackfilling.set(false);
-          },
-          error: () => {
-            this.snackBar.open(
-              'Error during backfill. Check the console.',
-              'Close',
-              { duration: 5000 },
-            );
-            this.isBackfilling.set(false);
-          },
-        });
+        this.state
+          .runBackfill(result)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (res) => {
+              this.snackBar.open(res.message, 'Close', { duration: 5000 });
+              this.isBackfilling.set(false);
+            },
+            error: () => {
+              this.snackBar.open(
+                'Error during backfill. Check the console.',
+                'Close',
+                { duration: 5000 },
+              );
+              this.isBackfilling.set(false);
+            },
+          });
       }
     });
   }
 
   onTestEmail(): void {
     this.isTestingEmail.set(true);
-    this.state.testEmail().subscribe({
-      next: () => {
-        this.snackBar.open(
-          'Weekly summary function ran successfully. Check your email!',
-          'Close',
-          { duration: 5000 },
-        );
-        this.isTestingEmail.set(false);
-      },
-      error: () => {
-        this.snackBar.open(
-          'An error occurred. Please check the console.',
-          'Close',
-          { duration: 5000 },
-        );
-        this.isTestingEmail.set(false);
-      },
-    });
+    this.state
+      .testEmail()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.snackBar.open(
+            'Weekly summary function ran successfully. Check your email!',
+            'Close',
+            { duration: 5000 },
+          );
+          this.isTestingEmail.set(false);
+        },
+        error: () => {
+          this.snackBar.open(
+            'An error occurred. Please check the console.',
+            'Close',
+            { duration: 5000 },
+          );
+          this.isTestingEmail.set(false);
+        },
+      });
   }
 }
