@@ -297,9 +297,14 @@ button[disabled],
   }
 }
 
-/* Fix for Material Spinner missing theme color */
+/* ------------------------------------------------------
+   FORCE MATERIAL SPINNERS TO BE VISIBLE WITH CUSTOM THEME
+   ------------------------------------------------------ */
+mat-spinner,
 .mat-mdc-progress-spinner {
-  --mdc-circular-progress-active-indicator-color: var(--color-primary);
+  circle {
+    stroke: var(--color-primary) !important;
+  }
 }
 
 /* Dark Mode specifics */
