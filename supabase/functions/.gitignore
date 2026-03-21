@@ -1,5 +1,3 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # Compiled output
 /dist
 /tmp
@@ -102,7 +100,7 @@ Thumbs.db
 web-app/*.js.map
 web-app/*.css.map
 web-app/.angular
-web-app/package-locl.json
+web-app/package-lock.json
 
 #Supabase
 supabase/.branches
