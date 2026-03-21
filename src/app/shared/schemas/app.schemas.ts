@@ -55,6 +55,25 @@ export const HistoryPayloadSchema = z.object({
   insights: z.array(z.string()),
 });
 
+export const ClockifyTimeIntervalSchema = z.object({
+  start: z.string(),
+  end: z.string().nullable().optional(),
+  duration: z.string().nullable().optional(),
+});
+
+export const ClockifyTimeEntrySchema = z.object({
+  id: z.string().optional(),
+  projectId: z.string().nullable().optional(),
+  timeInterval: ClockifyTimeIntervalSchema,
+});
+
+export type ClockifyTimeEntry = z.infer<typeof ClockifyTimeEntrySchema>;
+
+export type ProjectWithTime = Project & {
+  loggedHours: number;
+  balance: number;
+};
+
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type ClockifyUser = z.infer<typeof ClockifyUserSchema>;
