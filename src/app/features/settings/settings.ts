@@ -303,7 +303,7 @@ export class Settings implements OnInit {
       .subscribe({
         next: () => {
           this.snackBar.open(
-            'Weekly summary function ran successfully. Check your email!',
+            'Test email sent successfully. Check your email!',
             'Close',
             { duration: 5000 },
           );
