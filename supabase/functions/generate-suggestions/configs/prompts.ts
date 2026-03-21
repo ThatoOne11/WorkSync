@@ -1,10 +1,10 @@
-import { Schema, SchemaType } from 'npm:@google/generative-ai';
+import { Schema, Type } from 'npm:@google/genai';
 import { ProjectVarianceContext } from '../types/suggestions.types.ts';
 
 export const SuggestionsAIConfig = {
   schema: {
-    type: SchemaType.ARRAY,
-    items: { type: SchemaType.STRING },
+    type: Type.ARRAY,
+    items: { type: Type.STRING },
   } as Schema,
 
   buildPrompt: (projectsData: ProjectVarianceContext[], isWeekend: boolean) => {
