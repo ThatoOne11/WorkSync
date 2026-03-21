@@ -7,8 +7,8 @@
       </p>
     </div>
     @if (settingsExist()) {
-      <button mat-stroked-button color="warn" (click)="onReset()">
-        <mat-icon>lock_reset</mat-icon> Reset All Data
+      <button mat-stroked-button color="warn" type="button" (click)="onReset()">
+        <mat-icon>lock_reset</mat-icon> <span>Reset All Data</span>
       </button>
     }
   </header>
@@ -59,23 +59,21 @@
               "
             >
               @if (isFetchingUserId()) {
-                <mat-spinner diameter="20" />
+                <mat-spinner diameter="20"></mat-spinner>
               } @else {
                 <mat-icon>person_search</mat-icon>
               }
-              @if (!isFetchingUserId()) {
-                Fetch
-              }
+              <span>{{ isFetchingUserId() ? "Fetching..." : "Fetch ID" }}</span>
             </button>
           </div>
         } @else {
-          <p class="status-box">
+          <div class="status-box">
             <mat-icon>check_circle</mat-icon>
             <span
               >Your account is connected. To change credentials, reset your
               data.</span
             >
-          </p>
+          </div>
         }
       </div>
     </section>
@@ -86,13 +84,31 @@
         <h3>Email Notifications</h3>
       </header>
 
-      <div class="toggle-group">
-        <mat-slide-toggle formControlName="enableEmailNotifications">
-          Weekly Summary Email
-        </mat-slide-toggle>
-        <mat-slide-toggle formControlName="enablePacingAlerts">
-          Smart Pacing Alerts
-        </mat-slide-toggle>
+      <div class="settings-list">
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Weekly Summary Email</span>
+            <span class="setting-desc u-text-muted"
+              >Receive a detailed pacing report every week.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enableEmailNotifications"
+          ></mat-slide-toggle>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Smart Pacing Alerts</span>
+            <span class="setting-desc u-text-muted"
+              >Get notified daily if you fall behind or exceed your
+              targets.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enablePacingAlerts"
+          ></mat-slide-toggle>
+        </div>
       </div>
 
       @if (
@@ -132,10 +148,11 @@
             "
           >
             @if (isTestingEmail()) {
-              <mat-spinner diameter="20" />
+              <mat-spinner diameter="20"></mat-spinner>
             } @else {
-              Send Test
+              <mat-icon>send</mat-icon>
             }
+            <span>{{ isTestingEmail() ? "Sending..." : "Send Test" }}</span>
           </button>
         </div>
       }
@@ -161,13 +178,11 @@
           "
         >
           @if (isBackfilling()) {
-            <mat-spinner diameter="20" />
+            <mat-spinner diameter="20"></mat-spinner>
           } @else {
             <mat-icon>history</mat-icon>
           }
-          @if (!isBackfilling()) {
-            Backfill Now
-          }
+          <span>{{ isBackfilling() ? "Processing..." : "Backfill Now" }}</span>
         </button>
       </div>
     </section>
