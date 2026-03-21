@@ -197,7 +197,7 @@
 
     <footer class="form-actions">
       @if (settingsExist() && isFormDirty()) {
-        <button mat-button (click)="onCancelChanges()" type="button">
+        <button mat-stroked-button (click)="onCancelChanges()" type="button">
           Cancel Changes
         </button>
       }

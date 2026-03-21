@@ -16,9 +16,9 @@ import {
 import { SuggestionsComponent } from '../suggestions/suggestions';
 import { Project } from '../../shared/schemas/app.schemas';
 import { parseISO8601Duration } from '../../shared/utils/date.utils';
-import { ClockifyService } from '../../services/clockify.service';
-import { ProjectService } from '../../services/project.service';
-import { SettingsService } from '../../services/settings.service';
+import { ProjectService } from '../projects/services/project.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { ClockifyService } from '../../core/services/clockify.service';
 
 type TimeEntry = {
   projectId: string;

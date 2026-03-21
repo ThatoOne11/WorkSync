@@ -95,6 +95,30 @@ body {
     border-bottom-color: var(--color-border);
   }
 
+  /* 1. Fix Dialogs (Backgrounds & Text) */
+  .mdc-dialog__surface {
+    background-color: var(--color-surface) !important;
+  }
+  .mat-mdc-dialog-title,
+  .mat-mdc-dialog-content,
+  .mdc-dialog__content {
+    color: var(--color-text-main) !important;
+  }
+
+  /* 2. Fix Toggles & Checkboxes */
+  --mdc-switch-unselected-track-color: #475569;
+  --mdc-switch-unselected-hover-track-color: #64748b;
+  --mdc-switch-unselected-handle-color: #cbd5e1;
+  --mdc-switch-unselected-icon-color: #1e293b;
+  --mdc-checkbox-unselected-icon-color: #94a3b8;
+
+  /* 3. Fix Input & Dropdown Text */
+  .mat-mdc-input-element,
+  .mat-mdc-select-value-text {
+    color: var(--color-text-main) !important;
+    -webkit-text-fill-color: var(--color-text-main) !important;
+  }
+
   /* Fix Toggles and Checkboxes in Dark Mode */
   --mdc-switch-unselected-track-color: #475569;
   --mdc-switch-unselected-hover-track-color: #64748b;

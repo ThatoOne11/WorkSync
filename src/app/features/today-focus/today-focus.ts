@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { catchError } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
-import { TodayFocusService } from '../../services/today-focus.service';
+import { TodayFocusService } from './services/today-focus.service';
 
 @Component({
   selector: 'app-today-focus',

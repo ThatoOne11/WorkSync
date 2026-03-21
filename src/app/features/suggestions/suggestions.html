@@ -1,8 +1,10 @@
-<section class="card suggestions-card">
-  <header class="card-header">
-    <mat-icon>auto_awesome</mat-icon>
-    <h3>Insights</h3>
-  </header>
+<section class="suggestions-card">
+  <div class="card-header">
+    <div class="title-wrapper">
+      <mat-icon>auto_awesome</mat-icon>
+      <h3>Insights</h3>
+    </div>
+  </div>
 
   @if (suggestions() !== undefined) {
     <div class="suggestions-content">
@@ -11,12 +13,14 @@
           <div class="suggestion-bubble" [innerHTML]="suggestion"></div>
         }
       } @else {
-        <p class="u-text-muted">
+        <p class="u-text-muted" style="margin: 0">
           Keep tracking time to generate new AI insights.
         </p>
       }
     </div>
   } @else {
-    <mat-spinner diameter="30" />
+    <div class="loading-wrapper">
+      <mat-spinner diameter="30"></mat-spinner>
+    </div>
   }
 </section>

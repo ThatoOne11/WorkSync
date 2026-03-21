@@ -26,7 +26,7 @@ import { combineLatest, startWith, map } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
-import { SettingsService } from '../../services/settings.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
 
 @Component({

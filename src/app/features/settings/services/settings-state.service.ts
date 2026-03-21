@@ -1,14 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ClockifyService } from '../../../services/clockify.service';
-import { HistoricalDataService } from '../../../services/historical-data.service';
-import { ProjectService } from '../../../services/project.service';
-import { SettingsService } from '../../../services/settings.service';
+import { HistoricalDataService } from '../../project-history/services/historical-data.service';
+import { ProjectService } from '../../projects/services/project.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import {
   ClockifyUserSchema,
   Project,
   HistoricalTarget,
 } from '../../../shared/schemas/app.schemas';
+import { ClockifyService } from '../../../core/services/clockify.service';
 
 @Injectable({
   providedIn: 'root',
