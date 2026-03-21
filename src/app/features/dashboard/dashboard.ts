@@ -25,10 +25,10 @@ type TimeEntry = {
   timeInterval: { duration: string };
 };
 
-interface ProjectWithTime extends Project {
+type ProjectWithTime = Project & {
   loggedHours: number;
   balance: number;
-}
+};
 
 @Component({
   selector: 'app-dashboard',

@@ -18,10 +18,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Project } from '../../../../shared/schemas/app.schemas';
 
-interface DialogData {
+type DialogData = {
   projects: Project[];
   months: string[];
-}
+};
 
 @Component({
   selector: 'app-backfill-dialog',

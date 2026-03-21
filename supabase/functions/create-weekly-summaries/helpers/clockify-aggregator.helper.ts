@@ -8,11 +8,11 @@ import {
   parseISO8601Duration,
 } from '../../_shared/utils/date.utils.ts';
 
-export interface AggregationResult {
+export type AggregationResult = {
   allMonthlyData: ProjectSummary[];
   summariesToUpsert: DBWeeklySummary[];
   thisWeeksTimeEntries: ClockifyTimeEntry[];
-}
+};
 
 export class ClockifyAggregator {
   static async fetchAndAggregate(
