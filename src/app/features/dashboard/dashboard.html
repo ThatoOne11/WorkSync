@@ -1,14 +1,17 @@
 <div class="dashboard-wrapper">
-  @if (projects() === undefined) {
+  @if (dashboardData() === undefined) {
     <div class="global-loader-overlay u-fade-in">
       <mat-spinner diameter="50" mode="indeterminate"></mat-spinner>
       <p>Syncing projects & analyzing insights...</p>
     </div>
   }
 
-  <div class="dashboard-grid" [class.is-loading]="projects() === undefined">
+  <div
+    class="dashboard-grid"
+    [class.is-loading]="dashboardData() === undefined"
+  >
     <div class="panel-row">
-      <app-suggestions />
+      <app-suggestions [suggestions]="suggestions()" />
     </div>
 
     <header class="section-header">
