@@ -196,7 +196,7 @@
     </section>
 
     <footer class="form-actions">
-      @if (settingsExist() && (emailEditMode() || isToggleDirty())) {
+      @if (settingsExist() && isFormDirty()) {
         <button mat-button (click)="onCancelChanges()" type="button">
           Cancel Changes
         </button>
@@ -207,7 +207,7 @@
         type="submit"
         [disabled]="
           form.invalid ||
-          (settingsExist() && !form.dirty) ||
+          (settingsExist() && !isFormDirty()) ||
           (!settingsExist() && !form.get('userId')?.getRawValue())
         "
       >

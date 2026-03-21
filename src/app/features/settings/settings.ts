@@ -2,11 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  OnDestroy,
   OnInit,
   ViewChild,
   inject,
   signal,
+  Signal,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -22,16 +22,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject, combineLatest, startWith } from 'rxjs';
+import { combineLatest, startWith, map } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 import { SettingsService } from '../../services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
 
 @Component({
   selector: 'app-settings',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -48,7 +47,7 @@ import { SettingsStateService } from './services/settings-state.service';
   styleUrl: './settings.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Settings implements OnInit, OnDestroy {
+export class Settings implements OnInit {
   @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
 
   private readonly fb = inject(FormBuilder);
@@ -56,20 +55,13 @@ export class Settings implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  // Publicly injected so the template can bind to its signals
   readonly state = inject(SettingsStateService);
-
-  private readonly destroy$ = new Subject<void>();
 
   protected form: FormGroup;
   protected settingsExist = signal(false);
   protected emailEditMode = signal(false);
 
-  protected initialToggleValues = {
-    enableEmailNotifications: false,
-    enablePacingAlerts: false,
-  };
-  protected isToggleDirty = signal(false);
+  protected isFormDirty: Signal<boolean>;
 
   constructor() {
     this.form = this.fb.group({
@@ -80,16 +72,16 @@ export class Settings implements OnInit, OnDestroy {
       enableEmailNotifications: [false],
       enablePacingAlerts: [false],
     });
+
+    this.isFormDirty = toSignal(
+      this.form.valueChanges.pipe(map(() => this.form.dirty)),
+      { initialValue: false },
+    );
   }
 
   ngOnInit(): void {
     this.loadSettings();
     this.setupConditionalEmailValidation();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   private setupConditionalEmailValidation(): void {
@@ -110,14 +102,7 @@ export class Settings implements OnInit, OnDestroy {
             emailField.clearValidators();
             emailField.addValidators([Validators.email]);
           }
-          emailField.updateValueAndValidity();
-
-          const weeklyChanged =
-            weeklyToggle.value !==
-            this.initialToggleValues.enableEmailNotifications;
-          const pacingChanged =
-            pacingToggle.value !== this.initialToggleValues.enablePacingAlerts;
-          this.isToggleDirty.set(weeklyChanged || pacingChanged);
+          emailField.updateValueAndValidity({ emitEvent: false });
         });
     }
   }
@@ -131,11 +116,6 @@ export class Settings implements OnInit, OnDestroy {
       this.form.get('workspaceId')?.disable();
       this.form.get('userId')?.disable();
 
-      this.initialToggleValues = {
-        enableEmailNotifications: settings.enableEmailNotifications,
-        enablePacingAlerts: settings.enablePacingAlerts,
-      };
-
       this.settingsExist.set(true);
       this.emailEditMode.set(!settings.notificationEmail);
     } else {
@@ -143,15 +123,13 @@ export class Settings implements OnInit, OnDestroy {
       this.form.get('userId')?.disable();
       this.settingsExist.set(false);
       this.emailEditMode.set(true);
-      this.initialToggleValues = {
-        enableEmailNotifications: false,
-        enablePacingAlerts: false,
-      };
     }
 
     this.state.checkActiveProjects();
+
     this.form.markAsPristine();
-    this.isToggleDirty.set(false);
+    this.form.markAsUntouched();
+    this.form.updateValueAndValidity();
   }
 
   protected getOriginalEmail(): string {
@@ -159,36 +137,12 @@ export class Settings implements OnInit, OnDestroy {
   }
 
   onCancelChanges(): void {
-    const settings = this.settingsService.settings();
-    const emailField = this.form.get('notificationEmail');
-    const weeklyToggle = this.form.get('enableEmailNotifications');
-    const pacingToggle = this.form.get('enablePacingAlerts');
-
-    weeklyToggle?.setValue(this.initialToggleValues.enableEmailNotifications, {
-      emitEvent: true,
-    });
-    pacingToggle?.setValue(this.initialToggleValues.enablePacingAlerts, {
-      emitEvent: true,
-    });
-
-    const originalEmail = settings?.notificationEmail || '';
-    emailField?.setValue(originalEmail);
-
-    this.emailEditMode.set(!originalEmail);
-    this.form.markAsPristine();
-    this.isToggleDirty.set(false);
+    this.loadSettings();
   }
 
   toggleEmailEdit(): void {
-    if (this.emailEditMode()) {
-      const originalEmail =
-        this.settingsService.settings()?.notificationEmail || '';
-      this.form.get('notificationEmail')?.setValue(originalEmail);
-    }
-    this.emailEditMode.update((v) => !v);
-    if (this.emailEditMode()) {
-      setTimeout(() => this.emailInput.nativeElement.focus(), 0);
-    }
+    this.emailEditMode.set(true);
+    setTimeout(() => this.emailInput.nativeElement.focus(), 0);
   }
 
   onSave(): void {
@@ -239,10 +193,11 @@ export class Settings implements OnInit, OnDestroy {
     }
 
     const fetchedId = await this.state.fetchUserId(apiKey, workspaceId);
-
     if (fetchedId) {
       this.form.patchValue({ userId: fetchedId });
       this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+      this.form.markAsDirty();
+      this.form.updateValueAndValidity();
     }
   }
 
