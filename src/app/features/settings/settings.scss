@@ -75,12 +75,11 @@
 }
 .user-id-action,
 .email-config {
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 1rem;
   button {
     height: 56px;
-    min-width: 140px;
     display: flex;
     gap: 8px;
     align-items: center;
