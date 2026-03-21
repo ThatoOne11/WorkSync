@@ -1,3 +1,4 @@
+// Parses an ISO 8601 duration string into total seconds.
 export function parseISO8601Duration(
   duration: string | null | undefined,
 ): number {
@@ -12,4 +13,25 @@ export function parseISO8601Duration(
   const seconds = parseFloat(matches[4] || '0');
 
   return days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds;
+}
+
+// Checks if a given date (defaults to today) is a weekend.
+export function isWeekend(date: Date = new Date()): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
+// Generates an array of the previous 'n' month names (e.g., ["March", "February", "January"]).
+export function getPreviousMonthNames(
+  count: number,
+  referenceDate: Date = new Date(),
+): string[] {
+  return Array.from({ length: count }).map((_, i) => {
+    const d = new Date(
+      referenceDate.getFullYear(),
+      referenceDate.getMonth() - (i + 1),
+      1,
+    );
+    return d.toLocaleString('default', { month: 'long' });
+  });
 }

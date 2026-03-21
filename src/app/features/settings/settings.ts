@@ -28,6 +28,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
+import { getPreviousMonthNames } from '../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-settings',
@@ -210,11 +211,7 @@ export class Settings implements OnInit {
   }
 
   onBackfillHistory(): void {
-    const today = new Date();
-    const months = [...Array(3)].map((_, i) => {
-      const d = new Date(today.getFullYear(), today.getMonth() - (i + 1), 1);
-      return d.toLocaleString('default', { month: 'long' });
-    });
+    const months = getPreviousMonthNames(3);
 
     const dialogRef = this.dialog.open(BackfillDialog, {
       width: '600px',

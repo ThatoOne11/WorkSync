@@ -38,6 +38,26 @@ export const FocusProjectSchema = z.object({
   requiredHoursToday: z.number(),
 });
 
+// Define strict base properties for Chart.js Datasets
+export const ChartDatasetSchema = z
+  .object({
+    label: z.string(),
+    data: z.array(z.number()),
+    backgroundColor: z.union([z.string(), z.array(z.string())]).optional(),
+    borderColor: z.union([z.string(), z.array(z.string())]).optional(),
+    borderWidth: z.number().optional(),
+    fill: z.boolean().optional(),
+    tension: z.number().optional(),
+    borderDash: z.array(z.number()).optional(),
+  })
+  .passthrough();
+
+// Define the main ChartData structure
+export const ChartDataSchema = z.object({
+  labels: z.array(z.union([z.string(), z.number()])),
+  datasets: z.array(ChartDatasetSchema),
+});
+
 export const HistoryPayloadSchema = z.object({
   projectName: z.string(),
   keyMetrics: z.object({
@@ -50,8 +70,8 @@ export const HistoryPayloadSchema = z.object({
       week_ending_on: z.string(),
     }),
   }),
-  chartData: z.any(), // TODO: Replace with ChartJsDataSchema
-  monthlyChartData: z.any(), // TODO: Replace with ChartJsDataSchema
+  chartData: ChartDataSchema,
+  monthlyChartData: ChartDataSchema,
   insights: z.array(z.string()),
 });
 
