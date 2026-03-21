@@ -26,7 +26,7 @@ import { HistoryPayload } from '../../shared/schemas/app.schemas';
   styleUrls: ['./project-history.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectHistory implements OnDestroy {
+export class ProjectHistory {
   private readonly route = inject(ActivatedRoute);
   private readonly projectHistoryService = inject(ProjectHistoryService);
   private readonly destroyRef = inject(DestroyRef);
@@ -82,11 +82,6 @@ export class ProjectHistory implements OnDestroy {
         );
       }
     });
-  }
-
-  ngOnDestroy() {
-    this.weeklyChartInstance?.destroy();
-    this.monthlyChartInstance?.destroy();
   }
 
   private createWeeklyChart(
