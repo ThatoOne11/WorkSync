@@ -10,7 +10,6 @@
 
 # Node
 /node_modules
-/package-lock.json
 /yarn.lock
 npm-debug.log
 npm-debug.log*
@@ -108,7 +107,6 @@ web-app/package-locl.json
 #Supabase
 supabase/.branches
 supabase/.temp
-package-lock.json
 
 # dotenvx
 supabase/.env.keys
