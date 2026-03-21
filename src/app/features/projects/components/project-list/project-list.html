@@ -22,6 +22,7 @@
             mat-icon-button
             [routerLink]="['/projects', project.id, 'history']"
             matTooltip="View History"
+            aria-label="View project history"
           >
             <mat-icon color="primary">insights</mat-icon>
           </a>
@@ -29,6 +30,7 @@
             mat-icon-button
             (click)="edit.emit(project)"
             matTooltip="Edit"
+            aria-label="Edit project"
           >
             <mat-icon>edit</mat-icon>
           </button>
@@ -37,6 +39,7 @@
             color="warn"
             (click)="delete.emit(project.id)"
             matTooltip="Delete"
+            aria-label="Delete project"
           >
             <mat-icon>delete_outline</mat-icon>
           </button>

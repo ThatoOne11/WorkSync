@@ -55,6 +55,10 @@ export class Settings implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
+  readonly isFetchingUserId = signal(false);
+  readonly isTestingEmail = signal(false);
+  readonly isBackfilling = signal(false);
+
   readonly state = inject(SettingsStateService);
 
   protected form: FormGroup;
@@ -125,8 +129,6 @@ export class Settings implements OnInit {
       this.emailEditMode.set(true);
     }
 
-    this.state.checkActiveProjects();
-
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.form.updateValueAndValidity();
@@ -179,26 +181,32 @@ export class Settings implements OnInit {
     );
   }
 
-  async fetchUserId(): Promise<void> {
+  fetchUserId(): void {
     const apiKey = this.form.get('apiKey')?.value;
-    const workspaceId = this.form.get('workspaceId')?.value;
+    if (!apiKey) return;
 
-    if (!apiKey || !workspaceId) {
-      this.snackBar.open(
-        'Please enter both API Key and Workspace ID.',
-        'Close',
-        { duration: 3000 },
-      );
-      return;
-    }
+    this.isFetchingUserId.set(true);
 
-    const fetchedId = await this.state.fetchUserId(apiKey, workspaceId);
-    if (fetchedId) {
-      this.form.patchValue({ userId: fetchedId });
-      this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
-      this.form.markAsDirty();
-      this.form.updateValueAndValidity();
-    }
+    this.state.fetchUserId(apiKey).subscribe({
+      next: (fetchedId) => {
+        this.form.patchValue({ userId: fetchedId });
+        this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+        this.form.markAsDirty();
+        this.form.updateValueAndValidity();
+        this.snackBar.open('User ID fetched successfully!', 'Close', {
+          duration: 3000,
+        });
+        this.isFetchingUserId.set(false);
+      },
+      error: () => {
+        this.snackBar.open(
+          'Could not fetch User ID. Check your API Key.',
+          'Close',
+          { duration: 3000 },
+        );
+        this.isFetchingUserId.set(false);
+      },
+    });
   }
 
   onBackfillHistory(): void {
@@ -218,12 +226,44 @@ export class Settings implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.state.runBackfill(result);
+        this.isBackfilling.set(true);
+        this.state.runBackfill(result).subscribe({
+          next: (res) => {
+            this.snackBar.open(res.message, 'Close', { duration: 5000 });
+            this.isBackfilling.set(false);
+          },
+          error: () => {
+            this.snackBar.open(
+              'Error during backfill. Check the console.',
+              'Close',
+              { duration: 5000 },
+            );
+            this.isBackfilling.set(false);
+          },
+        });
       }
     });
   }
 
   onTestEmail(): void {
-    this.state.testEmail();
+    this.isTestingEmail.set(true);
+    this.state.testEmail().subscribe({
+      next: () => {
+        this.snackBar.open(
+          'Weekly summary function ran successfully. Check your email!',
+          'Close',
+          { duration: 5000 },
+        );
+        this.isTestingEmail.set(false);
+      },
+      error: () => {
+        this.snackBar.open(
+          'An error occurred. Please check the console.',
+          'Close',
+          { duration: 5000 },
+        );
+        this.isTestingEmail.set(false);
+      },
+    });
   }
 }
