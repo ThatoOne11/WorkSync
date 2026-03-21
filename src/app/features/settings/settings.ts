@@ -7,6 +7,7 @@ import {
   inject,
   signal,
   Signal,
+  computed,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -22,13 +23,18 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { combineLatest, startWith, map } from 'rxjs';
+import { combineLatest, startWith, map, catchError, of, switchMap } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
 import { getPreviousMonthNames } from '../../shared/utils/date.utils';
+import { ProjectService } from '../projects/services/project.service';
 
 @Component({
   selector: 'app-settings',
@@ -61,12 +67,27 @@ export class Settings implements OnInit {
   readonly isBackfilling = signal(false);
 
   readonly state = inject(SettingsStateService);
+  private readonly projectService = inject(ProjectService);
 
   protected form: FormGroup;
   protected settingsExist = signal(false);
   protected emailEditMode = signal(false);
 
   protected isFormDirty: Signal<boolean>;
+
+  protected formValue: Signal<any>;
+
+  readonly activeProjects = toSignal(
+    toObservable(this.settingsService.settings).pipe(
+      switchMap((settings) =>
+        settings ? this.projectService.getProjects() : of([]),
+      ),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] },
+  );
+
+  readonly hasActiveProjects = computed(() => this.activeProjects().length > 0);
 
   constructor() {
     this.form = this.fb.group({
@@ -78,22 +99,25 @@ export class Settings implements OnInit {
       enablePacingAlerts: [false],
     });
 
-    this.isFormDirty = toSignal(
-      this.form.valueChanges.pipe(
-        map(() => {
-          const saved = this.settingsService.settings();
-          if (!saved) return this.form.dirty;
-          const current = this.form.getRawValue();
-          return (
-            current.notificationEmail !== saved.notificationEmail ||
-            current.enableEmailNotifications !==
-              saved.enableEmailNotifications ||
-            current.enablePacingAlerts !== saved.enablePacingAlerts
-          );
-        }),
-      ),
-      { initialValue: false },
-    );
+    this.formValue = toSignal(this.form.valueChanges, {
+      initialValue: undefined,
+    });
+
+    this.isFormDirty = computed(() => {
+      this.formValue();
+      const saved = this.settingsService.settings();
+      const current = this.form.getRawValue();
+
+      if (!saved) return this.form.dirty;
+
+      return (
+        current.apiKey !== saved.apiKey ||
+        current.workspaceId !== saved.workspaceId ||
+        current.notificationEmail !== saved.notificationEmail ||
+        current.enableEmailNotifications !== saved.enableEmailNotifications ||
+        current.enablePacingAlerts !== saved.enablePacingAlerts
+      );
+    });
   }
 
   ngOnInit(): void {
@@ -119,7 +143,7 @@ export class Settings implements OnInit {
             emailField.clearValidators();
             emailField.addValidators([Validators.email]);
           }
-          emailField.updateValueAndValidity({ emitEvent: false });
+          emailField.updateValueAndValidity();
         });
     }
   }
@@ -228,7 +252,7 @@ export class Settings implements OnInit {
     const dialogRef = this.dialog.open(BackfillDialog, {
       width: '600px',
       data: {
-        projects: this.state.activeProjects(),
+        projects: this.activeProjects(),
         months,
       },
     });

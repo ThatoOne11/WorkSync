@@ -24,7 +24,9 @@ body {
   color: var(--color-text-muted);
 }
 
-//MATERIAL UI OVERRIDES (Modern, Soft, Breathable)
+/* ==========================================================================
+   MATERIAL UI OVERRIDES (Modern, Soft, Breathable)
+   ========================================================================== */
 
 /* 1. BUTTONS */
 .mat-mdc-button,
@@ -40,20 +42,53 @@ body {
   box-shadow: none !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm) !important;
-  }
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
+  /* Unified visible stroke/border for ALL buttons */
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-main) !important;
+  background-color: transparent !important;
 }
 
-.mat-stroked-button {
+/* PRIMARY BUTTONS */
+.mat-flat-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--color-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  color: #ffffff !important;
+}
+
+/* WARN BUTTONS */
+.mat-flat-button.mat-warn,
+.mat-mdc-raised-button.mat-warn,
+.mat-stroked-button.mat-warn {
+  background-color: var(--color-danger) !important;
   border-color: var(--color-border) !important;
-  &:hover:not(:disabled) {
-    background-color: var(--color-bg);
-  }
+  color: #ffffff !important;
+}
+
+/* Hover States for Enabled Buttons */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* BULLETPROOF EXPLICIT DISABLED STATE */
+button:disabled,
+button[disabled],
+.mat-mdc-button:disabled,
+.mat-mdc-raised-button:disabled,
+.mat-flat-button:disabled,
+.mat-stroked-button:disabled,
+.mat-flat-button.mat-primary:disabled,
+.mat-flat-button.mat-warn:disabled,
+.mat-mdc-raised-button.mat-primary:disabled,
+.mat-mdc-raised-button.mat-warn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--color-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* 2. FORM FIELDS & INPUTS */
@@ -64,7 +99,6 @@ body {
     border-radius: var(--input-radius);
     background-color: var(--color-surface);
 
-    // Softer, cleaner borders
     .mdc-notched-outline__leading,
     .mdc-notched-outline__notch,
     .mdc-notched-outline__trailing {
@@ -72,14 +106,12 @@ body {
       border-width: 1px !important;
     }
 
-    // Hover state
     &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__leading,
     &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__notch,
     &:not(.mdc-text-field--disabled):hover .mdc-notched-outline__trailing {
       border-color: var(--color-text-muted) !important;
     }
 
-    // Focus state (Primary Color)
     &.mdc-text-field--focused .mdc-notched-outline__leading,
     &.mdc-text-field--focused .mdc-notched-outline__notch,
     &.mdc-text-field--focused .mdc-notched-outline__trailing {
@@ -88,7 +120,6 @@ body {
     }
   }
 
-  // Increase Internal Padding for Breathability
   .mat-mdc-form-field-flex {
     padding: 0 var(--space-sm) !important;
   }
@@ -99,13 +130,43 @@ body {
   }
 }
 
-/* 3. TOGGLES & CHECKBOXES */
+/* 3. TOGGLES & CHECKBOXES (Clean, Modern Switch) */
 .mat-mdc-slide-toggle {
-  .mdc-switch__track {
-    background-color: var(--color-border);
+  /* 2. Nuke the internal checkmark/dash SVGs completely */
+  .mdc-switch__icons {
+    display: none;
   }
-  &.mat-checked .mdc-switch__track {
-    background-color: var(--color-primary) !important;
+
+  /* 3. Remove the bulky Material 3 track outline from the pseudo-elements */
+  .mdc-switch__track::before,
+  .mdc-switch__track::after {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* 4. UNSELECTED STATE (Force Colors) */
+  .mdc-switch__track {
+    background-color: var(--color-border) !important;
+    opacity: 1 !important;
+  }
+  .mdc-switch__handle {
+    background-color: var(--color-text-muted) !important;
+  }
+
+  /* 5. SELECTED / CHECKED STATE (Force Colors) */
+  &.mat-mdc-slide-toggle-checked {
+    .mdc-switch__track {
+      background-color: var(--color-primary) !important;
+    }
+    .mdc-switch__handle {
+      background-color: white !important;
+    }
+  }
+
+  /* 6. DISABLED STATE */
+  &.mat-disabled {
+    opacity: 0.5 !important;
+    pointer-events: none;
   }
 }
 
@@ -148,7 +209,7 @@ body {
 
   .mat-mdc-option {
     color: var(--color-text-main);
-    min-height: 48px; // Touch-friendly height
+    min-height: 48px;
     &:hover,
     &.mdc-list-item--selected {
       background-color: var(--color-primary-light);

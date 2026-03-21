@@ -150,7 +150,11 @@
             type="button"
             (click)="onTestEmail()"
             [disabled]="
-              isTestingEmail() || !settingsExist() || !getOriginalEmail()
+              isTestingEmail() ||
+              !settingsExist() ||
+              !getOriginalEmail() ||
+              isFormDirty() ||
+              form.get('notificationEmail')?.invalid
             "
           >
             @if (isTestingEmail()) {
@@ -180,7 +184,7 @@
           type="button"
           (click)="onBackfillHistory()"
           [disabled]="
-            isBackfilling() || !settingsExist() || !state.hasActiveProjects()
+            isBackfilling() || !settingsExist() || !hasActiveProjects()
           "
         >
           @if (isBackfilling()) {

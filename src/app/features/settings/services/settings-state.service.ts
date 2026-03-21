@@ -1,7 +1,6 @@
-import { Injectable, inject, computed } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { HistoricalDataService } from '../../project-history/services/historical-data.service';
 import { ProjectService } from '../../projects/services/project.service';
 import { SettingsService } from '../../../core/services/settings.service';
@@ -20,24 +19,10 @@ export class SettingsStateService {
   private readonly projectService = inject(ProjectService);
   private readonly settingsService = inject(SettingsService);
 
-  // 1. Declarative, pure derived state. Automatically updates when settings change.
-  readonly activeProjects = toSignal(
-    toObservable(this.settingsService.settings).pipe(
-      switchMap((settings) =>
-        settings ? this.projectService.getProjects() : of([]),
-      ),
-      catchError(() => of([])),
-    ),
-    { initialValue: [] },
-  );
-
-  readonly hasActiveProjects = computed(() => this.activeProjects().length > 0);
-
-  // 2. Pure business logic functions returning Observables for the component to handle.
+  // Pure business logic functions returning Observables for the component to handle.
   fetchUserId(apiKey: string): Observable<string> {
     return this.clockifyService.getCurrentUserId(apiKey).pipe(
       map((response) => {
-        // STRICT ZOD BOUNDARY
         const user = ClockifyUserSchema.parse(response);
         return user.id;
       }),
