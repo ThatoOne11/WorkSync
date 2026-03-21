@@ -21,12 +21,12 @@ export class SummariesOrchestrator {
         if (body?.browserId) {
           targetUserId = body.browserId;
         } else {
-          throw new Error();
+          throw new Error('Missing browserId in request body for manual run.');
         }
-      } catch {
-        throw new Error(
-          'Unauthorized: Service Role token required for global runs, or browserId required for individual test runs.',
-        );
+      } catch (error) {
+        // Log original error for debugging, then throw a standard response
+        console.error('Error handling manual trigger:', error);
+        throw new Error('Unauthorized');
       }
     }
     const result = await this.service.processSummaries(targetUserId);
