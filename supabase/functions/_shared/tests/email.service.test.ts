@@ -1,16 +1,16 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { EmailService } from '../services/email.service.ts';
-import { ENV } from '../configs/env.ts';
 import { DownstreamSyncError } from '../exceptions/custom.exceptions.ts';
 
 Deno.test('EmailService Suite', async (t) => {
   const originalFetch = globalThis.fetch;
-  const originalApiKey = ENV.RESEND_API_KEY;
+  const originalApiKey = Deno.env.get('RESEND_API_KEY');
 
   await t.step(
     'sendEmail - skips sending if RESEND_API_KEY is not configured',
     async () => {
-      ENV.RESEND_API_KEY = undefined;
+      // Use Deno.env directly instead of mutating the ENV object
+      Deno.env.delete('RESEND_API_KEY');
       const service = new EmailService();
 
       let fetchCalled = false;
@@ -26,14 +26,13 @@ Deno.test('EmailService Suite', async (t) => {
   );
 
   await t.step('sendEmail - successfully dispatches email', async () => {
-    ENV.RESEND_API_KEY = 'valid_key';
+    Deno.env.set('RESEND_API_KEY', 'valid_key');
     const service = new EmailService();
 
     // Type 'any' used here to capture the parsed JSON payload
     let capturedBody: any;
 
     globalThis.fetch = (_url, options) => {
-      // FIX: Explicitly cast options to RequestInit to satisfy strict type checking
       const reqOptions = options as RequestInit;
       capturedBody = JSON.parse(reqOptions?.body as string);
       return Promise.resolve(
@@ -54,7 +53,7 @@ Deno.test('EmailService Suite', async (t) => {
   await t.step(
     'sendEmail - throws DownstreamSyncError if Resend API fails',
     async () => {
-      ENV.RESEND_API_KEY = 'valid_key';
+      Deno.env.set('RESEND_API_KEY', 'valid_key');
       const service = new EmailService();
 
       globalThis.fetch = () => {
@@ -78,7 +77,11 @@ Deno.test('EmailService Suite', async (t) => {
     },
   );
 
-  // Teardown
+  // Teardown: Restore the original environment
   globalThis.fetch = originalFetch;
-  ENV.RESEND_API_KEY = originalApiKey;
+  if (originalApiKey) {
+    Deno.env.set('RESEND_API_KEY', originalApiKey);
+  } else {
+    Deno.env.delete('RESEND_API_KEY');
+  }
 });

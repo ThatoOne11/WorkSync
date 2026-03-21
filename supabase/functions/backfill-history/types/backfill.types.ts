@@ -9,14 +9,11 @@ export const HistoricalTargetSchema = z
 
 export type HistoricalTarget = z.infer<typeof HistoricalTargetSchema>;
 
-export const BackfillRequestSchema = z.object({
-  settings: z.object({
-    apiKey: z.string().min(1),
-    workspaceId: z.string().min(1),
-    userId: z.string().min(1),
-  }),
-  browserId: z.string().min(1),
-  historicalTargets: z.array(HistoricalTargetSchema),
-});
+export const BackfillRequestSchema = z
+  .object({
+    browserId: z.string().min(1),
+    historicalTargets: z.array(HistoricalTargetSchema),
+  })
+  .catchall(z.any());
 
 export type BackfillRequest = z.infer<typeof BackfillRequestSchema>;
