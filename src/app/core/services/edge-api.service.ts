@@ -18,12 +18,10 @@ export class EdgeApiService {
     functionName: string,
     additionalPayload: Record<string, unknown> = {},
   ): Observable<T> {
-    const settings = this.settingsService.settings();
     const browserId = this.settingsService.getBrowserId();
 
     const body = {
       ...additionalPayload,
-      ...(settings ? { settings } : {}),
       ...(browserId ? { browserId } : {}),
     };
 
