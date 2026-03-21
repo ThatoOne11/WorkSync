@@ -1,42 +1,8 @@
-@use "mixins" as *;
-
-.suggestions-card {
-  @include surface-card;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-
-    .title-wrapper {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-
-      mat-icon {
-        color: var(--color-warning);
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-      h3 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-      }
-    }
-  }
-}
-
 .suggestions-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
-
 .suggestion-bubble {
   font-size: 0.9rem;
   line-height: 1.5;
@@ -50,7 +16,6 @@
     color: var(--color-text-main);
   }
 }
-
 .loading-wrapper {
   display: flex;
   justify-content: center;

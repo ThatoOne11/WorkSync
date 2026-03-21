@@ -21,7 +21,7 @@
   } @else {
     <div class="history-content">
       <div class="metrics-grid">
-        <section class="metric-card">
+        <section class="surface-card metric-card">
           <label>Total Progress</label>
           <div class="value">
             {{ projectData()?.keyMetrics?.totalLoggedHours | number: "1.2-2" }}
@@ -31,7 +31,7 @@
           </div>
         </section>
 
-        <section class="metric-card">
+        <section class="surface-card metric-card">
           <label>Pacing Variance</label>
           <div
             class="value"
@@ -46,7 +46,7 @@
           </div>
         </section>
 
-        <section class="metric-card">
+        <section class="surface-card metric-card">
           <label>Avg. Weekly Burn</label>
           <div class="value">
             {{ projectData()?.keyMetrics?.averageWeeklyBurn | number: "1.2-2" }}
@@ -54,7 +54,7 @@
           </div>
         </section>
 
-        <section class="metric-card">
+        <section class="surface-card metric-card">
           <label>Peak Performance</label>
           <div class="value">
             {{
@@ -72,7 +72,7 @@
       </div>
 
       <div class="charts-layout">
-        <section class="history-card chart-section">
+        <section class="surface-card chart-section">
           <header class="card-header">
             <h3>Weekly Performance</h3>
           </header>
@@ -81,7 +81,7 @@
           </div>
         </section>
 
-        <section class="history-card breakdown-section">
+        <section class="surface-card breakdown-section">
           <header class="card-header">
             <h3>Monthly Breakdown</h3>
           </header>

@@ -1,5 +1,3 @@
-@use "mixins" as *;
-
 .dashboard-grid {
   display: flex;
   flex-direction: column;
@@ -23,21 +21,9 @@
   gap: var(--space-md);
 }
 .project-card {
-  @include surface-card;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-  }
 }
 .stats-row {
   display: flex;
@@ -65,7 +51,6 @@
     margin-top: var(--space-xs);
     font-size: 0.85rem;
     font-weight: 500;
-
     .balance.negative {
       color: var(--color-danger);
     }
@@ -85,7 +70,6 @@
     color: var(--color-danger);
   }
 }
-
 @media (max-width: 600px) {
   .panel-row {
     grid-template-columns: 1fr;
