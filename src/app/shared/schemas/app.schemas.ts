@@ -50,8 +50,8 @@ export const HistoryPayloadSchema = z.object({
       week_ending_on: z.string(),
     }),
   }),
-  chartData: z.any(),
-  monthlyChartData: z.any(),
+  chartData: z.any(), // TODO: Replace with ChartJsDataSchema
+  monthlyChartData: z.any(), // TODO: Replace with ChartJsDataSchema
   insights: z.array(z.string()),
 });
 
