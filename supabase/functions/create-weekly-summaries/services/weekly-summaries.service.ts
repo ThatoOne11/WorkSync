@@ -49,8 +49,13 @@ export class WeeklySummariesService {
       // Skip all other users if this is a manual test run
       if (targetUserId && userId !== targetUserId) continue;
 
-      if (user.enableEmailNotifications !== 'true' || !user.notificationEmail)
-        continue;
+      // Ensure they have an email address configured
+      if (!user.notificationEmail) continue;
+
+      // Only strictly enforce the weekly summary toggle if it's an automated background cron run.
+      // If it's a manual test run from the UI, allow it to send the test email to prove the connection.
+      if (!targetUserId && user.enableEmailNotifications !== 'true') continue;
+
       if (
         !user.clockifyApiKey ||
         !user.clockifyWorkspaceId ||
