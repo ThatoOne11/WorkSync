@@ -4,7 +4,7 @@
   @include surface-card;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
 
   .card-header {
     display: flex;
@@ -14,7 +14,7 @@
     .title-wrapper {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--space-xs);
 
       mat-icon {
         color: var(--color-warning);
@@ -34,16 +34,16 @@
 .suggestions-content {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .suggestion-bubble {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--color-text-main);
-  padding: 12px;
+  padding: var(--space-sm);
   border-left: 3px solid var(--color-warning);
-  background: rgba(234, 88, 12, 0.05);
+  background: var(--color-warning-light);
   border-radius: 0 6px 6px 0;
 
   strong {
@@ -54,5 +54,5 @@
 .loading-wrapper {
   display: flex;
   justify-content: center;
-  padding: 1rem 0;
+  padding: var(--space-sm) 0;
 }

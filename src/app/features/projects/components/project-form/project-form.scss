@@ -1,15 +1,14 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
-// FIX: Ensure form fields are always full width
 form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-sm);
 }
 
 mat-form-field {

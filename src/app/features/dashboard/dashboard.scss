@@ -3,40 +3,35 @@
 .dashboard-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-sm);
 }
-
 .panel-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
+  gap: var(--space-md);
 }
-
 .section-header {
   h2 {
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
   }
 }
-
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.5rem;
+  gap: var(--space-md);
 }
-
 .project-card {
   @include surface-card;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
 
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-
     h3 {
       margin: 0;
       font-size: 1.1rem;
@@ -44,10 +39,9 @@
     }
   }
 }
-
 .stats-row {
   display: flex;
-  gap: 2rem;
+  gap: var(--space-lg);
 
   .stat {
     display: flex;
@@ -64,12 +58,11 @@
     }
   }
 }
-
 .progress-container {
   .progress-labels {
     display: flex;
     justify-content: space-between;
-    margin-top: 0.75rem;
+    margin-top: var(--space-xs);
     font-size: 0.85rem;
     font-weight: 500;
 
@@ -78,18 +71,17 @@
     }
   }
 }
-
 .status-badge {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: 700;
   text-transform: uppercase;
 
   &.is-behind {
-    background: #fee2e2;
+    background: var(--color-danger-light);
     color: var(--color-danger);
   }
 }

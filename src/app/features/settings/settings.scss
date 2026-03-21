@@ -65,7 +65,7 @@
   }
 }
 
-/* NEW: Polished Setting Rows for Toggles */
+/* Setting Rows for Toggles */
 .settings-list {
   display: flex;
   flex-direction: column;
@@ -101,13 +101,12 @@
 
 .user-id-action,
 .email-config {
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 1rem;
 
   button {
-    height: 56px; /* Match form field height */
-    min-width: 140px;
+    height: 50px;
     display: flex;
     gap: 8px;
     align-items: center;
