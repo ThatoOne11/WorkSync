@@ -13,10 +13,7 @@ export class SummariesOrchestrator {
       if (body?.browserId) {
         targetUserId = body.browserId;
       }
-    } catch {
-      // Automated cron jobs send an empty body, causing .json() to throw.
-      // This safely identifies a global run without matching JWT strings!
-    }
+    } catch {}
 
     if (!req.headers.get('Authorization')) {
       throw new Error('Unauthorized: Missing API token.');
