@@ -3,7 +3,7 @@ import { ENV } from '../_shared/configs/env.ts';
 import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { ClockifyDataService } from './services/clockify-data.service.ts';
-import { ClockifyDataController } from './controllers/clockify-data.controller.ts';
+import { ClockifyDataOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Get-Clockify-Data', async (req: Request) => {
@@ -14,8 +14,8 @@ Deno.serve(
     const settingsRepo = new SettingsRepository(supabase);
 
     const service = new ClockifyDataService();
-    const controller = new ClockifyDataController(service, settingsRepo);
+    const orchestrator = new ClockifyDataOrchestrator(service, settingsRepo);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );

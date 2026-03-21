@@ -6,7 +6,7 @@ import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
 import { AlertsRepository } from './repo/alerts.repo.ts';
 import { EmailService } from '../_shared/services/email.service.ts';
 import { PacingAlertService } from './services/pacing.service.ts';
-import { PacingAlertController } from './controllers/pacing.controller.ts';
+import { PacingAlertOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Pacing-Alert-Cron', async (req: Request) => {
@@ -26,8 +26,8 @@ Deno.serve(
       alertsRepo,
       emailService,
     );
-    const controller = new PacingAlertController(service);
+    const orchestrator = new PacingAlertOrchestrator(service);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );

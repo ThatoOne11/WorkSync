@@ -1,20 +1,20 @@
-import { BackfillService } from '../services/backfill.service.ts';
-import { ClockifyService } from '../../_shared/services/clockify.service.ts';
+import { BackfillService } from './services/backfill.service.ts';
+import { ClockifyService } from '../_shared/services/clockify.service.ts';
 import {
   BackfillRequest,
   BackfillRequestSchema,
-} from '../types/backfill.types.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../../_shared/utils/error.utils.ts';
-import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
+} from './types/backfill.types.ts';
+import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
+import { toSafeError } from '../_shared/utils/error.utils.ts';
+import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 
-export class BackfillController {
+export class BackfillOrchestrator {
   constructor(
     private readonly service: BackfillService,
     private readonly settingsRepo: SettingsRepository,
   ) {}
 
-  async handleRequest(req: Request): Promise<Response> {
+  async execute(req: Request): Promise<Response> {
     let body: BackfillRequest;
 
     try {
@@ -41,7 +41,6 @@ export class BackfillController {
       userSettings.clockifyApiKey,
       userSettings.clockifyWorkspaceId,
     );
-
     const result = await this.service.runBackfill(
       body.browserId,
       body.historicalTargets,

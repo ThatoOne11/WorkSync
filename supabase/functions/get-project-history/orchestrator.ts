@@ -1,15 +1,15 @@
-import { HistoryService } from '../services/history.service.ts';
+import { HistoryService } from './services/history.service.ts';
 import {
   GetProjectHistoryRequest,
   GetProjectHistorySchema,
-} from '../types/history.types.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../../_shared/utils/error.utils.ts';
+} from './types/history.types.ts';
+import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
+import { toSafeError } from '../_shared/utils/error.utils.ts';
 
-export class HistoryController {
+export class HistoryOrchestrator {
   constructor(private readonly service: HistoryService) {}
 
-  async handleRequest(req: Request): Promise<Response> {
+  async execute(req: Request): Promise<Response> {
     let body: GetProjectHistoryRequest;
 
     try {
