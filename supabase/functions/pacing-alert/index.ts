@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SUPABASE_CONFIG } from '../_shared/config.ts';
+import { ENV } from '../_shared/configs/env.ts';
 import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
@@ -10,10 +10,9 @@ import { PacingAlertController } from './controllers/pacing.controller.ts';
 
 Deno.serve(
   withEdgeWrapper('Pacing-Alert-Cron', async (req: Request) => {
-    // Use Service Role to bypass RLS for system-wide background jobs
     const supabase = createClient(
-      SUPABASE_CONFIG.url,
-      SUPABASE_CONFIG.serviceRoleKey,
+      ENV.SUPABASE_URL,
+      ENV.SUPABASE_SERVICE_ROLE_KEY,
     );
 
     const settingsRepo = new SettingsRepository(supabase);

@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SUPABASE_CONFIG } from '../_shared/config.ts';
+import { ENV } from '../_shared/configs/env.ts';
 import { withEdgeWrapper } from '../_shared/utils/edge.wrapper.ts';
 import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
@@ -9,7 +9,7 @@ import { DeleteUserDataController } from './controllers/delete.controller.ts';
 
 Deno.serve(
   withEdgeWrapper('Delete-User-Data', async (req: Request) => {
-    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    const supabase = createClient(ENV.SUPABASE_URL, ENV.SUPABASE_ANON_KEY);
 
     const settingsRepo = new SettingsRepository(supabase);
     const projectsRepo = new ProjectsRepository(supabase);

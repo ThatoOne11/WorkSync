@@ -1,10 +1,10 @@
-import { EMAIL_CONFIG } from '../config.ts';
+import { ENV } from '../configs/env.ts';
 import { DownstreamSyncError } from '../exceptions/custom.exceptions.ts';
 import { ApiConstants } from '../constants/api.constants.ts';
 
 export class EmailService {
-  private readonly resendApiKey = EMAIL_CONFIG.resendApiKey;
-  private readonly fromAddress = EMAIL_CONFIG.fromAddress;
+  private readonly resendApiKey = ENV.RESEND_API_KEY;
+  private readonly fromAddress = 'WorkSync <onboarding@resend.dev>';
   private readonly baseUrl = ApiConstants.RESEND_BASE_URL;
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
