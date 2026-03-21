@@ -5,11 +5,19 @@ import {
   DBProject,
 } from '../../_shared/repo/projects.repo.ts';
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
+import { GeminiService } from '../../_shared/services/gemini.service.ts';
+
+Deno.env.set('GEMINI_API_KEY', 'mock_key_for_testing');
 
 Deno.test('SuggestionsService Suite', async (t) => {
   const mockClockify = {
     fetchUserTimeEntries: () => Promise.resolve([]),
   } as unknown as ClockifyService;
+
+  // IMPORTANT: Stub GeminiService and assert as any to satisfy the generic <T> requirement
+  const originalGenerate = GeminiService.prototype.generateStructuredContent;
+  GeminiService.prototype.generateStructuredContent = (() =>
+    Promise.resolve(['Mocked AI Insight'])) as any;
 
   await t.step(
     'getSuggestions - returns early if user has no active projects',
@@ -31,7 +39,7 @@ Deno.test('SuggestionsService Suite', async (t) => {
   );
 
   await t.step(
-    'getSuggestions - executes standard flow with active projects',
+    'getSuggestions - executes standard flow with active projects via Gemini',
     async () => {
       const mockProjects: DBProject[] = [
         {
@@ -41,29 +49,22 @@ Deno.test('SuggestionsService Suite', async (t) => {
           clockify_project_id: 'cp_1',
         },
       ];
-
       const mockPopulatedRepo = {
         getActiveProjects: () => Promise.resolve(mockProjects),
       } as unknown as ProjectsRepository;
 
-      // We intercept fetch inside ClockifyService for this test
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = () =>
-        Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
-
-      const realClockify = new ClockifyService('api_key', 'ws_id');
       const service = new SuggestionsService(mockPopulatedRepo);
-
       const suggestions = await service.getSuggestions(
         'browser_123',
-        realClockify,
+        mockClockify,
         'user_123',
       );
 
-      // Even with 0 hours logged (empty fetch), it should return the default "Great work!" or weekend message
-      assertEquals(suggestions.length > 0, true);
-
-      globalThis.fetch = originalFetch; // Teardown
+      assertEquals(suggestions.length, 1);
+      assertEquals(suggestions[0], 'Mocked AI Insight');
     },
   );
+
+  // Teardown
+  GeminiService.prototype.generateStructuredContent = originalGenerate;
 });

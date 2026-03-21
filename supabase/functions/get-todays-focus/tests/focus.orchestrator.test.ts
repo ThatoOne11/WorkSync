@@ -3,36 +3,38 @@ import {
   assertRejects,
   assertStringIncludes,
 } from 'jsr:@std/assert';
-import { FocusController } from '../controllers/focus.controller.ts';
+import { FocusOrchestrator } from '../orchestrator.ts';
 import { FocusService } from '../services/focus.service.ts';
+import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
 import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 
-Deno.test('FocusController Suite', async (t) => {
+Deno.test('FocusOrchestrator Suite', async (t) => {
   const mockService = {
     calculateTodaysFocus: () =>
       Promise.resolve([{ name: 'Test Project', requiredHoursToday: 2.5 }]),
   } as unknown as FocusService;
 
-  const controller = new FocusController(mockService);
+  const mockSettingsRepo = {
+    getUserSettings: () =>
+      Promise.resolve({
+        clockifyApiKey: 'secure_api_key',
+        clockifyWorkspaceId: 'ws_123',
+        clockifyUserId: 'user_123',
+      }),
+  } as unknown as SettingsRepository;
+
+  const orchestrator = new FocusOrchestrator(mockService, mockSettingsRepo);
 
   await t.step(
-    'handleRequest - returns 200 OK and focus list for a valid payload',
+    'execute - returns 200 OK and focus list for a valid payload',
     async () => {
-      const validPayload = {
-        browserId: 'browser_123',
-        settings: {
-          apiKey: 'api_key',
-          workspaceId: 'ws_123',
-          userId: 'user_123',
-        },
-      };
-
+      const validPayload = { browserId: 'browser_123' };
       const req = new Request('https://mock.com', {
         method: 'POST',
         body: JSON.stringify(validPayload),
       });
 
-      const res = await controller.handleRequest(req);
+      const res = await orchestrator.execute(req);
       const body = await res.json();
 
       assertEquals(res.status, 200);
@@ -42,22 +44,16 @@ Deno.test('FocusController Suite', async (t) => {
   );
 
   await t.step(
-    'handleRequest - throws ValidationError if nested clockify credentials are missing',
+    'execute - throws ValidationError if browserId is missing',
     async () => {
-      const invalidPayload = {
-        browserId: 'browser_123',
-        settings: {
-          apiKey: 'api_key',
-        },
-      };
-
+      const invalidPayload = { settings: { apiKey: 'api' } }; // Missing browserId
       const req = new Request('https://mock.com', {
         method: 'POST',
         body: JSON.stringify(invalidPayload),
       });
 
       const error = await assertRejects(
-        () => controller.handleRequest(req),
+        () => orchestrator.execute(req),
         ValidationError,
       );
       assertStringIncludes(error.message, 'invalid_type');
