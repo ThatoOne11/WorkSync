@@ -26,7 +26,9 @@ export class WeeklySummariesService {
     this.geminiService = new GeminiService();
   }
 
-  async processSummaries(): Promise<WeeklySummariesResult> {
+  async processSummaries(
+    targetUserId?: string,
+  ): Promise<WeeklySummariesResult> {
     const usersSettings = await this.settingsRepo.getAllUsersSettings();
     const globalMessages: string[] = [];
     const today = new Date();
@@ -44,8 +46,16 @@ export class WeeklySummariesService {
     const currentWeekNumber = getWeekOfMonth(endOfLastWeek);
 
     for (const [userId, user] of Object.entries(usersSettings)) {
-      if (user.enableEmailNotifications !== 'true' || !user.notificationEmail)
-        continue;
+      // Skip all other users if this is a manual test run
+      if (targetUserId && userId !== targetUserId) continue;
+
+      // Ensure they have an email address configured
+      if (!user.notificationEmail) continue;
+
+      // Only strictly enforce the weekly summary toggle if it's an automated background cron run.
+      // If it's a manual test run from the UI, allow it to send the test email to prove the connection.
+      if (!targetUserId && user.enableEmailNotifications !== 'true') continue;
+
       if (
         !user.clockifyApiKey ||
         !user.clockifyWorkspaceId ||
@@ -95,7 +105,7 @@ export class WeeklySummariesService {
               insightHtml: string;
             }>(prompt, SummariesAIConfig.schema, 0.7);
           insightText = aiResponse.insightHtml;
-        } catch (e) {
+        } catch (_e) {
           insightText = `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(2)} hours</span> this week. Keep up the great work keeping your projects synced!`;
         }
 
