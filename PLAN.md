@@ -18,28 +18,28 @@ _Goal: Rip out manual business logic for pacing and suggestions, replacing it wi
 - [x] **Step 2.3: Refactor `create-weekly-summaries`**
 - [x] **Step 2.4: Enhance `get-todays-focus`**
 
-## Phase 3: Backend Structural Refactor & Test Hardening
+## Phase 3: Backend Structural Refactor & Test Hardening (✅ COMPLETED)
 
 _Goal: Reorganize the backend into a strict, scalable microservice architecture and update all backend tests to cover the new AI integration._
 
-- [ ] **Step 3.1: Strict Environment Configs:** Implement `_shared/configs/env.ts` with `getEnvOrThrow` pattern.
-- [ ] **Step 3.2: Reorganize `_shared` Directory:** Group files cleanly into `configs`, `helpers`, `repo`, `services`, `tests`, `types`, and `utils`.
-- [ ] **Step 3.3: Refactor Edge Functions:** Flatten `controllers/` into `orchestrator.ts` and standardize the internal directory structure (`services`, `repo`, `tests`, `types`) across all functions.
-- [ ] **Step 3.4: Fix & Update Backend Tests:** Rewrite unit tests for `suggestions`, `todays-focus`, and `weekly-summaries` to correctly mock the Gemini SDK and ensure behavior is locked in.
+- [x] **Step 3.1: Strict Environment Configs:** Implement `_shared/configs/env.ts` with `getEnvOrThrow` pattern.
+- [x] **Step 3.2: Reorganize `_shared` Directory:** Group files cleanly into `configs`, `helpers`, `repo`, `services`, `tests`, `types`, and `utils`.
+- [x] **Step 3.3: Refactor Edge Functions:** Flatten `controllers/` into `orchestrator.ts` and standardize the internal directory structure across all functions.
+- [x] **Step 3.4: Fix & Update Backend Tests:** Rewrite unit tests for `suggestions`, `todays-focus`, and `weekly-summaries` to correctly mock the Gemini SDK.
 
-## Phase 4: Frontend Alignment
+## Phase 4: Frontend Alignment (✅ COMPLETED)
 
 _Goal: Connect our freshly cleaned Angular frontend to the new secure, AI-powered backend endpoints._
 
-- [ ] **Step 4.1: Update Settings UI:** Modify the `Settings` component to handle the "write-only" API key flow.
-- [ ] **Step 4.2: Update Zod Schemas:** Adjust `app.schemas.ts` to match the AI-generated structured outputs.
-- [ ] **Step 4.3: E2E Verification:** Manually test the full flow (Clockify -> Supabase -> Gemini -> Angular).
+- [x] **Step 4.1: Update Settings UI:** Modify the `Settings` component to handle the "write-only" API key flow and live-state syncing.
+- [x] **Step 4.2: Update Zod Schemas:** Adjust `app.schemas.ts` to strictly match the AI-generated structured JSON outputs.
+- [x] **Step 4.3: Cost & Performance Optimization:** Implement 1-hour RxJS caching for AI Insights and visibility polling for Clockify syncs.
 
-## Phase 5: Test-Driven Hardening (Frontend)
+## Phase 5: Test-Driven Hardening (Frontend) (✅ COMPLETED)
 
-_Goal: Lock in the contracts and behavior with rigorous frontend unit tests._
+_Goal: Lock in the contracts and behavior with rigorous frontend unit tests and CI/CD automation._
 
-- [ ] **Step 5.1: Setup Test Environment:** Ensure Karma/Jasmine is configured with proper mock providers.
-- [ ] **Step 5.2: Test `Settings` Component:** Verify write-only API key logic.
-- [ ] **Step 5.3: Test `Dashboard` & `ProjectHistory`:** Mock the new AI payloads.
-- [ ] **Step 5.4: Test Shared Utils.**
+- [x] **Step 5.1: Setup Test Environment:** Organize all `.spec.ts` files into strict domain-driven `tests/` folders.
+- [x] **Step 5.2: Test `Settings` & `Suggestions` Services:** Verify write-only API key logic and TTL caching behaviors.
+- [x] **Step 5.3: Test UI Components:** Mock Supabase endpoints to prevent Auth Lock crashes in headless environments.
+- [x] **Step 5.4: CI/CD Automation:** Deploy GitHub Actions workflows to automate Deno and Angular testing on all Pull Requests.
