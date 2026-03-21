@@ -3,6 +3,7 @@ import { ProjectsRepository } from '../../_shared/repo/projects.repo.ts';
 import { SummariesRepository } from '../../_shared/repo/summaries.repo.ts';
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
 import { EmailService } from '../../_shared/services/email.service.ts';
+import { GeminiService } from '../../_shared/services/gemini.service.ts';
 import { WeeklyStatsHelper } from '../helpers/weekly-stats.helper.ts';
 import { ClockifyAggregator } from '../helpers/clockify-aggregator.helper.ts';
 import { ReportGenerator } from '../helpers/report-generator.helper.ts';
@@ -13,12 +14,16 @@ import {
 import { WeeklySummariesResult } from '../types/summaries.types.ts';
 
 export class WeeklySummariesService {
+  private readonly geminiService: GeminiService;
+
   constructor(
     private readonly settingsRepo: SettingsRepository,
     private readonly projectsRepo: ProjectsRepository,
     private readonly summariesRepo: SummariesRepository,
     private readonly emailService: EmailService,
-  ) {}
+  ) {
+    this.geminiService = new GeminiService();
+  }
 
   async processSummaries(): Promise<WeeklySummariesResult> {
     const usersSettings = await this.settingsRepo.getAllUsersSettings();
@@ -83,6 +88,13 @@ export class WeeklySummariesService {
           allMonthlyData,
         );
 
+        // Ask Gemini for the customized intro paragraph
+        const insightText =
+          await this.geminiService.generateWeeklySummaryInsight(
+            weeklyStats,
+            thisWeekData,
+          );
+
         // 4. Report Generation & Dispatch
         await ReportGenerator.generateAndSend(
           this.emailService,
@@ -92,6 +104,7 @@ export class WeeklySummariesService {
           thisWeekData,
           allMonthlyData,
           currentWeekNumber,
+          insightText,
         );
 
         globalMessages.push(
