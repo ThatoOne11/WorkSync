@@ -1,12 +1,12 @@
-import { Schema, SchemaType } from 'npm:@google/generative-ai';
+import { Schema, Type } from 'npm:@google/genai';
 import { EMAIL_THEME } from '../../_shared/constants/email.constants.ts';
 import { WeeklyStats, ProjectSummary } from '../../_shared/types/app.types.ts';
 
 export const SummariesAIConfig = {
   schema: {
-    type: SchemaType.OBJECT,
+    type: Type.OBJECT,
     properties: {
-      insightHtml: { type: SchemaType.STRING },
+      insightHtml: { type: Type.STRING },
     },
     required: ['insightHtml'],
   } as Schema,

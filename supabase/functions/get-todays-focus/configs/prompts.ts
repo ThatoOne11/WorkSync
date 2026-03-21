@@ -1,14 +1,14 @@
-import { Schema, SchemaType } from 'npm:@google/generative-ai';
+import { Schema, Type } from 'npm:@google/genai';
 
 export const FocusAIConfig = {
   // Strict Schema mapped to our FocusProjectResult type
   schema: {
-    type: SchemaType.ARRAY,
+    type: Type.ARRAY,
     items: {
-      type: SchemaType.OBJECT,
+      type: Type.OBJECT,
       properties: {
-        name: { type: SchemaType.STRING },
-        requiredHoursToday: { type: SchemaType.NUMBER },
+        name: { type: Type.STRING },
+        requiredHoursToday: { type: Type.NUMBER },
       },
       required: ['name', 'requiredHoursToday'],
     },
