@@ -11,9 +11,9 @@ import { Chart, ChartConfiguration, ChartData } from 'chart.js/auto';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { switchMap, map, catchError, of } from 'rxjs';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
-import { ProjectHistoryService } from '../../core/services/project-history.service';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
+import { ProjectHistoryService } from '../../services/project-history.service';
 
 export type HistoryPayload = {
   projectName: string;

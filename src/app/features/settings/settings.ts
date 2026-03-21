@@ -18,19 +18,19 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { SettingsService } from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HistoricalDataService } from '../../core/services/historical-data.service';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
-import { ProjectService } from '../../core/services/project.service';
+import { Subject, combineLatest, startWith } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClockifyUserSchema, Project } from '../../shared/schemas/app.schemas';
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
+import { ClockifyService } from '../../services/clockify.service';
+import { HistoricalDataService } from '../../services/historical-data.service';
+import { ProjectService } from '../../services/project.service';
+import { SettingsService } from '../../services/settings.service';
 
 @Component({
   selector: 'app-settings',

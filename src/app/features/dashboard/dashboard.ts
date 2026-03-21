@@ -13,13 +13,12 @@ import {
   toObservable,
   toSignal,
 } from '@angular/core/rxjs-interop';
-import { ProjectService } from '../../core/services/project.service';
-import { ClockifyService } from '../../core/services/clockify.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { SuggestionsComponent } from '../suggestions/suggestions';
-import { TodayFocusComponent } from '../today-focus/today-focus';
 import { Project } from '../../shared/schemas/app.schemas';
 import { parseISO8601Duration } from '../../shared/utils/date.utils';
+import { ClockifyService } from '../../services/clockify.service';
+import { ProjectService } from '../../services/project.service';
+import { SettingsService } from '../../services/settings.service';
 
 type TimeEntry = {
   projectId: string;
@@ -37,7 +36,6 @@ interface ProjectWithTime extends Project {
     MatProgressBarModule,
     MatIconModule,
     SuggestionsComponent,
-    TodayFocusComponent,
     DecimalPipe,
   ],
   templateUrl: './dashboard.html',

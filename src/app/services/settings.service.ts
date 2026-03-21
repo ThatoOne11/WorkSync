@@ -1,12 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { from, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
-import {
-  AppSettings,
-  AppSettingsSchema,
-} from '../../shared/schemas/app.schemas';
-import { STORAGE_CONSTANTS } from '../../shared/constants/storage.constants';
-import { SUPABASE_FUNCTIONS } from '../../shared/constants/supabase.constants';
+import { STORAGE_CONSTANTS } from '../shared/constants/storage.constants';
+import { SUPABASE_FUNCTIONS } from '../shared/constants/supabase.constants';
+import { AppSettings, AppSettingsSchema } from '../shared/schemas/app.schemas';
 
 @Injectable({
   providedIn: 'root',

@@ -2,8 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { from, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { SettingsService } from './settings.service';
-import { Project } from '../../shared/schemas/app.schemas';
-import { SUPABASE_TABLES } from '../../shared/constants/supabase.constants';
+import { SUPABASE_TABLES } from '../shared/constants/supabase.constants';
+import { Project } from '../shared/schemas/app.schemas';
 
 @Injectable({
   providedIn: 'root',
