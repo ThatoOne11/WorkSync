@@ -4,17 +4,21 @@ import {
 } from '../../_shared/repo/projects.repo.ts';
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
 import {
+  GeminiService,
+  ProjectVarianceContext,
+} from '../../_shared/services/gemini.service.ts';
+import {
   getWorkdaysInMonth,
   getPassedWorkdays,
   parseISO8601Duration,
 } from '../../_shared/utils/date.utils.ts';
-import {
-  SuggestionsHelper,
-  ProjectVarianceData,
-} from '../helpers/suggestions.helper.ts';
 
 export class SuggestionsService {
-  constructor(private readonly projectsRepo: ProjectsRepository) {}
+  private readonly geminiService: GeminiService;
+
+  constructor(private readonly projectsRepo: ProjectsRepository) {
+    this.geminiService = new GeminiService();
+  }
 
   async getSuggestions(
     browserId: string,
@@ -32,19 +36,38 @@ export class SuggestionsService {
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
+    let projectsData: ProjectVarianceContext[];
+
+    // Gather data based on whether it is the weekend (review) or weekday (pacing projection)
     if (isWeekend) {
-      return await this.processWeekend(projects, clockify, userId, today);
+      projectsData = await this.gatherWeekendData(
+        projects,
+        clockify,
+        userId,
+        today,
+      );
+    } else {
+      projectsData = await this.gatherWeekdayData(
+        projects,
+        clockify,
+        userId,
+        today,
+      );
     }
 
-    return await this.processWeekday(projects, clockify, userId, today);
+    // Send the data to Gemini for dynamic AI insights!
+    return await this.geminiService.generatePacingSuggestions(
+      projectsData,
+      isWeekend,
+    );
   }
 
-  private async processWeekend(
+  private async gatherWeekendData(
     projects: DBProject[],
     clockify: ClockifyService,
     userId: string,
     today: Date,
-  ): Promise<string[]> {
+  ): Promise<ProjectVarianceContext[]> {
     const { start, end } = this.getLastWorkWeekBoundaries(today);
     const timeEntries = await clockify.fetchUserTimeEntries(userId, start, end);
     const totalWorkdaysInMonth = getWorkdaysInMonth(
@@ -52,7 +75,7 @@ export class SuggestionsService {
       today.getMonth(),
     );
 
-    const projectsData: ProjectVarianceData[] = projects.map((p) => {
+    return projects.map((p) => {
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
@@ -61,22 +84,23 @@ export class SuggestionsService {
         );
 
       const loggedHours = loggedSeconds / 3600;
-      const targetHours = p.target_hours * (5 / totalWorkdaysInMonth);
-      const variance = loggedHours - targetHours;
+      const targetHours = p.target_hours * (5 / totalWorkdaysInMonth); // Weekly target slice
 
-      return { name: p.name, loggedHours, targetHours, variance };
+      return {
+        name: p.name,
+        loggedHours: Math.round(loggedHours * 100) / 100,
+        targetHours: Math.round(targetHours * 100) / 100,
+        variance: Math.round((loggedHours - targetHours) * 100) / 100,
+      };
     });
-
-    // Delegate formatting to helper
-    return SuggestionsHelper.formatWeekendSuggestions(projectsData);
   }
 
-  private async processWeekday(
+  private async gatherWeekdayData(
     projects: DBProject[],
     clockify: ClockifyService,
     userId: string,
     today: Date,
-  ): Promise<string[]> {
+  ): Promise<ProjectVarianceContext[]> {
     const startOfMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -99,7 +123,7 @@ export class SuggestionsService {
     );
     const passedWorkdays = getPassedWorkdays(today);
 
-    const projectsData: ProjectVarianceData[] = projects.map((p) => {
+    return projects.map((p) => {
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
@@ -112,14 +136,11 @@ export class SuggestionsService {
 
       return {
         name: p.name,
-        loggedHours,
+        loggedHours: Math.round(loggedHours * 100) / 100,
         targetHours: p.target_hours,
-        variance: projectedHours - p.target_hours,
+        variance: Math.round((projectedHours - p.target_hours) * 100) / 100,
       };
     });
-
-    // Delegate formatting to helper
-    return SuggestionsHelper.formatWeekdaySuggestions(projectsData);
   }
 
   private getLastWorkWeekBoundaries(today: Date): {

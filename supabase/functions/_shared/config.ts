@@ -9,3 +9,8 @@ export const EMAIL_CONFIG = {
   resendApiKey: Deno.env.get('RESEND_API_KEY'),
   fromAddress: 'WorkSync <onboarding@resend.dev>',
 };
+
+export const AI_CONFIG = {
+  geminiApiKey: Deno.env.get('GEMINI_API_KEY')!,
+  geminiModel: Deno.env.get('GEMINI_MODEL'),
+};
