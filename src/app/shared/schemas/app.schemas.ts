@@ -23,12 +23,41 @@ export const ClockifyUserSchema = z.object({
   id: z.string(),
 });
 
+export const ClockifyProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
 export const HistoricalTargetSchema = z.record(
   z.string(),
   z.union([z.string(), z.number(), z.null()]),
 );
 
+export const FocusProjectSchema = z.object({
+  name: z.string(),
+  requiredHoursToday: z.number(),
+});
+
+export const HistoryPayloadSchema = z.object({
+  projectName: z.string(),
+  keyMetrics: z.object({
+    totalLoggedHours: z.number(),
+    targetHours: z.number(),
+    averageWeeklyBurn: z.number(),
+    pacingVariance: z.number(),
+    mostProductiveWeek: z.object({
+      logged_hours: z.number(),
+      week_ending_on: z.string(),
+    }),
+  }),
+  chartData: z.any(),
+  monthlyChartData: z.any(),
+  insights: z.array(z.string()),
+});
+
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type ClockifyUser = z.infer<typeof ClockifyUserSchema>;
 export type HistoricalTarget = z.infer<typeof HistoricalTargetSchema>;
+export type FocusProject = z.infer<typeof FocusProjectSchema>;
+export type HistoryPayload = z.infer<typeof HistoryPayloadSchema>;

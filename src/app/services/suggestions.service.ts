@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { z } from 'zod';
 import { EdgeApiService } from './edge-api.service';
 import { SUPABASE_FUNCTIONS } from '../shared/constants/supabase.constants';
 
@@ -12,9 +13,7 @@ export class SuggestionsService {
 
   getSuggestions(): Observable<string[]> {
     return this.api
-      .invoke<{
-        suggestions: string[];
-      }>(SUPABASE_FUNCTIONS.GENERATE_SUGGESTIONS)
-      .pipe(map((response) => response.suggestions));
+      .invoke<{ suggestions: unknown }>(SUPABASE_FUNCTIONS.GENERATE_SUGGESTIONS)
+      .pipe(map((response) => z.array(z.string()).parse(response.suggestions)));
   }
 }
