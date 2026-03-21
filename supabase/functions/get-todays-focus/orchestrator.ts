@@ -1,20 +1,20 @@
-import { FocusService } from '../services/focus.service.ts';
-import { ClockifyService } from '../../_shared/services/clockify.service.ts';
+import { FocusService } from './services/focus.service.ts';
+import { ClockifyService } from '../_shared/services/clockify.service.ts';
 import {
   GetTodaysFocusRequest,
   GetTodaysFocusSchema,
-} from '../types/focus.types.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
-import { toSafeError } from '../../_shared/utils/error.utils.ts';
-import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
+} from './types/focus.types.ts';
+import { ValidationError } from '../_shared/exceptions/custom.exceptions.ts';
+import { toSafeError } from '../_shared/utils/error.utils.ts';
+import { SettingsRepository } from '../_shared/repo/settings.repo.ts';
 
-export class FocusController {
+export class FocusOrchestrator {
   constructor(
     private readonly service: FocusService,
     private readonly settingsRepo: SettingsRepository,
   ) {}
 
-  async handleRequest(req: Request): Promise<Response> {
+  async execute(req: Request): Promise<Response> {
     let body: GetTodaysFocusRequest;
 
     try {
@@ -24,7 +24,6 @@ export class FocusController {
       throw new ValidationError(`Invalid payload: ${toSafeError(err).message}`);
     }
 
-    // Grab decrypted keys from the Vault via RPC
     const userSettings = await this.settingsRepo.getUserSettings(
       body.browserId,
     );
@@ -42,7 +41,6 @@ export class FocusController {
       userSettings.clockifyApiKey,
       userSettings.clockifyWorkspaceId,
     );
-
     const focusList = await this.service.calculateTodaysFocus(
       body.browserId,
       clockifyService,

@@ -6,7 +6,7 @@ import { ProjectsRepository } from '../_shared/repo/projects.repo.ts';
 import { SummariesRepository } from '../_shared/repo/summaries.repo.ts';
 import { EmailService } from '../_shared/services/email.service.ts';
 import { WeeklySummariesService } from './services/weekly-summaries.service.ts';
-import { WeeklySummariesController } from './controllers/summaries.controller.ts';
+import { SummariesOrchestrator } from './orchestrator.ts';
 
 Deno.serve(
   withEdgeWrapper('Create-Weekly-Summaries-Cron', async (req: Request) => {
@@ -26,8 +26,8 @@ Deno.serve(
       summariesRepo,
       emailService,
     );
-    const controller = new WeeklySummariesController(service);
+    const orchestrator = new SummariesOrchestrator(service);
 
-    return await controller.handleRequest(req);
+    return await orchestrator.execute(req);
   }),
 );
