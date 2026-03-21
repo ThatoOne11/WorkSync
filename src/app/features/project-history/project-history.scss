@@ -1,166 +1,89 @@
-.history-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
-
-  h2 {
-    font-size: 2.2em;
-    font-weight: 300;
-    margin: 0;
-  }
-}
-
-.spinner-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 80px 0;
-}
-
-.history-layout {
+.history-view {
   display: flex;
   flex-direction: column;
-  gap: 32px;
 }
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-}
-
-.metric-card {
-  padding: 24px !important;
-  text-align: center;
-
-  .mat-mdc-card-header {
-    justify-content: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-  }
-
-  .mat-mdc-card-title {
-    font-size: 1rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-secondary);
-  }
-
-  .metric-value {
-    font-size: 2.5em;
-    font-weight: 300;
-    line-height: 1.1;
-    display: block;
-    margin-bottom: 4px;
-
-    &.positive {
-      color: var(--color-success);
-    }
-    &.negative {
-      color: var(--color-danger);
-    }
-  }
-
-  .metric-label {
-    font-size: 0.85em;
-    color: var(--color-text-secondary);
-  }
-}
-
-.data-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 32px;
-}
-
-@media (max-width: 959px) {
-  .data-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.chart-card .mat-mdc-card-content {
-  height: 400px;
-}
-
-.chart-container {
-  position: relative;
-  height: 100%;
-  width: 100%;
-}
-
-.insights-card .mat-mdc-card-title {
+.title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
+  margin-left: calc(var(--space-sm) * -1);
 }
-
-.suggestion-item.mat-mdc-list-item {
-  height: auto !important;
-  padding: 12px 0;
-  white-space: normal !important;
-}
-
-.no-data-message {
-  padding: 40px;
-  text-align: center;
-  font-size: 1.1rem;
-}
-
-.monthly-card {
-  margin-top: 32px;
-}
-
-.monthly-layout {
+.metrics-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 
-@media (max-width: 959px) {
-  .monthly-layout {
-    grid-template-columns: 1fr;
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+  }
+  .unit {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-left: 4px;
   }
 }
-
-.monthly-chart-container {
-  position: relative;
-  height: 300px;
+.charts-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-md);
 }
+.chart-container {
+  height: 400px;
+  position: relative;
+}
+.monthly-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 
-.monthly-table {
+  .mini-chart {
+    height: 250px;
+    position: relative;
+  }
+}
+.data-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.9rem;
 
   th,
   td {
-    padding: 12px;
+    padding: var(--space-sm);
     text-align: left;
     border-bottom: 1px solid var(--color-border);
   }
-
   th {
-    font-weight: 500;
-    font-size: 0.9em;
-    color: var(--color-text-secondary);
-  }
-
-  td {
-    font-size: 0.95em;
-  }
-
-  .positive {
-    color: var(--color-success);
+    color: var(--color-text-muted);
     font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
   }
-  .negative {
-    color: var(--color-danger);
-    font-weight: 600;
+}
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  gap: var(--space-sm);
+}
+@media (max-width: 1100px) {
+  .charts-layout {
+    grid-template-columns: 1fr;
   }
 }

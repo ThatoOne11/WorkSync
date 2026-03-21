@@ -1,121 +1,146 @@
-<div class="settings-container">
-  <div class="header">
-    <h2>Settings</h2>
+<div class="settings-view">
+  <header class="page-header">
+    <div class="header-content">
+      <h2>Settings</h2>
+      <p class="u-text-muted">
+        Configure your Clockify integration and notification preferences.
+      </p>
+    </div>
     @if (settingsExist()) {
-    <button mat-stroked-button color="warn" (click)="onReset()">
-      <mat-icon>lock_reset</mat-icon>
-      Reset All Data
-    </button>
+      <button mat-stroked-button color="warn" type="button" (click)="onReset()">
+        <mat-icon>lock_reset</mat-icon> <span>Reset All Data</span>
+      </button>
     }
-  </div>
+  </header>
 
-  <mat-card>
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSave()">
-        <h3 class="section-title">
-          <mat-icon>key</mat-icon> Clockify Credentials
-        </h3>
-        <p class="description u-text-secondary">
-          @if (settingsExist()) { Your API credentials are saved. Update your
-          email preferences below. } @else { Enter your credentials and click
-          "Fetch User ID" to validate them before saving. }
-        </p>
+  <form [formGroup]="form" (ngSubmit)="onSave()" class="settings-layout">
+    <section class="surface-card connection-section">
+      <header class="card-header">
+        <mat-icon>key</mat-icon>
+        <h3>Clockify Credentials</h3>
+      </header>
 
+      <div class="form-grid">
         @if (!settingsExist()) {
-        <mat-form-field appearance="outline">
-          <mat-label>Clockify API Key</mat-label>
-          <input
-            matInput
-            type="password"
-            formControlName="apiKey"
-            autocomplete="off"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Clockify Workspace ID</mat-label>
-          <input
-            matInput
-            type="text"
-            formControlName="workspaceId"
-            autocomplete="off"
-          />
-        </mat-form-field>
-
-        <div class="user-id-row">
           <mat-form-field appearance="outline">
-            <mat-label>Clockify User ID</mat-label>
-            <input matInput type="text" formControlName="userId" readonly />
+            <mat-label>API Key</mat-label>
+            <input
+              matInput
+              type="password"
+              formControlName="apiKey"
+              autocomplete="off"
+            />
           </mat-form-field>
-          <button
-            mat-flat-button
-            color="accent"
-            type="button"
-            (click)="fetchUserId()"
-            [disabled]="
-              !form.get('apiKey')?.value ||
-              !form.get('workspaceId')?.value ||
-              isFetchingUserId()
-            "
-          >
-            @if(isFetchingUserId()) {
-            <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-            <span class="button-content-wrapper">
-              <mat-icon>person_search</mat-icon>
-              <span>Fetch User ID</span>
-            </span>
-            }
-          </button>
-        </div>
-        }
 
-        <hr />
-
-        <h3 class="section-title">
-          <mat-icon>notifications</mat-icon> Email Notifications
-        </h3>
-
-        <mat-slide-toggle
-          formControlName="enableEmailNotifications"
-          class="toggle-spacing"
-        >
-          Enable Weekly Summary Email
-        </mat-slide-toggle>
-
-        <mat-slide-toggle
-          formControlName="enablePacingAlerts"
-          class="toggle-spacing"
-        >
-          Enable Smart Pacing Alerts
-        </mat-slide-toggle>
-
-        @if (form.get('enableEmailNotifications')?.value ||
-        form.get('enablePacingAlerts')?.value) {
-        <div class="email-section">
           <mat-form-field appearance="outline">
+            <mat-label>Workspace ID</mat-label>
+            <input
+              matInput
+              type="text"
+              formControlName="workspaceId"
+              autocomplete="off"
+            />
+          </mat-form-field>
+
+          <div class="user-id-action">
+            <mat-form-field appearance="outline" class="flex-grow">
+              <mat-label>User ID</mat-label>
+              <input matInput type="text" formControlName="userId" readonly />
+            </mat-form-field>
+            <button
+              mat-flat-button
+              color="accent"
+              type="button"
+              (click)="fetchUserId()"
+              [disabled]="
+                !form.get('apiKey')?.value ||
+                !form.get('workspaceId')?.value ||
+                isFetchingUserId()
+              "
+            >
+              @if (isFetchingUserId()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>person_search</mat-icon>
+              }
+              <span>{{ isFetchingUserId() ? "Fetching..." : "Fetch ID" }}</span>
+            </button>
+          </div>
+        } @else {
+          <div class="status-box">
+            <mat-icon>check_circle</mat-icon>
+            <span
+              >Your account is connected. To change credentials, reset your
+              data.</span
+            >
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="surface-card notification-section">
+      <header class="card-header">
+        <mat-icon>notifications</mat-icon>
+        <h3>Email Notifications</h3>
+      </header>
+
+      <div class="settings-list">
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title" id="weekly-summary-label"
+              >Weekly Summary Email</span
+            >
+            <span class="setting-desc u-text-muted"
+              >Receive a detailed pacing report every week.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enableEmailNotifications"
+            aria-labelledby="weekly-summary-label"
+          ></mat-slide-toggle>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title" id="smart-pacing-label"
+              >Smart Pacing Alerts</span
+            >
+            <span class="setting-desc u-text-muted"
+              >Get notified daily if you fall behind or exceed your
+              targets.</span
+            >
+          </div>
+          <mat-slide-toggle
+            formControlName="enablePacingAlerts"
+            aria-labelledby="smart-pacing-label"
+          ></mat-slide-toggle>
+        </div>
+      </div>
+
+      @if (
+        form.get("enableEmailNotifications")?.value ||
+        form.get("enablePacingAlerts")?.value
+      ) {
+        <div class="email-config u-fade-in">
+          <mat-form-field appearance="outline" class="flex-grow">
             <mat-label>Notification Email</mat-label>
             <input
               matInput
               type="email"
               formControlName="notificationEmail"
-              required
               [readonly]="!emailEditMode()"
               #emailInput
             />
-            @if (form.get('notificationEmail')?.hasError('email') &&
-            form.get('notificationEmail')?.touched) {
-            <mat-error>Please enter a valid email address</mat-error>
-            } @if (!emailEditMode()) {
-            <button
-              mat-icon-button
-              matSuffix
-              type="button"
-              (click)="toggleEmailEdit()"
-              [disabled]="!settingsExist()"
-            >
-              <mat-icon>edit</mat-icon>
-            </button>
+            @if (!emailEditMode()) {
+              <button
+                mat-icon-button
+                matSuffix
+                (click)="toggleEmailEdit()"
+                [disabled]="!settingsExist()"
+                type="button"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
             }
           </mat-form-field>
 
@@ -123,71 +148,73 @@
             mat-stroked-button
             color="primary"
             type="button"
-            class="test-email-button"
             (click)="onTestEmail()"
             [disabled]="
-              isTestingEmail() || !settingsExist() || !getOriginalEmail()
+              isTestingEmail() ||
+              !settingsExist() ||
+              !getOriginalEmail() ||
+              isFormDirty() ||
+              form.get('notificationEmail')?.invalid
             "
           >
             @if (isTestingEmail()) {
-            <mat-spinner diameter="20"></mat-spinner>
+              <mat-spinner diameter="20"></mat-spinner>
             } @else {
-            <span>Send Test Email</span>
+              <mat-icon>send</mat-icon>
             }
+            <span>{{ isTestingEmail() ? "Sending..." : "Send Test" }}</span>
           </button>
         </div>
-        }
+      }
+    </section>
 
-        <hr />
-
-        <h3 class="section-title">
-          <mat-icon>storage</mat-icon> Data Management
-        </h3>
-        <div class="data-management-row">
-          <p class="u-text-secondary">
-            Populate your project history by pulling the last 3 months of data
-            from Clockify. This is a one-time action.
-          </p>
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            (click)="onBackfillHistory()"
-            [disabled]="
-              isBackfilling() || !settingsExist() || !hasActiveProjects()
-            "
-          >
-            @if (isBackfilling()) {
+    <section class="surface-card management-section">
+      <header class="card-header">
+        <mat-icon>storage</mat-icon>
+        <h3>Data Management</h3>
+      </header>
+      <div class="management-content">
+        <p class="u-text-muted">
+          Populate your history by pulling the last 3 months of data from
+          Clockify.
+        </p>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="onBackfillHistory()"
+          [disabled]="
+            isBackfilling() || !settingsExist() || !hasActiveProjects()
+          "
+        >
+          @if (isBackfilling()) {
             <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-            <span class="button-content-wrapper">
-              <mat-icon>history</mat-icon>
-              <span>Backfill History</span>
-            </span>
-            }
-          </button>
-        </div>
-
-        <div class="actions">
-          @if (settingsExist() && (emailEditMode() || isToggleDirty())) {
-          <button mat-stroked-button type="button" (click)="onCancelChanges()">
-            Cancel
-          </button>
+          } @else {
+            <mat-icon>history</mat-icon>
           }
-          <button
-            mat-raised-button
-            color="primary"
-            type="submit"
-            [disabled]="
-              form.invalid ||
-              (settingsExist() && !form.dirty) ||
-              (!settingsExist() && !form.get('userId')?.getRawValue())
-            "
-          >
-            Save Settings
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+          <span>{{ isBackfilling() ? "Processing..." : "Backfill Now" }}</span>
+        </button>
+      </div>
+    </section>
+
+    <footer class="form-actions">
+      @if (settingsExist() && isFormDirty()) {
+        <button mat-flat-button (click)="onCancelChanges()" type="button">
+          Cancel Changes
+        </button>
+      }
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="
+          form.invalid ||
+          (settingsExist() && !isFormDirty()) ||
+          (!settingsExist() && !form.get('userId')?.getRawValue())
+        "
+      >
+        Save Preferences
+      </button>
+    </footer>
+  </form>
 </div>

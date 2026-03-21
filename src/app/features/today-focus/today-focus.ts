@@ -1,45 +1,35 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  FocusProject,
-  TodayFocusService,
-} from '../../core/services/today-focus.service';
-import { Observable, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, of } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { TodayFocusService } from './services/today-focus.service';
+import { isWeekend } from '../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-today-focus',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatListModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-  ],
-  templateUrl: './today-focus.html',
+  imports: [MatListModule, MatIconModule, MatProgressSpinnerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './today-focus.html',
+  styleUrl: './today-focus.scss',
 })
 export class TodayFocusComponent {
-  private todayFocusService = inject(TodayFocusService);
-  protected focusList$: Observable<FocusProject[]>;
+  private readonly todayFocusService = inject(TodayFocusService);
 
-  // helper to check if today is a weekend
-  protected isWeekend(): boolean {
-    const day = new Date().getDay();
-    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
-  }
+  readonly isWeekend = computed(() => isWeekend());
 
-  constructor() {
-    this.focusList$ = this.todayFocusService.getTodaysFocus().pipe(
+  readonly focusList = toSignal(
+    this.todayFocusService.getTodaysFocus().pipe(
       catchError((err) => {
         console.error("Error fetching today's focus:", err);
         return of([]);
-      })
-    );
-  }
+      }),
+    ),
+  );
 }

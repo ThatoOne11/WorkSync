@@ -1,115 +1,56 @@
-// --- MAIN LAYOUT & TYPOGRAPHY ---
-.sidenav-container {
+.app-shell {
   height: calc(100vh - 64px);
-  background-color: var(--color-background-default);
+  background-color: var(--color-bg);
 }
-
-main {
-  padding: 32px;
-}
-
-.spacer {
-  flex: 1 1 auto;
-}
-
-// --- TOOLBAR (Flat Header) ---
-.app-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  height: 64px;
-  background-color: var(--color-background-surface);
-  color: var(--color-text-primary);
+.app-header {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-main) !important;
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-ambient);
-  transition: all 0.2s;
-}
+  box-shadow: none;
 
-.mat-toolbar.mat-primary {
-  background-color: var(--color-background-surface);
-  color: var(--color-text-primary);
-  .mat-icon,
-  .mat-icon-button {
-    color: var(--color-text-primary);
+  .brand-logo {
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--color-primary);
   }
 }
-
-.dark-theme .mat-toolbar.mat-primary {
-  background-color: var(--color-background-surface);
-  color: var(--color-text-primary);
-  .mat-icon,
-  .mat-icon-button {
-    color: var(--color-text-primary);
-  }
+mat-sidenav {
+  width: var(--layout-sidenav-width);
+  background-color: var(--color-surface) !important;
+  border-right: 1px solid var(--color-border) !important;
 }
+.side-nav {
+  padding: var(--space-md) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 
-.app-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  opacity: 0.9;
-}
-
-// --- SIDENAV REFINEMENT (Minimalist/Floating) ---
-.app-sidenav {
-  width: 280px;
-  border-right: none;
-  box-shadow: var(--shadow-key) !important;
-  padding-top: 24px;
-  background-color: var(--color-background-surface);
-}
-
-.mat-nav-list {
-  padding: 0 16px;
-}
-
-.mat-nav-list .mat-list-item {
-  height: 52px;
-  margin-bottom: 8px;
-  border-radius: var(--border-radius-base);
-  transition: all 0.2s;
-
-  span {
-    padding-left: 20px;
+  a {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    text-decoration: none;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-base);
     font-weight: 500;
-    font-size: 1.05rem;
-  }
+    transition: all 0.2s;
 
-  .mat-icon {
-    opacity: 0.8;
-  }
-
-  // Active state: A subtle accent fill
-  &.active {
-    background-color: var(--color-accent) !important;
-    color: var(--color-background-surface) !important;
-
-    .mat-icon {
-      color: var(--color-background-surface) !important;
-      opacity: 1;
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+    &:hover {
+      background-color: var(--color-primary-light);
+      color: var(--color-primary);
+    }
+    &.active-link {
+      background-color: var(--color-primary);
+      color: var(--color-white);
     }
   }
-
-  // Hover state (Not active): A subtle lifted effect
-  &:not(.active):hover {
-    background-color: rgba(var(--color-text-primary), 0.05);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  }
 }
-
-// --- RESPONSIVE ADJUSTMENTS ---
-@media (max-width: 599px) {
-  main {
-    padding: 16px;
-  }
-  .app-sidenav {
-    width: 250px;
-  }
-  .app-toolbar {
-    height: 56px;
-  }
-  .sidenav-container {
-    height: calc(100vh - 56px);
-  }
+.spacer {
+  flex: 1 1 auto;
 }

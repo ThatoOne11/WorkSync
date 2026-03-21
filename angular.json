@@ -29,7 +29,7 @@
             ],
             "styles": ["src/styles.scss"],
             "stylePreprocessorOptions": {
-              "includePaths": ["./node_modules"]
+              "includePaths": ["./node_modules", "src/styles"]
             }
           },
           "configurations": {
@@ -89,7 +89,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["src/styles.scss"],
+            "stylePreprocessorOptions": {
+              "includePaths": ["./node_modules", "src/styles"]
+            }
           }
         }
       }

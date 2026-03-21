@@ -1,33 +1,29 @@
-<mat-card class="today-focus-card">
-  <mat-card-header>
-    <mat-card-title class="card-title">
-      <mat-icon color="accent">my_location</mat-icon>
-      Daily Focus
-    </mat-card-title>
-    <mat-card-subtitle class="u-text-secondary"
-      >Recommended hours to log today to stay on pace:</mat-card-subtitle
-    >
-  </mat-card-header>
-  <mat-card-content>
-    @if (focusList$ | async; as focusList) { @if (focusList.length > 0) {
-    <mat-list role="list" dense>
-      @for (item of focusList; track item.name) {
-      <mat-list-item role="listitem">
-        <span class="focus-project-name">{{ item.name }}: </span>
-        <span class="focus-hours">{{ item.requiredHoursToday }} hrs</span>
-      </mat-list-item>
-      }
-    </mat-list>
-    } @else { @if (isWeekend()) {
-    <p class="u-text-secondary">
-      It's the weekend! <br />The daily pace will reset on Monday.
-    </p>
+<section class="surface-card focus-card">
+  <header class="card-header">
+    <mat-icon>my_location</mat-icon>
+    <h3>Daily Focus</h3>
+  </header>
+
+  @if (focusList() !== undefined) {
+    @if (focusList()!.length > 0) {
+      <ul class="focus-list">
+        @for (item of focusList(); track item.name) {
+          <li>
+            <span class="project-name">{{ item.name }}</span>
+            <span class="hours-badge">{{ item.requiredHoursToday }}h</span>
+          </li>
+        }
+      </ul>
     } @else {
-    <p class="u-text-secondary">
-      All projects are on track. No specific focus required today!
-    </p>
-    } } } @else {
-    <mat-spinner diameter="30"></mat-spinner>
+      <p class="u-text-muted">
+        {{
+          isWeekend()
+            ? "It's the weekend! Pace resets Monday."
+            : "All projects are on track!"
+        }}
+      </p>
     }
-  </mat-card-content>
-</mat-card>
+  } @else {
+    <mat-spinner diameter="30" />
+  }
+</section>

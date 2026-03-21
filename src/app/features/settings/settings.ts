@@ -2,11 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  OnDestroy,
   OnInit,
   ViewChild,
   inject,
   signal,
+  Signal,
+  computed,
+  DestroyRef,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -18,26 +20,26 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ClockifyService } from '../../core/services/clockify.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import {
-  AppSettings,
-  SettingsService,
-} from '../../core/services/settings.service';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HistoricalDataService } from '../../core/services/historical-data.service';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject, combineLatest, startWith, takeUntil } from 'rxjs';
-import { ProjectService } from '../../core/services/project.service';
-import { Project } from '../../core/models/project.model';
+import { combineLatest, startWith, map, catchError, of, switchMap } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
+import {
+  takeUntilDestroyed,
+  toObservable,
+  toSignal,
+} from '@angular/core/rxjs-interop';
+import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
+import { SettingsService } from '../../core/services/settings.service';
+import { SettingsStateService } from './services/settings-state.service';
+import { getPreviousMonthNames } from '../../shared/utils/date.utils';
+import { ProjectService } from '../projects/services/project.service';
+import { AppSettings } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-settings',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -46,7 +48,6 @@ import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
     MatButtonModule,
     MatSnackBarModule,
     MatSlideToggleModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatDialogModule,
@@ -55,33 +56,41 @@ import { BackfillDialog } from '../backfill-dialog/backfill-dialog';
   styleUrl: './settings.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Settings implements OnInit, OnDestroy {
+export class Settings implements OnInit {
   @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
 
-  private fb = inject(FormBuilder);
-  private clockifyService = inject(ClockifyService);
-  private settingsService = inject(SettingsService);
-  private historicalDataService = inject(HistoricalDataService);
-  private projectService = inject(ProjectService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private readonly fb = inject(FormBuilder);
+  private readonly settingsService = inject(SettingsService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
-  private activeProjects: Project[] = [];
-  private destroy$ = new Subject<void>();
+  readonly isFetchingUserId = signal(false);
+  readonly isTestingEmail = signal(false);
+  readonly isBackfilling = signal(false);
+
+  readonly state = inject(SettingsStateService);
+  private readonly projectService = inject(ProjectService);
 
   protected form: FormGroup;
   protected settingsExist = signal(false);
-  protected isBackfilling = signal(false);
-  protected isTestingEmail = signal(false);
-  protected isFetchingUserId = signal(false);
-  protected hasActiveProjects = signal(false);
   protected emailEditMode = signal(false);
 
-  protected initialToggleValues = {
-    enableEmailNotifications: false,
-    enablePacingAlerts: false,
-  };
-  protected isToggleDirty = signal(false);
+  protected isFormDirty: Signal<boolean>;
+
+  protected formValue: Signal<Partial<AppSettings> | undefined>;
+
+  readonly activeProjects = toSignal(
+    toObservable(this.settingsService.settings).pipe(
+      switchMap((settings) =>
+        settings ? this.projectService.getProjects() : of([]),
+      ),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] },
+  );
+
+  readonly hasActiveProjects = computed(() => this.activeProjects().length > 0);
 
   constructor() {
     this.form = this.fb.group({
@@ -92,6 +101,26 @@ export class Settings implements OnInit, OnDestroy {
       enableEmailNotifications: [false],
       enablePacingAlerts: [false],
     });
+
+    this.formValue = toSignal(this.form.valueChanges, {
+      initialValue: undefined,
+    });
+
+    this.isFormDirty = computed(() => {
+      this.formValue();
+      const saved = this.settingsService.settings();
+      const current = this.form.getRawValue();
+
+      if (!saved) return this.form.dirty;
+
+      return (
+        current.apiKey !== saved.apiKey ||
+        current.workspaceId !== saved.workspaceId ||
+        current.notificationEmail !== saved.notificationEmail ||
+        current.enableEmailNotifications !== saved.enableEmailNotifications ||
+        current.enablePacingAlerts !== saved.enablePacingAlerts
+      );
+    });
   }
 
   ngOnInit(): void {
@@ -99,26 +128,17 @@ export class Settings implements OnInit, OnDestroy {
     this.setupConditionalEmailValidation();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   private setupConditionalEmailValidation(): void {
-    const weeklySummaryToggle = this.form.get('enableEmailNotifications');
-    const pacingAlertsToggle = this.form.get('enablePacingAlerts');
+    const weeklyToggle = this.form.get('enableEmailNotifications');
+    const pacingToggle = this.form.get('enablePacingAlerts');
     const emailField = this.form.get('notificationEmail');
 
-    if (weeklySummaryToggle && pacingAlertsToggle && emailField) {
+    if (weeklyToggle && pacingToggle && emailField) {
       combineLatest([
-        weeklySummaryToggle.valueChanges.pipe(
-          startWith(weeklySummaryToggle.value)
-        ),
-        pacingAlertsToggle.valueChanges.pipe(
-          startWith(pacingAlertsToggle.value)
-        ),
+        weeklyToggle.valueChanges.pipe(startWith(weeklyToggle.value)),
+        pacingToggle.valueChanges.pipe(startWith(pacingToggle.value)),
       ])
-        .pipe(takeUntil(this.destroy$))
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
           if (isWeeklyEnabled || isPacingEnabled) {
             emailField.setValidators([Validators.required, Validators.email]);
@@ -127,105 +147,48 @@ export class Settings implements OnInit, OnDestroy {
             emailField.addValidators([Validators.email]);
           }
           emailField.updateValueAndValidity();
-
-          const isCurrentWeeklyEnabled = weeklySummaryToggle.value;
-          const isCurrentPacingEnabled = pacingAlertsToggle.value;
-
-          const weeklyChanged =
-            isCurrentWeeklyEnabled !==
-            this.initialToggleValues.enableEmailNotifications;
-          const pacingChanged =
-            isCurrentPacingEnabled !==
-            this.initialToggleValues.enablePacingAlerts;
-
-          this.isToggleDirty.set(weeklyChanged || pacingChanged);
         });
     }
   }
 
   private loadSettings(): void {
-    const settings = this.settingsService.getSettings();
+    const settings = this.settingsService.settings();
+
     if (settings) {
       this.form.patchValue(settings);
       this.form.get('apiKey')?.disable();
       this.form.get('workspaceId')?.disable();
       this.form.get('userId')?.disable();
 
-      // --- FIX 4: Store initial toggle values ---
-      this.initialToggleValues.enableEmailNotifications =
-        settings.enableEmailNotifications;
-      this.initialToggleValues.enablePacingAlerts = settings.enablePacingAlerts;
-      // ------------------------------------------
-
       this.settingsExist.set(true);
-      // FIX 1: The email field should be in edit mode only if no email is saved.
       this.emailEditMode.set(!settings.notificationEmail);
     } else {
       this.form.enable();
       this.form.get('userId')?.disable();
       this.settingsExist.set(false);
       this.emailEditMode.set(true);
-
-      // Reset initial values for a fresh start
-      this.initialToggleValues.enableEmailNotifications = false;
-      this.initialToggleValues.enablePacingAlerts = false;
     }
-    this.checkActiveProjects();
+
     this.form.markAsPristine();
-    this.isToggleDirty.set(false); // Reset toggle dirty state on load
+    this.form.markAsUntouched();
+    this.form.updateValueAndValidity();
   }
 
   protected getOriginalEmail(): string {
-    return this.settingsService.getSettings()?.notificationEmail || '';
+    return this.settingsService.settings()?.notificationEmail || '';
   }
 
   onCancelChanges(): void {
-    const settings = this.settingsService.getSettings();
-    const emailField = this.form.get('notificationEmail');
-    const weeklyToggle = this.form.get('enableEmailNotifications');
-    const pacingToggle = this.form.get('enablePacingAlerts');
-
-    // 1. Reset toggles to initial state (Bug 4)
-    weeklyToggle?.setValue(this.initialToggleValues.enableEmailNotifications, {
-      emitEvent: true,
-    });
-    pacingToggle?.setValue(this.initialToggleValues.enablePacingAlerts, {
-      emitEvent: true,
-    });
-
-    // 2. Reset email field to saved state (Bug 4)
-    const originalEmail = settings?.notificationEmail || '';
-    emailField?.setValue(originalEmail);
-
-    // 3. Exit email edit mode and mark as pristine
-    this.emailEditMode.set(!originalEmail); // Exit edit mode unless no email was ever set
-    this.form.markAsPristine(); // Resets overall dirty state (fixes Bug 2 for toggles)
-    this.isToggleDirty.set(false);
+    this.loadSettings();
   }
 
   toggleEmailEdit(): void {
-    if (this.emailEditMode()) {
-      // If exiting edit mode (clicking 'cancel' icon), reset the field value
-      const originalEmail =
-        this.settingsService.getSettings()?.notificationEmail || '';
-      this.form.get('notificationEmail')?.setValue(originalEmail);
-    }
-    this.emailEditMode.update((v) => !v);
-    if (this.emailEditMode()) {
-      setTimeout(() => this.emailInput.nativeElement.focus(), 0);
-    }
+    this.emailEditMode.set(true);
+    setTimeout(() => this.emailInput.nativeElement.focus(), 0);
   }
 
-  private checkActiveProjects(): void {
-    if (this.settingsExist()) {
-      this.projectService.getProjects().subscribe((projects: Project[]) => {
-        this.activeProjects = projects; // Store for the dialog
-        this.hasActiveProjects.set(projects && projects.length > 0);
-      });
-    }
-  }
-
-  onSave(): void {
+  async onSave(): Promise<void> {
+    // Added async
     if (this.form.invalid) {
       this.snackBar.open('Please correct the errors before saving.', 'Close', {
         duration: 3000,
@@ -234,14 +197,23 @@ export class Settings implements OnInit, OnDestroy {
     }
 
     const isInitialSave = !this.settingsExist();
-    this.settingsService.saveSettings(this.form.getRawValue());
 
-    const message = isInitialSave
-      ? 'Credentials saved successfully!'
-      : 'Settings have been updated.';
-    this.snackBar.open(message, 'Close', { duration: 3000 });
+    try {
+      // Await the sync to ensure the global Signal is updated before we reload the form
+      await this.settingsService.saveSettings(this.form.getRawValue());
 
-    this.loadSettings();
+      const message = isInitialSave
+        ? 'Credentials saved successfully!'
+        : 'Settings have been updated.';
+      this.snackBar.open(message, 'Close', { duration: 3000 });
+
+      // Re-trigger form state alignment
+      this.loadSettings();
+    } catch (err) {
+      this.snackBar.open('Failed to save settings.', 'Close', {
+        duration: 3000,
+      });
+    }
   }
 
   async onReset() {
@@ -252,71 +224,51 @@ export class Settings implements OnInit, OnDestroy {
       enablePacingAlerts: false,
     });
     this.loadSettings();
-    this.hasActiveProjects.set(false);
     this.snackBar.open(
       'All your data has been cleared from this browser and the server.',
       'Close',
-      {
-        duration: 3000,
-      }
+      { duration: 3000 },
     );
   }
 
   fetchUserId(): void {
     const apiKey = this.form.get('apiKey')?.value;
-    const workspaceId = this.form.get('workspaceId')?.value;
-    if (!apiKey || !workspaceId) {
-      this.snackBar.open(
-        'Please enter both API Key and Workspace ID.',
-        'Close',
-        {
-          duration: 3000,
-        }
-      );
-      return;
-    }
+    if (!apiKey) return;
 
     this.isFetchingUserId.set(true);
-    this.clockifyService.getCurrentUserId(apiKey).subscribe({
-      next: (user: any) => {
-        if (user && user.id) {
-          this.form.patchValue({ userId: user.id });
+
+    this.state
+      .fetchUserId(apiKey)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (fetchedId) => {
+          this.form.patchValue({ userId: fetchedId });
           this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+          this.form.markAsDirty();
+          this.form.updateValueAndValidity();
           this.snackBar.open('User ID fetched successfully!', 'Close', {
             duration: 3000,
           });
-        } else {
+          this.isFetchingUserId.set(false);
+        },
+        error: () => {
           this.snackBar.open(
             'Could not fetch User ID. Check your API Key.',
             'Close',
-            { duration: 3000 }
+            { duration: 3000 },
           );
-        }
-        this.isFetchingUserId.set(false);
-      },
-      error: (err) => {
-        console.error('Error fetching user ID:', err);
-        this.snackBar.open(
-          'Error fetching User ID. Check the console for details.',
-          'Close',
-          { duration: 3000 }
-        );
-        this.isFetchingUserId.set(false);
-      },
-    });
+          this.isFetchingUserId.set(false);
+        },
+      });
   }
 
   onBackfillHistory(): void {
-    const today = new Date();
-    const months = [...Array(3)].map((_, i) => {
-      const d = new Date(today.getFullYear(), today.getMonth() - (i + 1), 1);
-      return d.toLocaleString('default', { month: 'long' });
-    });
+    const months = getPreviousMonthNames(3);
 
     const dialogRef = this.dialog.open(BackfillDialog, {
       width: '600px',
       data: {
-        projects: this.activeProjects,
+        projects: this.activeProjects(),
         months,
       },
     });
@@ -324,45 +276,49 @@ export class Settings implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.isBackfilling.set(true);
-        this.historicalDataService.backfillHistory(result).subscribe({
-          next: (response: any) => {
-            this.snackBar.open(response.message, 'Close', { duration: 5000 });
-            this.isBackfilling.set(false);
-          },
-          error: (err) => {
-            console.error('Error during backfill:', err);
-            this.snackBar.open(
-              'An error occurred during backfill. Check the console.',
-              'Close',
-              { duration: 5000 }
-            );
-            this.isBackfilling.set(false);
-          },
-        });
+        this.state
+          .runBackfill(result)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (res) => {
+              this.snackBar.open(res.message, 'Close', { duration: 5000 });
+              this.isBackfilling.set(false);
+            },
+            error: () => {
+              this.snackBar.open(
+                'Error during backfill. Check the console.',
+                'Close',
+                { duration: 5000 },
+              );
+              this.isBackfilling.set(false);
+            },
+          });
       }
     });
   }
 
   onTestEmail(): void {
     this.isTestingEmail.set(true);
-    this.settingsService.runWeeklySummary().subscribe({
-      next: (response: any) => {
-        this.snackBar.open(
-          'Weekly summary function ran successfully. Check your email!',
-          'Close',
-          { duration: 5000 }
-        );
-        this.isTestingEmail.set(false);
-      },
-      error: (err) => {
-        console.error('Error running weekly summary:', err);
-        this.snackBar.open(
-          'An error occurred. Please check the console.',
-          'Close',
-          { duration: 5000 }
-        );
-        this.isTestingEmail.set(false);
-      },
-    });
+    this.state
+      .testEmail()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.snackBar.open(
+            'Weekly summary function ran successfully. Check your email!',
+            'Close',
+            { duration: 5000 },
+          );
+          this.isTestingEmail.set(false);
+        },
+        error: () => {
+          this.snackBar.open(
+            'An error occurred. Please check the console.',
+            'Close',
+            { duration: 5000 },
+          );
+          this.isTestingEmail.set(false);
+        },
+      });
   }
 }

@@ -1,39 +1,57 @@
-<table mat-table [dataSource]="projects" class="mat-elevation-z8">
-  <ng-container matColumnDef="name">
-    <th mat-header-cell *matHeaderCellDef>Project Name</th>
-    <td mat-cell *matCellDef="let project">{{ project.name }}</td>
-  </ng-container>
+<div class="table-responsive">
+  <table mat-table [dataSource]="projects()">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Project Name</th>
+      <td mat-cell *matCellDef="let project" class="project-name-cell">
+        {{ project.name }}
+      </td>
+    </ng-container>
 
-  <ng-container matColumnDef="target_hours">
-    <th mat-header-cell *matHeaderCellDef class="u-text-secondary">
-      Target (hrs)
-    </th>
-    <td mat-cell *matCellDef="let project">{{ project.target_hours }}</td>
-  </ng-container>
+    <ng-container matColumnDef="target_hours">
+      <th mat-header-cell *matHeaderCellDef>Allocated (hrs)</th>
+      <td mat-cell *matCellDef="let project" class="target-cell">
+        {{ project.target_hours }}h
+      </td>
+    </ng-container>
 
-  <ng-container matColumnDef="actions">
-    <th mat-header-cell *matHeaderCellDef class="u-text-secondary">Actions</th>
-    <td mat-cell *matCellDef="let project">
-      <a
-        mat-icon-button
-        color="accent"
-        [routerLink]="['/projects', project.id, 'history']"
-      >
-        <mat-icon>trending_up</mat-icon>
-      </a>
-      <button mat-icon-button color="primary" (click)="onEdit(project)">
-        <mat-icon>edit</mat-icon>
-      </button>
-      <button mat-icon-button color="warn" (click)="onDelete(project.id)">
-        <mat-icon>delete</mat-icon>
-      </button>
-    </td>
-  </ng-container>
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef>Actions</th>
+      <td mat-cell *matCellDef="let project" class="actions-cell">
+        <div class="button-group">
+          <a
+            mat-icon-button
+            [routerLink]="['/projects', project.id, 'history']"
+            matTooltip="View History"
+            aria-label="View project history"
+          >
+            <mat-icon color="primary">insights</mat-icon>
+          </a>
+          <button
+            mat-icon-button
+            (click)="edit.emit(project)"
+            matTooltip="Edit"
+            aria-label="Edit project"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="delete.emit(project.id)"
+            matTooltip="Delete"
+            aria-label="Delete project"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
 
-  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr
-    mat-row
-    *matRowDef="let row; columns: displayedColumns"
-    class="project-row"
-  ></tr>
-</table>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      class="data-row"
+    ></tr>
+  </table>
+</div>

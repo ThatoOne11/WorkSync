@@ -1,154 +1,125 @@
-.dashboard-container {
-  padding: 0;
-}
-
-// --- RESPONSIVE PANEL LAYOUT ---
-.dashboard-panels {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 32px;
-  margin-bottom: 32px;
-}
-
-// --- PROJECT CARD DESIGN (Data Widget Look) ---
-.project-cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 32px;
-}
-
-.project-card {
+.dashboard-wrapper {
   position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 6px;
-    border-radius: var(--border-radius-base) 0 0 var(--border-radius-base);
-    transition: background-color 0.3s;
-  }
-
-  &.on-pace::before {
-    background-color: var(--color-success);
-  }
-
-  &.falling-behind::before {
-    background-color: var(--color-danger);
-  }
-
-  .project-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    padding-left: 12px;
-    letter-spacing: -0.5px;
-  }
-
-  .mat-mdc-card-header {
-    margin-bottom: 24px;
-    margin-left: -12px;
-    margin-right: -12px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
+  min-height: 60vh;
 }
 
-.project-stats {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 24px;
-
-  .stat-label {
-    font-size: 0.85em;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-
-  .stat-value {
-    font-size: 1.1em;
-    font-weight: 400;
-    color: var(--color-text-primary);
-  }
-}
-
-.progress-wrapper {
-  margin-bottom: 24px;
-
-  .progress-label {
-    font-size: 0.9em;
-    font-weight: 500;
-    margin-bottom: 8px;
-    display: block;
-    letter-spacing: 0.5px;
-  }
-}
-
-mat-progress-bar {
-  height: 10px;
-  border-radius: 5px;
-  .mat-mdc-progress-bar-primary {
-    --mdc-linear-progress-track-color: var(--color-border);
-    --mdc-linear-progress-active-indicator-color: var(--color-accent);
-  }
-}
-
-.balance-container {
+.global-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-loader);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 0 0 0;
-  border-top: 1px dashed var(--color-border);
+  justify-content: center;
+  gap: var(--space-md);
 
-  .balance-label {
-    font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  p {
+    font-size: 1.25rem;
     font-weight: 600;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
-  }
-
-  .balance-value {
-    // FIX: Reduced font size for Balance
-    font-size: 2.2em;
-    font-weight: 300;
-    line-height: 1;
-    color: var(--color-text-primary);
+    color: var(--color-primary);
+    margin: 0;
   }
 }
 
-.no-projects-message {
-  padding: 32px;
-  text-align: center;
-  color: var(--color-text-secondary);
+:host-context(.dark-theme) .global-loader-overlay {
+  background: rgba(15, 23, 42, 0.7);
 }
 
-// --- STYLES FOR TODAY'S FOCUS CARD ---
-.focus-hours {
-  font-weight: 600;
-  color: var(--color-accent);
-  font-size: 1.1em;
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: opacity 0.3s ease;
+
+  &.is-loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
 }
 
-// --- RESPONSIVE ADJUSTMENTS ---
-@media (max-width: 599px) {
-  .dashboard-panels {
+.panel-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-md);
+}
+
+.section-header {
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+  }
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-md);
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.stats-row {
+  display: flex;
+  gap: var(--space-lg);
+
+  .stat {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      font-weight: 600;
+    }
+    .value {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
   }
-  .project-cards-container {
-    gap: 24px;
+}
+
+.progress-container {
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-xs);
+    font-size: 0.85rem;
+    font-weight: 500;
   }
-  .project-card::before {
-    height: 4px;
-    width: 100%;
-    border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+  .balance.is-negative {
+    color: var(--color-danger);
+  }
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 700;
+  text-transform: uppercase;
+
+  &.is-overbudget {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
+}
+
+@media (max-width: 600px) {
+  .panel-row {
+    grid-template-columns: 1fr;
   }
 }
