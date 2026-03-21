@@ -3,18 +3,21 @@ import {
   ProjectsRepository,
 } from '../../_shared/repo/projects.repo.ts';
 import { ClockifyService } from '../../_shared/services/clockify.service.ts';
+import { GeminiService } from '../../_shared/services/gemini.service.ts';
 import {
   getWorkdaysInMonth,
   getPassedWorkdays,
   parseISO8601Duration,
 } from '../../_shared/utils/date.utils.ts';
-import {
-  SuggestionsHelper,
-  ProjectVarianceData,
-} from '../helpers/suggestions.helper.ts';
+import { SuggestionsAIConfig } from '../configs/prompts.ts';
+import { ProjectVarianceContext } from '../types/suggestions.types.ts';
 
 export class SuggestionsService {
-  constructor(private readonly projectsRepo: ProjectsRepository) {}
+  private readonly geminiService: GeminiService;
+
+  constructor(private readonly projectsRepo: ProjectsRepository) {
+    this.geminiService = new GeminiService();
+  }
 
   async getSuggestions(
     browserId: string,
@@ -22,7 +25,6 @@ export class SuggestionsService {
     userId: string,
   ): Promise<string[]> {
     const projects = await this.projectsRepo.getActiveProjects(browserId);
-
     if (projects.length === 0) {
       return [
         'No active projects found. Add one on the Projects page to start tracking your pacing.',
@@ -32,19 +34,46 @@ export class SuggestionsService {
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
+    let projectsData: ProjectVarianceContext[];
     if (isWeekend) {
-      return await this.processWeekend(projects, clockify, userId, today);
+      projectsData = await this.gatherWeekendData(
+        projects,
+        clockify,
+        userId,
+        today,
+      );
+    } else {
+      projectsData = await this.gatherWeekdayData(
+        projects,
+        clockify,
+        userId,
+        today,
+      );
     }
 
-    return await this.processWeekday(projects, clockify, userId, today);
+    // Get the dynamic prompt and schema from our configs
+    const prompt = SuggestionsAIConfig.buildPrompt(projectsData, isWeekend);
+
+    // Pass them to the generic LLM wrapper
+    try {
+      return await this.geminiService.generateStructuredContent<string[]>(
+        prompt,
+        SuggestionsAIConfig.schema,
+        0.7,
+      );
+    } catch (e) {
+      return [
+        'AI analysis is temporarily unavailable, but keep up the great work!',
+      ];
+    }
   }
 
-  private async processWeekend(
+  private async gatherWeekendData(
     projects: DBProject[],
     clockify: ClockifyService,
     userId: string,
     today: Date,
-  ): Promise<string[]> {
+  ): Promise<ProjectVarianceContext[]> {
     const { start, end } = this.getLastWorkWeekBoundaries(today);
     const timeEntries = await clockify.fetchUserTimeEntries(userId, start, end);
     const totalWorkdaysInMonth = getWorkdaysInMonth(
@@ -52,7 +81,7 @@ export class SuggestionsService {
       today.getMonth(),
     );
 
-    const projectsData: ProjectVarianceData[] = projects.map((p) => {
+    return projects.map((p) => {
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
@@ -61,22 +90,23 @@ export class SuggestionsService {
         );
 
       const loggedHours = loggedSeconds / 3600;
-      const targetHours = p.target_hours * (5 / totalWorkdaysInMonth);
-      const variance = loggedHours - targetHours;
+      const targetHours = p.target_hours * (5 / totalWorkdaysInMonth); // Weekly target slice
 
-      return { name: p.name, loggedHours, targetHours, variance };
+      return {
+        name: p.name,
+        loggedHours: Math.round(loggedHours * 100) / 100,
+        targetHours: Math.round(targetHours * 100) / 100,
+        variance: Math.round((loggedHours - targetHours) * 100) / 100,
+      };
     });
-
-    // Delegate formatting to helper
-    return SuggestionsHelper.formatWeekendSuggestions(projectsData);
   }
 
-  private async processWeekday(
+  private async gatherWeekdayData(
     projects: DBProject[],
     clockify: ClockifyService,
     userId: string,
     today: Date,
-  ): Promise<string[]> {
+  ): Promise<ProjectVarianceContext[]> {
     const startOfMonth = new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -99,7 +129,7 @@ export class SuggestionsService {
     );
     const passedWorkdays = getPassedWorkdays(today);
 
-    const projectsData: ProjectVarianceData[] = projects.map((p) => {
+    return projects.map((p) => {
       const loggedSeconds = timeEntries
         .filter((te) => te.projectId === p.clockify_project_id)
         .reduce(
@@ -112,14 +142,11 @@ export class SuggestionsService {
 
       return {
         name: p.name,
-        loggedHours,
+        loggedHours: Math.round(loggedHours * 100) / 100,
         targetHours: p.target_hours,
-        variance: projectedHours - p.target_hours,
+        variance: Math.round((projectedHours - p.target_hours) * 100) / 100,
       };
     });
-
-    // Delegate formatting to helper
-    return SuggestionsHelper.formatWeekdaySuggestions(projectsData);
   }
 
   private getLastWorkWeekBoundaries(today: Date): {

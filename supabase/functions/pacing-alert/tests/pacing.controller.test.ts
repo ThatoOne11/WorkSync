@@ -5,7 +5,7 @@ import {
 } from 'jsr:@std/assert';
 import { PacingAlertController } from '../controllers/pacing.controller.ts';
 import { PacingAlertService } from '../services/pacing.service.ts';
-import { SUPABASE_CONFIG } from '../../_shared/config.ts';
+import { ENV } from '../../_shared/configs/env.ts';
 
 Deno.test('PacingAlertController Security Suite', async (t) => {
   const mockService = {
@@ -15,12 +15,12 @@ Deno.test('PacingAlertController Security Suite', async (t) => {
   const controller = new PacingAlertController(mockService);
 
   // Store the original secret to restore it after the test
-  const originalSecret = SUPABASE_CONFIG.serviceRoleKey;
+  const originalSecret = ENV.SUPABASE_SERVICE_ROLE_KEY;
 
   await t.step(
     'handleRequest - throws Unauthorized if Auth header is missing',
     async () => {
-      SUPABASE_CONFIG.serviceRoleKey = 'secure_cron_secret_123';
+      ENV.SUPABASE_SERVICE_ROLE_KEY = 'secure_cron_secret_123';
 
       const req = new Request('https://mock.com', { method: 'POST' }); // No headers
 
@@ -35,7 +35,7 @@ Deno.test('PacingAlertController Security Suite', async (t) => {
   await t.step(
     'handleRequest - throws Unauthorized if Auth header is incorrect',
     async () => {
-      SUPABASE_CONFIG.serviceRoleKey = 'secure_cron_secret_123';
+      ENV.SUPABASE_SERVICE_ROLE_KEY = 'secure_cron_secret_123';
 
       const req = new Request('https://mock.com', {
         method: 'POST',
@@ -53,7 +53,7 @@ Deno.test('PacingAlertController Security Suite', async (t) => {
   await t.step(
     'handleRequest - returns 200 OK if Service Role token perfectly matches',
     async () => {
-      SUPABASE_CONFIG.serviceRoleKey = 'secure_cron_secret_123';
+      ENV.SUPABASE_SERVICE_ROLE_KEY = 'secure_cron_secret_123';
 
       const req = new Request('https://mock.com', {
         method: 'POST',
@@ -69,5 +69,5 @@ Deno.test('PacingAlertController Security Suite', async (t) => {
   );
 
   // Teardown: Restore the original secret so we don't break other tests
-  SUPABASE_CONFIG.serviceRoleKey = originalSecret;
+  ENV.SUPABASE_SERVICE_ROLE_KEY = originalSecret;
 });

@@ -1,16 +1,16 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { EmailService } from '../services/email.service.ts';
-import { EMAIL_CONFIG } from '../config.ts';
+import { ENV } from '../configs/env.ts';
 import { DownstreamSyncError } from '../exceptions/custom.exceptions.ts';
 
 Deno.test('EmailService Suite', async (t) => {
   const originalFetch = globalThis.fetch;
-  const originalApiKey = EMAIL_CONFIG.resendApiKey;
+  const originalApiKey = ENV.RESEND_API_KEY;
 
   await t.step(
     'sendEmail - skips sending if RESEND_API_KEY is not configured',
     async () => {
-      EMAIL_CONFIG.resendApiKey = undefined;
+      ENV.RESEND_API_KEY = undefined;
       const service = new EmailService();
 
       let fetchCalled = false;
@@ -26,7 +26,7 @@ Deno.test('EmailService Suite', async (t) => {
   );
 
   await t.step('sendEmail - successfully dispatches email', async () => {
-    EMAIL_CONFIG.resendApiKey = 'valid_key';
+    ENV.RESEND_API_KEY = 'valid_key';
     const service = new EmailService();
 
     // Type 'any' used here to capture the parsed JSON payload
@@ -54,7 +54,7 @@ Deno.test('EmailService Suite', async (t) => {
   await t.step(
     'sendEmail - throws DownstreamSyncError if Resend API fails',
     async () => {
-      EMAIL_CONFIG.resendApiKey = 'valid_key';
+      ENV.RESEND_API_KEY = 'valid_key';
       const service = new EmailService();
 
       globalThis.fetch = () => {
@@ -80,5 +80,5 @@ Deno.test('EmailService Suite', async (t) => {
 
   // Teardown
   globalThis.fetch = originalFetch;
-  EMAIL_CONFIG.resendApiKey = originalApiKey;
+  ENV.RESEND_API_KEY = originalApiKey;
 });

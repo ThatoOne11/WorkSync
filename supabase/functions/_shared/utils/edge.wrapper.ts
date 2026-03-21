@@ -1,4 +1,4 @@
-import { corsHeaders } from '../cors.ts';
+import { corsHeaders } from '../configs/cors.ts';
 import { toSafeError } from './error.utils.ts';
 
 export function withEdgeWrapper(

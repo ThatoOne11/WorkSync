@@ -1,4 +1,4 @@
-import { SUPABASE_CONFIG } from '../config.ts';
+import { ENV } from '../configs/env.ts';
 
 export function requireServiceRole(req: Request): void {
   // We use Authorization Bearer token matching the Service Role Key
@@ -6,7 +6,7 @@ export function requireServiceRole(req: Request): void {
     .get('Authorization')
     ?.replace('Bearer ', '')
     .trim();
-  const expectedKey = SUPABASE_CONFIG.serviceRoleKey.trim();
+  const expectedKey = ENV.SUPABASE_SERVICE_ROLE_KEY.trim();
 
   if (!authHeader || authHeader !== expectedKey) {
     throw new Error('Unauthorized: Invalid or missing Service Role token.');

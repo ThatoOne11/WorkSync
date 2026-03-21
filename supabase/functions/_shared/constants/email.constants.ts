@@ -1,4 +1,4 @@
-export const EmailTheme = {
+export const EMAIL_THEME = {
   BRAND_ACCENT: '#79A9D1',
   PRIMARY_TEXT: '#333333',
   SECONDARY_TEXT: '#666666',
