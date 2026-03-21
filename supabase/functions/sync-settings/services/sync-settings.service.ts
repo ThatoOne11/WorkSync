@@ -10,7 +10,6 @@ export class SyncSettingsService {
     settings: SyncSettingsRequest['settings'],
   ): Promise<void> {
     const mappedSettings: Partial<UserSettings> = {
-      clockifyApiKey: settings.apiKey,
       clockifyWorkspaceId: settings.workspaceId,
       clockifyUserId: settings.userId,
       notificationEmail: settings.notificationEmail,
@@ -19,6 +18,11 @@ export class SyncSettingsService {
       ),
       enablePacingAlerts: String(settings.enablePacingAlerts || false),
     };
+
+    // IMPORTANT: Ignore the placeholder key if the frontend sends it during an edit
+    if (settings.apiKey && settings.apiKey !== '••••••••••••••••') {
+      mappedSettings.clockifyApiKey = settings.apiKey;
+    }
 
     await this.settingsRepo.upsertSettings(browserId, mappedSettings);
   }

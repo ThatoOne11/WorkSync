@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SupabaseTables } from '../constants/supabase.constants.ts';
+import { SUPABASE_TABLES } from '../constants/supabase.constants.ts';
 
 export type DBWeeklySummary = {
   week_ending_on: string;
@@ -17,7 +17,7 @@ export class SummariesRepository {
     userId: string,
   ): Promise<DBWeeklySummary[]> {
     const { data, error } = await this.client
-      .from(SupabaseTables.WEEKLY_SUMMARIES)
+      .from(SUPABASE_TABLES.WEEKLY_SUMMARIES)
       .select('week_ending_on, logged_hours, target_hours, project_id, user_id')
       .eq('project_id', projectId)
       .eq('user_id', userId)
@@ -31,7 +31,7 @@ export class SummariesRepository {
     if (summaries.length === 0) return;
 
     const { error } = await this.client
-      .from(SupabaseTables.WEEKLY_SUMMARIES)
+      .from(SUPABASE_TABLES.WEEKLY_SUMMARIES)
       .upsert(summaries, { onConflict: 'project_id,week_ending_on,user_id' });
 
     if (error) throw new Error(`DB Error (Summaries upsert): ${error.message}`);
@@ -39,7 +39,7 @@ export class SummariesRepository {
 
   async deleteUserData(userId: string): Promise<void> {
     const { error } = await this.client
-      .from(SupabaseTables.WEEKLY_SUMMARIES)
+      .from(SUPABASE_TABLES.WEEKLY_SUMMARIES)
       .delete()
       .eq('user_id', userId);
 

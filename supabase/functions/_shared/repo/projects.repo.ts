@@ -1,5 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js';
-import { SupabaseTables } from '../constants/supabase.constants.ts';
+import { SUPABASE_TABLES } from '../constants/supabase.constants.ts';
 
 export type DBProject = {
   id: number;
@@ -13,7 +13,7 @@ export class ProjectsRepository {
 
   async getActiveProjects(userId: string): Promise<DBProject[]> {
     const { data, error } = await this.client
-      .from(SupabaseTables.PROJECTS)
+      .from(SUPABASE_TABLES.PROJECTS)
       .select('id, name, target_hours, clockify_project_id')
       .eq('is_archived', false)
       .eq('user_id', userId);
@@ -25,7 +25,7 @@ export class ProjectsRepository {
 
   async getProjectById(projectId: number, userId: string): Promise<DBProject> {
     const { data, error } = await this.client
-      .from(SupabaseTables.PROJECTS)
+      .from(SUPABASE_TABLES.PROJECTS)
       .select('id, name, target_hours, clockify_project_id')
       .eq('id', projectId)
       .eq('user_id', userId)
@@ -38,7 +38,7 @@ export class ProjectsRepository {
 
   async deleteUserData(userId: string): Promise<void> {
     const { error } = await this.client
-      .from(SupabaseTables.PROJECTS)
+      .from(SUPABASE_TABLES.PROJECTS)
       .delete()
       .eq('user_id', userId);
 

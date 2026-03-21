@@ -7,7 +7,10 @@ import { SyncSettingsController } from './controllers/sync.controller.ts';
 
 Deno.serve(
   withEdgeWrapper('Sync-Settings', async (req: Request) => {
-    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    const supabase = createClient(
+      SUPABASE_CONFIG.url,
+      SUPABASE_CONFIG.serviceRoleKey,
+    );
 
     const repo = new SettingsRepository(supabase);
     const service = new SyncSettingsService(repo);
