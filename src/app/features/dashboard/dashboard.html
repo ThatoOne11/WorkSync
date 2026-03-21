@@ -1,79 +1,76 @@
-<div class="dashboard-grid">
-  <div class="panel-row">
-    <app-suggestions />
-    <!-- <app-today-focus /> -->
-  </div>
-
-  <header class="section-header">
-    <h2>Active Projects</h2>
-    <p class="u-text-muted">
-      Tracking your current monthly pace and allocations.
-    </p>
-  </header>
-
+<div class="dashboard-wrapper">
   @if (projects() === undefined) {
-    <div
-      class="empty-state"
-      style="
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-      "
-    >
-      <mat-spinner diameter="40"></mat-spinner>
-      <p class="u-text-muted">Syncing projects from Clockify...</p>
-    </div>
-  } @else if (projects()!.length > 0) {
-    <div class="project-grid">
-      @for (project of projects(); track project.id) {
-        <section class="surface-card project-card">
-          <div class="card-header">
-            <h3>{{ project.name }}</h3>
-            <span
-              class="status-badge"
-              [class.is-overbudget]="project.balance < 0"
-            >
-              {{ project.balance < 0 ? "Over Budget" : "On Track" }}
-            </span>
-          </div>
-
-          <div class="stats-row">
-            <div class="stat">
-              <label>Allocated</label>
-              <span class="value">{{ project.target_hours }}h</span>
-            </div>
-            <div class="stat">
-              <label>Logged</label>
-              <span class="value">{{ project.loggedHours }}h</span>
-            </div>
-          </div>
-
-          <div class="progress-container">
-            <mat-progress-bar
-              mode="determinate"
-              [value]="(project.loggedHours / project.target_hours) * 100"
-            />
-            <div class="progress-labels">
-              <span
-                >{{
-                  (project.loggedHours / project.target_hours) * 100
-                    | number: "1.0-0"
-                }}% Complete</span
-              >
-              <span class="balance" [class.negative]="project.balance < 0">
-                {{ project.balance }}h
-                {{ project.balance < 0 ? "over" : "remaining" }}
-              </span>
-            </div>
-          </div>
-        </section>
-      }
-    </div>
-  } @else {
-    <div class="empty-state">
-      <mat-icon>assignment_late</mat-icon>
-      <p>No active projects found. Start by adding one in the Projects page.</p>
+    <div class="global-loader-overlay u-fade-in">
+      <mat-spinner diameter="50" mode="indeterminate"></mat-spinner>
+      <p>Syncing projects & analyzing insights...</p>
     </div>
   }
+
+  <div class="dashboard-grid" [class.is-loading]="projects() === undefined">
+    <div class="panel-row">
+      <app-suggestions />
+    </div>
+
+    <header class="section-header">
+      <h2>Active Projects</h2>
+      <p class="u-text-muted">
+        Tracking your current monthly pace and allocations.
+      </p>
+    </header>
+
+    @if (projects() !== undefined && projects()!.length > 0) {
+      <div class="project-grid">
+        @for (project of projects(); track project.id) {
+          <section class="surface-card project-card">
+            <div class="card-header">
+              <h3>{{ project.name }}</h3>
+              <span
+                class="status-badge"
+                [class.is-overbudget]="project.balance < 0"
+              >
+                {{ project.balance < 0 ? "Over Budget" : "On Track" }}
+              </span>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat">
+                <label>Allocated</label>
+                <span class="value">{{ project.target_hours }}h</span>
+              </div>
+              <div class="stat">
+                <label>Logged</label>
+                <span class="value">{{ project.loggedHours }}h</span>
+              </div>
+            </div>
+
+            <div class="progress-container">
+              <mat-progress-bar
+                mode="determinate"
+                [value]="(project.loggedHours / project.target_hours) * 100"
+              />
+              <div class="progress-labels">
+                <span
+                  >{{
+                    (project.loggedHours / project.target_hours) * 100
+                      | number: "1.0-0"
+                  }}% Complete</span
+                >
+                <span class="balance" [class.negative]="project.balance < 0">
+                  {{ project.balance }}h
+                  {{ project.balance < 0 ? "over" : "remaining" }}
+                </span>
+              </div>
+            </div>
+          </section>
+        }
+      </div>
+    } @else if (projects() !== undefined && projects()!.length === 0) {
+      <div class="empty-state">
+        <mat-icon>assignment_late</mat-icon>
+        <p>
+          No active projects found. Start by adding one in the Projects page.
+        </p>
+      </div>
+    }
+  </div>
 </div>
