@@ -5,6 +5,7 @@ import { SettingsService } from '../../../core/services/settings.service';
 import { SUPABASE_TABLES } from '../../../shared/constants/supabase.constants';
 import { Project, ProjectSchema } from '../../../shared/schemas/app.schemas';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { STORAGE_CONSTANTS } from '../../../shared/constants/storage.constants';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +13,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 export class ProjectService {
   private readonly supabase = inject(SupabaseService).supabase;
   private readonly settingsService = inject(SettingsService);
+
+  private invalidateAiCache(): void {
+    localStorage.removeItem(STORAGE_CONSTANTS.AI_INSIGHTS_CACHE_KEY);
+  }
 
   getProjects(): Observable<Project[]> {
     const browserId = this.settingsService.getBrowserId();
@@ -46,6 +51,7 @@ export class ProjectService {
       .maybeSingle()
       .then(async ({ data: archivedProject, error }) => {
         if (error) throw error;
+        this.invalidateAiCache();
 
         if (archivedProject) {
           const { error: updateError } = await this.supabase
@@ -77,6 +83,7 @@ export class ProjectService {
       .eq('user_id', browserId)
       .then(({ error }) => {
         if (error) throw error;
+        this.invalidateAiCache();
       });
 
     return from(promise);
@@ -94,6 +101,7 @@ export class ProjectService {
       .eq('user_id', browserId)
       .then(({ error }) => {
         if (error) throw error;
+        this.invalidateAiCache();
       });
 
     return from(promise);
@@ -111,6 +119,7 @@ export class ProjectService {
       .eq('user_id', browserId)
       .then(({ error }) => {
         if (error) throw error;
+        this.invalidateAiCache();
       });
 
     return from(promise);

@@ -14,6 +14,10 @@ import {
 export class SettingsService {
   private readonly supabase = inject(SupabaseService).supabase;
 
+  private invalidateAiCache(): void {
+    localStorage.removeItem(STORAGE_CONSTANTS.AI_INSIGHTS_CACHE_KEY);
+  }
+
   // Expose settings as a read-only signal for reactive UI updates globally
   readonly settings = signal<AppSettings | null>(
     this.loadSettingsFromStorage(),
@@ -83,6 +87,9 @@ export class SettingsService {
       JSON.stringify(safeSettings),
     );
     this.settings.set(safeSettings);
+
+    // Bust the AI cache because the user just changed their settings!
+    this.invalidateAiCache();
   }
 
   async clearSettings(): Promise<void> {
@@ -91,6 +98,7 @@ export class SettingsService {
     // 1. Clear local storage
     localStorage.removeItem(STORAGE_CONSTANTS.SETTINGS_KEY);
     localStorage.removeItem(STORAGE_CONSTANTS.BROWSER_ID_KEY);
+    this.invalidateAiCache();
 
     // 2. Clear Signal state
     this.settings.set(null);
