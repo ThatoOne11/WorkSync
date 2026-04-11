@@ -48,6 +48,7 @@
         "npm:@angular/router@^20.1.0",
         "npm:@supabase/supabase-js@^2.75.0",
         "npm:@types/jasmine@5.1",
+        "npm:baseline-browser-mapping@^2.10.10",
         "npm:chart.js@^4.5.0",
         "npm:jasmine-core@5.8",
         "npm:karma-chrome-launcher@3.2",

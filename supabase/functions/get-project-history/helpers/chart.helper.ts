@@ -1,11 +1,13 @@
 import { DBWeeklySummary } from '../../_shared/repo/summaries.repo.ts';
+import { CHART_COLORS } from '../constants/colours.constants.ts';
+import { HistoryChartsResult, ChartData } from '../types/chart.types.ts';
 
 export class ChartHelper {
-  static buildHistoryCharts(
+  public static buildHistoryCharts(
     processedSummaries: (DBWeeklySummary & {
       recommendedWeeklyHours: number;
     })[],
-  ) {
+  ): HistoryChartsResult {
     const monthlyData: Record<string, { logged: number; target: number }> = {};
 
     processedSummaries.forEach((s) => {
@@ -22,27 +24,27 @@ export class ChartHelper {
       }
     });
 
-    const monthlyChartData = {
+    const monthlyChartData: ChartData = {
       labels: Object.keys(monthlyData),
       datasets: [
         {
           label: 'Logged Hours',
           data: Object.values(monthlyData).map((m) => m.logged),
-          backgroundColor: 'rgba(255, 59, 48, 0.7)',
-          borderColor: '#ff3b30',
+          backgroundColor: CHART_COLORS.LOGGED_HOURS.ALPHA_70,
+          borderColor: CHART_COLORS.LOGGED_HOURS.SOLID,
           borderWidth: 1,
         },
         {
           label: 'Target Hours',
           data: Object.values(monthlyData).map((m) => m.target),
-          backgroundColor: 'rgba(142, 142, 147, 0.7)',
-          borderColor: '#8e8e93',
+          backgroundColor: CHART_COLORS.TARGET_HOURS.ALPHA_70,
+          borderColor: CHART_COLORS.TARGET_HOURS.SOLID,
           borderWidth: 1,
         },
       ],
     };
 
-    const chartData = {
+    const chartData: ChartData = {
       labels: processedSummaries.map(
         (s) => `Week ending ${new Date(s.week_ending_on).toLocaleDateString()}`,
       ),
@@ -50,22 +52,22 @@ export class ChartHelper {
         {
           label: 'Logged Hours',
           data: processedSummaries.map((s) => s.logged_hours),
-          borderColor: '#ff3b30',
-          backgroundColor: 'rgba(255, 59, 48, 0.2)',
+          borderColor: CHART_COLORS.LOGGED_HOURS.SOLID,
+          backgroundColor: CHART_COLORS.LOGGED_HOURS.ALPHA_20,
           fill: true,
           tension: 0.1,
         },
         {
           label: 'Recommended Hours',
           data: processedSummaries.map((s) => s.recommendedWeeklyHours),
-          borderColor: '#8e8e93',
+          borderColor: CHART_COLORS.TARGET_HOURS.SOLID,
           borderDash: [5, 5],
           tension: 0.1,
         },
         {
           label: 'Allocated Hours (Monthly)',
           data: processedSummaries.map((s) => s.target_hours),
-          borderColor: '#34c759',
+          borderColor: CHART_COLORS.ALLOCATED_HOURS.SOLID,
           fill: false,
           tension: 0.1,
         },
