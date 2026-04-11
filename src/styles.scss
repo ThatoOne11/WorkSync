@@ -8,10 +8,55 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family: "Inter", sans-serif;
+  // Using Inter for a clean, modern tech feel
+  font-family: "Inter", "Plus Jakarta Sans", sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-main);
-  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease;
+}
+
+/* Card Styling: OneEleven minimalist borders */
+.surface-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: var(--space-lg);
+  box-shadow: none; // Minimalist flat design
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px); // Subtle hover feedback
+  }
+
+  .card-header h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-primary); // Accent header
+    font-weight: 800;
+  }
+}
+
+/* Button Styling: Bold and Rectangular */
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-flat-button {
+  border-radius: var(--radius-base) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  height: var(--btn-height);
+}
+
+.mat-flat-button.mat-primary {
+  background-color: var(--color-primary) !important;
+  color: #000 !important; // High contrast black text on orange button
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-white) !important;
+    color: #000 !important;
+  }
 }
 
 .u-container {
