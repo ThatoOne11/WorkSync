@@ -46,7 +46,7 @@ export class ChartHelper {
 
     const chartData: ChartData = {
       labels: processedSummaries.map(
-        (s) => `Week ending ${new Date(s.week_ending_on).toLocaleDateString()}`,
+        (s) => `Week ending ${new Date(s.week_ending_on).toLocaleDateString('en-US', { timeZone: 'UTC' })}`,
       ),
       datasets: [
         {
