@@ -1,57 +1,50 @@
 :root {
-  // Brand Colors
-  --color-primary: #2563eb;
-  --color-primary-light: #eff6ff;
-  --color-success: #16a34a;
-  --color-error: #dc2626;
-  --color-warning: #ea580c;
-  --color-warning-light: #fff7ed;
-  --color-danger: #ef4444;
-  --color-danger-light: #fee2e2;
+  // OneEleven Radiant Brand Colors
+  --color-primary: #ff1744; // OneEleven Radiant Red
+  --color-primary-dark: #ff1744;
+  --color-primary-light: rgba(255, 23, 68, 0.1);
+
+  --color-success: #00e676; // Cyber Green
+  --color-warning: #ffab00; // Amber
+  --color-danger: #ff1744; // Crimson
   --color-white: #ffffff;
 
-  // Neutral Scale (Surface & Text)
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
+  // Neutral Scale (Light Theme - Minimalist White)
+  --color-bg: #ffffff;
+  --color-surface: #fafafa;
+  --color-border: #eeeeee;
+  --color-text-main: #121212; // Jet Black
+  --color-text-muted: #757575;
 
-  // Standardized Spacing Scale
+  // Spacing & Geometry
   --space-xs: 0.5rem;
   --space-sm: 1rem;
   --space-md: 1.5rem;
   --space-lg: 2rem;
   --space-xl: 3rem;
 
-  // Layout & Elevation
-  --radius-base: 12px;
-  --radius-lg: 16px;
-  --input-radius: 10px;
+  --radius-base: 4px; // Sharper corners for a professional tech feel
+  --radius-lg: 8px;
+  --input-radius: 4px;
 
-  --layout-sidenav-width: 280px;
-  --z-overlay: 1000;
-  --z-loader: 9999;
+  --layout-sidenav-width: 260px;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md:
-    0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg:
-    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.12);
 
-  --page-padding: var(--space-lg);
+  --page-padding: var(--space-xl);
   --btn-height: 48px;
 }
 
 .dark-theme {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text-main: #f8fafc;
-  --color-text-muted: #94a3b8;
+  // Neutral Scale (Dark Theme - OneEleven Midnight)
+  --color-bg: #050505; // Absolute Midnight
+  --color-surface: #121212; // Elevated Surface
+  --color-border: #1f1f1f; // Subtle Grid
+  --color-text-main: #ffffff; // Pure White
+  --color-text-muted: #a0a0a0; // Muted Silver
 
-  // Dark mode variants for soft backgrounds
-  --color-primary-light: rgba(37, 99, 235, 0.15);
-  --color-warning-light: rgba(234, 88, 12, 0.1);
-  --color-danger-light: rgba(239, 68, 68, 0.1);
+  --color-primary-light: rgba(255, 94, 26, 0.15);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
