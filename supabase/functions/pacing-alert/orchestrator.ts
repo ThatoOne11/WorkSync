@@ -6,10 +6,22 @@ export class PacingAlertOrchestrator {
   constructor(private readonly service: PacingAlertService) {}
 
   async execute(req: Request): Promise<Response> {
-    requireServiceRole(req);
+    try {
+      requireServiceRole(req);
 
-    const result = await this.service.processAlerts();
+      const result = await this.service.processAlerts();
 
-    return jsonResponse(result);
+      return jsonResponse({ success: true, data: result });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }

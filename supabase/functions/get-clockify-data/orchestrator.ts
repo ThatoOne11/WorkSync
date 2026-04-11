@@ -12,34 +12,47 @@ export class ClockifyDataOrchestrator {
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, GetClockifyDataSchema);
+    try {
+      const body = await parseRequest(req, GetClockifyDataSchema);
 
-    let actualApiKey = body.apiKey;
-    let actualWorkspaceId = body.workspaceId;
-    let actualUserId = body.userId;
+      let actualApiKey = body.apiKey;
+      let actualWorkspaceId = body.workspaceId;
+      let actualUserId = body.userId;
 
-    if (actualApiKey === '••••••••••••••••') {
-      if (!body.browserId)
-        throw new ValidationError(
-          'Browser ID is required to fetch secure credentials.',
+      if (actualApiKey === '••••••••••••••••') {
+        if (!body.browserId)
+          throw new ValidationError(
+            'Browser ID is required to fetch secure credentials.',
+          );
+
+        const userSettings = await this.settingsRepo.getUserSettings(
+          body.browserId,
         );
+        if (!userSettings?.clockifyApiKey)
+          throw new ValidationError('No secure API key found for this user.');
 
-      const userSettings = await this.settingsRepo.getUserSettings(
-        body.browserId,
+        actualApiKey = userSettings.clockifyApiKey;
+        actualWorkspaceId =
+          userSettings.clockifyWorkspaceId || actualWorkspaceId;
+        actualUserId = userSettings.clockifyUserId || actualUserId;
+      }
+
+      const clockify = new ClockifyService(actualApiKey, actualWorkspaceId);
+      body.userId = actualUserId;
+
+      const data = await this.service.processAction(body, clockify);
+
+      return jsonResponse({ success: true, data: { data } });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
       );
-      if (!userSettings?.clockifyApiKey)
-        throw new ValidationError('No secure API key found for this user.');
-
-      actualApiKey = userSettings.clockifyApiKey;
-      actualWorkspaceId = userSettings.clockifyWorkspaceId || actualWorkspaceId;
-      actualUserId = userSettings.clockifyUserId || actualUserId;
+      return jsonResponse({ success: false, error: errorMessage }, 400);
     }
-
-    const clockify = new ClockifyService(actualApiKey, actualWorkspaceId);
-    body.userId = actualUserId;
-
-    const data = await this.service.processAction(body, clockify);
-
-    return jsonResponse({ data });
   }
 }

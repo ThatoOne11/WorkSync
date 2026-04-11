@@ -11,17 +11,29 @@ export class SuggestionsOrchestrator {
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, GenerateSuggestionsSchema);
+    try {
+      const body = await parseRequest(req, GenerateSuggestionsSchema);
 
-    const { clockifyService, clockifyUserId } =
-      await createAuthenticatedClockify(body.browserId, this.settingsRepo);
+      const { clockifyService, clockifyUserId } =
+        await createAuthenticatedClockify(body.browserId, this.settingsRepo);
 
-    const suggestions = await this.service.getSuggestions(
-      body.browserId,
-      clockifyService,
-      clockifyUserId,
-    );
+      const suggestions = await this.service.getSuggestions(
+        body.browserId,
+        clockifyService,
+        clockifyUserId,
+      );
 
-    return jsonResponse({ suggestions });
+      return jsonResponse({ success: true, data: { suggestions } });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }
