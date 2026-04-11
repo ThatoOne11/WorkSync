@@ -2,6 +2,12 @@ import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { EmailService } from '../services/email.service.ts';
 import { DownstreamSyncError } from '../exceptions/custom.exceptions.ts';
 
+type MockEmailPayload = {
+  to: string;
+  subject: string;
+  html: string;
+};
+
 Deno.test('EmailService Suite', async (t) => {
   const originalFetch = globalThis.fetch;
   const originalApiKey = Deno.env.get('RESEND_API_KEY');
@@ -9,15 +15,16 @@ Deno.test('EmailService Suite', async (t) => {
   await t.step(
     'sendEmail - skips sending if RESEND_API_KEY is not configured',
     async () => {
-      // Use Deno.env directly instead of mutating the ENV object
       Deno.env.delete('RESEND_API_KEY');
       const service = new EmailService();
 
       let fetchCalled = false;
-      globalThis.fetch = () => {
+
+      // Safely cast the mock to typeof fetch
+      globalThis.fetch = (() => {
         fetchCalled = true;
         return Promise.resolve(new Response());
-      };
+      }) as typeof fetch;
 
       await service.sendEmail('test@test.com', 'Subject', '<p>HTML</p>');
 
@@ -29,16 +36,17 @@ Deno.test('EmailService Suite', async (t) => {
     Deno.env.set('RESEND_API_KEY', 'valid_key');
     const service = new EmailService();
 
-    // Type 'any' used here to capture the parsed JSON payload
-    let capturedBody: any;
+    let capturedBody: MockEmailPayload | undefined;
 
-    globalThis.fetch = (_url, options) => {
-      const reqOptions = options as RequestInit;
-      capturedBody = JSON.parse(reqOptions?.body as string);
+    // Safely cast to typeof fetch and use a type guard for options.body
+    globalThis.fetch = ((_input: unknown, init?: RequestInit) => {
+      if (init?.body && typeof init.body === 'string') {
+        capturedBody = JSON.parse(init.body) as MockEmailPayload;
+      }
       return Promise.resolve(
         new Response(JSON.stringify({ id: 'email_123' }), { status: 200 }),
       );
-    };
+    }) as typeof fetch;
 
     await service.sendEmail(
       'user@worksync.com',
@@ -46,8 +54,8 @@ Deno.test('EmailService Suite', async (t) => {
       '<p>Test HTML</p>',
     );
 
-    assertEquals(capturedBody.to, 'user@worksync.com');
-    assertEquals(capturedBody.subject, 'Test Subject');
+    assertEquals(capturedBody?.to, 'user@worksync.com');
+    assertEquals(capturedBody?.subject, 'Test Subject');
   });
 
   await t.step(
@@ -56,13 +64,14 @@ Deno.test('EmailService Suite', async (t) => {
       Deno.env.set('RESEND_API_KEY', 'valid_key');
       const service = new EmailService();
 
-      globalThis.fetch = () => {
+      // Safely cast the mock to typeof fetch
+      globalThis.fetch = (() => {
         return Promise.resolve(
           new Response(JSON.stringify({ message: 'Invalid domain' }), {
             status: 403,
           }),
         );
-      };
+      }) as typeof fetch;
 
       await assertRejects(
         () =>

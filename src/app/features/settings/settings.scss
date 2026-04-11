@@ -1,24 +1,24 @@
 .settings-view {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--space-lg);
 }
+
 .settings-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Settings-specific overrides for the global card-header */
 .connection-section,
 .notification-section,
 .management-section {
   .card-header {
     border-bottom: 1px solid var(--color-border);
-    padding-bottom: 1rem;
+    padding-bottom: var(--space-sm);
   }
 }
 
@@ -26,8 +26,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
   background: var(--color-primary-light);
   color: var(--color-primary);
   border-radius: var(--radius-base);
@@ -37,24 +37,27 @@
   span {
     flex: 1 1 auto;
   }
+
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: var(--icon-size-md);
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
     flex-shrink: 0;
   }
 }
+
 .settings-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
+
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem;
+  padding: calc(var(--space-sm) * 1.25);
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
@@ -62,7 +65,7 @@
   .setting-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: calc(var(--space-xs) / 2);
   }
   .setting-title {
     font-weight: 600;
@@ -73,42 +76,49 @@
     font-size: 0.85rem;
   }
 }
+
 .user-id-action,
 .email-config {
   display: grid;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-sm);
+
   button {
-    height: 56px;
+    height: var(--btn-height-lg);
     display: flex;
-    gap: 8px;
+    gap: var(--space-xs);
     align-items: center;
     justify-content: center;
   }
 }
+
 .management-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 2rem;
+  gap: var(--space-lg);
+
   p {
     margin: 0;
     flex: 1;
   }
   button {
     display: flex;
-    gap: 8px;
+    gap: var(--space-xs);
     align-items: center;
   }
 }
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: var(--space-sm);
 }
+
 .flex-grow {
   flex: 1;
 }
+
 @media (max-width: 600px) {
   .user-id-action,
   .email-config,
@@ -124,6 +134,6 @@
   .setting-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: var(--space-sm);
   }
 }

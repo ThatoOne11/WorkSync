@@ -6,13 +6,25 @@ export class HistoryOrchestrator {
   constructor(private readonly service: HistoryService) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, GetProjectHistorySchema);
+    try {
+      const body = await parseRequest(req, GetProjectHistorySchema);
 
-    const payload = await this.service.generateHistoryReport(
-      body.projectId,
-      body.browserId,
-    );
+      const payload = await this.service.generateHistoryReport(
+        body.projectId,
+        body.browserId,
+      );
 
-    return jsonResponse(payload);
+      return jsonResponse({ success: true, data: payload });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }

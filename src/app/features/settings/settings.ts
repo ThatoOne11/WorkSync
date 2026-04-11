@@ -6,16 +6,10 @@ import {
   ViewChild,
   inject,
   signal,
-  Signal,
   computed,
   DestroyRef,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  Validators,
-  ReactiveFormsModule,
-} from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,19 +18,20 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { combineLatest, startWith, map, catchError, of, switchMap } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
   takeUntilDestroyed,
   toObservable,
   toSignal,
 } from '@angular/core/rxjs-interop';
+import { catchError, of, switchMap } from 'rxjs';
+
 import { BackfillDialog } from './dialogs/backfill-dialog/backfill-dialog';
 import { SettingsService } from '../../core/services/settings.service';
 import { SettingsStateService } from './services/settings-state.service';
+import { SettingsFormService } from './services/settings-form.service';
 import { getPreviousMonthNames } from '../../shared/utils/date.utils';
 import { ProjectService } from '../projects/services/project.service';
-import { AppSettings } from '../../shared/schemas/app.schemas';
 
 @Component({
   selector: 'app-settings',
@@ -55,30 +50,30 @@ import { AppSettings } from '../../shared/schemas/app.schemas';
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [SettingsFormService],
 })
 export class Settings implements OnInit {
   @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
 
-  private readonly fb = inject(FormBuilder);
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly projectService = inject(ProjectService);
+
+  readonly state = inject(SettingsStateService);
+  readonly formService = inject(SettingsFormService);
 
   readonly isFetchingUserId = signal(false);
   readonly isTestingEmail = signal(false);
   readonly isBackfilling = signal(false);
 
-  readonly state = inject(SettingsStateService);
-  private readonly projectService = inject(ProjectService);
-
-  protected form: FormGroup;
   protected settingsExist = signal(false);
   protected emailEditMode = signal(false);
 
-  protected isFormDirty: Signal<boolean>;
-
-  protected formValue: Signal<Partial<AppSettings> | undefined>;
+  // Directly expose FormService properties
+  protected readonly form = this.formService.form;
+  protected readonly isFormDirty = this.formService.isFormDirty;
 
   readonly activeProjects = toSignal(
     toObservable(this.settingsService.settings).pipe(
@@ -92,86 +87,14 @@ export class Settings implements OnInit {
 
   readonly hasActiveProjects = computed(() => this.activeProjects().length > 0);
 
-  constructor() {
-    this.form = this.fb.group({
-      apiKey: ['', Validators.required],
-      workspaceId: ['', Validators.required],
-      userId: [{ value: '', disabled: true }, Validators.required],
-      notificationEmail: ['', [Validators.email]],
-      enableEmailNotifications: [false],
-      enablePacingAlerts: [false],
-    });
-
-    this.formValue = toSignal(this.form.valueChanges, {
-      initialValue: undefined,
-    });
-
-    this.isFormDirty = computed(() => {
-      this.formValue();
-      const saved = this.settingsService.settings();
-      const current = this.form.getRawValue();
-
-      if (!saved) return this.form.dirty;
-
-      return (
-        current.apiKey !== saved.apiKey ||
-        current.workspaceId !== saved.workspaceId ||
-        current.notificationEmail !== saved.notificationEmail ||
-        current.enableEmailNotifications !== saved.enableEmailNotifications ||
-        current.enablePacingAlerts !== saved.enablePacingAlerts
-      );
-    });
-  }
-
   ngOnInit(): void {
     this.loadSettings();
-    this.setupConditionalEmailValidation();
-  }
-
-  private setupConditionalEmailValidation(): void {
-    const weeklyToggle = this.form.get('enableEmailNotifications');
-    const pacingToggle = this.form.get('enablePacingAlerts');
-    const emailField = this.form.get('notificationEmail');
-
-    if (weeklyToggle && pacingToggle && emailField) {
-      combineLatest([
-        weeklyToggle.valueChanges.pipe(startWith(weeklyToggle.value)),
-        pacingToggle.valueChanges.pipe(startWith(pacingToggle.value)),
-      ])
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(([isWeeklyEnabled, isPacingEnabled]) => {
-          if (isWeeklyEnabled || isPacingEnabled) {
-            emailField.setValidators([Validators.required, Validators.email]);
-          } else {
-            emailField.clearValidators();
-            emailField.addValidators([Validators.email]);
-          }
-          emailField.updateValueAndValidity();
-        });
-    }
   }
 
   private loadSettings(): void {
-    const settings = this.settingsService.settings();
-
-    if (settings) {
-      this.form.patchValue(settings);
-      this.form.get('apiKey')?.disable();
-      this.form.get('workspaceId')?.disable();
-      this.form.get('userId')?.disable();
-
-      this.settingsExist.set(true);
-      this.emailEditMode.set(!settings.notificationEmail);
-    } else {
-      this.form.enable();
-      this.form.get('userId')?.disable();
-      this.settingsExist.set(false);
-      this.emailEditMode.set(true);
-    }
-
-    this.form.markAsPristine();
-    this.form.markAsUntouched();
-    this.form.updateValueAndValidity();
+    const state = this.formService.loadSettingsState();
+    this.settingsExist.set(state.settingsExist);
+    this.emailEditMode.set(state.emailEditMode);
   }
 
   protected getOriginalEmail(): string {
@@ -188,7 +111,6 @@ export class Settings implements OnInit {
   }
 
   async onSave(): Promise<void> {
-    // Added async
     if (this.form.invalid) {
       this.snackBar.open('Please correct the errors before saving.', 'Close', {
         duration: 3000,
@@ -199,8 +121,9 @@ export class Settings implements OnInit {
     const isInitialSave = !this.settingsExist();
 
     try {
-      // Await the sync to ensure the global Signal is updated before we reload the form
-      await this.settingsService.saveSettings(this.form.getRawValue());
+      await this.settingsService.saveSettings(
+        this.formService.getNormalizedPayload(),
+      );
 
       const message = isInitialSave
         ? 'Credentials saved successfully!'
@@ -209,20 +132,16 @@ export class Settings implements OnInit {
 
       // Re-trigger form state alignment
       this.loadSettings();
-    } catch (err) {
+    } catch (_err) {
       this.snackBar.open('Failed to save settings.', 'Close', {
         duration: 3000,
       });
     }
   }
 
-  async onReset() {
+  async onReset(): Promise<void> {
     await this.settingsService.clearSettings();
-    this.form.reset({
-      userId: { value: '', disabled: true },
-      enableEmailNotifications: false,
-      enablePacingAlerts: false,
-    });
+    this.formService.resetForm();
     this.loadSettings();
     this.snackBar.open(
       'All your data has been cleared from this browser and the server.',
@@ -232,7 +151,7 @@ export class Settings implements OnInit {
   }
 
   fetchUserId(): void {
-    const apiKey = this.form.get('apiKey')?.value;
+    const apiKey = this.form.controls.apiKey.value;
     if (!apiKey) return;
 
     this.isFetchingUserId.set(true);
@@ -243,7 +162,10 @@ export class Settings implements OnInit {
       .subscribe({
         next: (fetchedId) => {
           this.form.patchValue({ userId: fetchedId });
-          this.form.get('userId')?.enable({ onlySelf: true, emitEvent: false });
+          this.form.controls.userId.enable({
+            onlySelf: true,
+            emitEvent: false,
+          });
           this.form.markAsDirty();
           this.form.updateValueAndValidity();
           this.snackBar.open('User ID fetched successfully!', 'Close', {
@@ -267,10 +189,7 @@ export class Settings implements OnInit {
 
     const dialogRef = this.dialog.open(BackfillDialog, {
       width: '600px',
-      data: {
-        projects: this.activeProjects(),
-        months,
-      },
+      data: { projects: this.activeProjects(), months },
     });
 
     dialogRef.afterClosed().subscribe((result) => {

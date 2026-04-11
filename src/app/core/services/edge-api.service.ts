@@ -3,6 +3,12 @@ import { from, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { SettingsService } from './settings.service';
 
+export type StandardEdgeResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -12,7 +18,7 @@ export class EdgeApiService {
 
   /**
    * Generic wrapper for Supabase Edge Functions.
-   * Automatically attaches `settings` and `browserId` to the payload.
+   * Automatically attaches `browserId` and strictly unwraps the { success, data, error } contract.
    */
   invoke<T>(
     functionName: string,
@@ -26,10 +32,31 @@ export class EdgeApiService {
     };
 
     const promise = this.supabase.functions
-      .invoke(functionName, { body })
+      .invoke<StandardEdgeResponse<T>>(functionName, { body })
       .then(({ data, error }) => {
-        if (error) throw error;
-        return data as T;
+        // 1. Catch network or SDK-level failures
+        if (error) {
+          throw new Error(
+            error.message || 'Supabase edge function invocation failed.',
+          );
+        }
+
+        // 2. Catch missing payloads
+        if (!data) {
+          throw new Error(
+            `Invalid response: No data returned from ${functionName}.`,
+          );
+        }
+
+        // 3. Catch domain-level errors from our standard JSON contract
+        if (!data.success) {
+          throw new Error(
+            data.error || `Domain error occurred in ${functionName}.`,
+          );
+        }
+
+        // 4. Safely return the explicit inner data payload
+        return data.data as T;
       });
 
     return from(promise);

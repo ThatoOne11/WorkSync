@@ -14,10 +14,14 @@ Deno.test('SuggestionsService Suite', async (t) => {
     fetchUserTimeEntries: () => Promise.resolve([]),
   } as unknown as ClockifyService;
 
-  // IMPORTANT: Stub GeminiService and assert as any to satisfy the generic <T> requirement
   const originalGenerate = GeminiService.prototype.generateStructuredContent;
-  GeminiService.prototype.generateStructuredContent = (() =>
-    Promise.resolve(['Mocked AI Insight'])) as any;
+
+  GeminiService.prototype.generateStructuredContent = <T>(
+    _prompt: string,
+    _schema: unknown,
+  ): Promise<T> => {
+    return Promise.resolve(['Mocked AI Insight'] as unknown as T);
+  };
 
   await t.step(
     'getSuggestions - returns early if user has no active projects',
