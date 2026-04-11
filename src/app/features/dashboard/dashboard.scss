@@ -29,7 +29,7 @@
 }
 
 :host-context(.dark-theme) .global-loader-overlay {
-  background: #050505;
+  background: var(--color-bg);
 }
 
 .dashboard-grid {

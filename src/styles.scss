@@ -51,7 +51,7 @@ body {
 
 .mat-flat-button.mat-primary {
   background-color: var(--color-primary) !important;
-  color: #000 !important; // High contrast black text on orange button
+  color: var(--color-text-main) !important; // High contrast text on primary button
 
   &:hover:not(:disabled) {
     background-color: var(--color-white) !important;
