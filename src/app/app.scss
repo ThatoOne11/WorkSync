@@ -1,11 +1,12 @@
 .app-shell {
-  height: calc(100vh - 64px);
+  height: calc(100vh - var(--layout-header-height));
   background-color: var(--color-bg);
 }
+
 .app-header {
   background-color: var(--color-bg) !important;
   border-bottom: 1px solid var(--color-border);
-  height: 72px;
+  height: var(--layout-header-height);
   padding: 0 var(--space-xl) !important;
 
   .brand-logo {
@@ -16,18 +17,18 @@
     display: flex;
     align-items: center;
 
-    // The signature OneEleven Orange Dot
     &::after {
       content: "";
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: var(--radius-lg);
+      height: var(--radius-lg);
       background-color: var(--color-primary);
       border-radius: 50%;
-      margin-left: 4px;
+      margin-left: var(--space-xs);
     }
   }
 }
+
 mat-sidenav {
   background-color: var(--color-bg) !important;
   border-right: 1px solid var(--color-border) !important;
@@ -40,17 +41,17 @@ mat-sidenav {
   font-weight: 900 !important;
   position: relative;
 
-  // Sidebar active indicator line
   &::before {
     content: "";
     position: absolute;
     left: 0;
-    width: 4px;
+    width: var(--radius-sm);
     height: 60%;
     background-color: var(--color-primary);
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   }
 }
+
 .side-nav {
   padding: var(--space-md) var(--space-sm);
   display: flex;
@@ -69,20 +70,23 @@ mat-sidenav {
     transition: all 0.2s;
 
     mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
+      font-size: var(--icon-size-md);
+      width: var(--icon-size-md);
+      height: var(--icon-size-md);
     }
+
     &:hover {
       background-color: var(--color-primary-light);
       color: var(--color-primary);
     }
+
     &.active-link {
       background-color: var(--color-primary);
       color: var(--color-white);
     }
   }
 }
+
 .spacer {
   flex: 1 1 auto;
 }

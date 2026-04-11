@@ -17,8 +17,8 @@
   gap: var(--space-md);
 
   background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 
   p {
     font-size: 1.25rem;
@@ -46,7 +46,10 @@
 
 .panel-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(var(--grid-min-width-md), 1fr)
+  );
   gap: var(--space-md);
 }
 
@@ -60,7 +63,10 @@
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--grid-min-width-sm), 1fr)
+  );
   gap: var(--space-md);
 }
 
@@ -105,8 +111,8 @@
 
 .status-badge {
   font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: calc(var(--space-xs) / 2) var(--space-xs);
+  border-radius: var(--radius-base);
   background: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: 700;

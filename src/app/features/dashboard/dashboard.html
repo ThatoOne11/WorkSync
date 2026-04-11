@@ -1,13 +1,19 @@
 <div class="dashboard-wrapper">
   @if (dashboardData() === undefined) {
-    <div class="global-loader-overlay u-fade-in">
+    <div
+      class="global-loader-overlay u-fade-in"
+      role="status"
+      aria-live="polite"
+    >
       <mat-spinner diameter="50" mode="indeterminate"></mat-spinner>
       <p>Syncing projects & analyzing insights...</p>
     </div>
   }
+
   <div
     class="dashboard-grid"
     [class.is-loading]="dashboardData() === undefined"
+    aria-live="polite"
   >
     <div class="panel-row">
       <app-suggestions [suggestions]="suggestions()" />
@@ -21,14 +27,19 @@
     </header>
 
     @if (projects() !== undefined && projects()!.length > 0) {
-      <div class="project-grid">
+      <div class="project-grid" role="list">
         @for (project of projects(); track project.id) {
-          <section class="surface-card project-card">
+          <section class="surface-card project-card" role="listitem">
             <div class="card-header">
               <h3>{{ project.name }}</h3>
               <span
                 class="status-badge"
                 [class.is-overbudget]="project.balance < 0"
+                [attr.aria-label]="
+                  project.balance < 0
+                    ? 'Status: Over Shooting target hours'
+                    : 'Status: On Track'
+                "
               >
                 {{ project.balance < 0 ? "Over Shooting" : "On Track" }}
               </span>
@@ -49,6 +60,7 @@
               <mat-progress-bar
                 mode="determinate"
                 [value]="(project.loggedHours / project.target_hours) * 100"
+                aria-label="Project completion progress"
               />
               <div class="progress-labels">
                 <span
@@ -67,8 +79,8 @@
         }
       </div>
     } @else if (projects() !== undefined && projects()!.length === 0) {
-      <div class="empty-state">
-        <mat-icon>assignment_late</mat-icon>
+      <div class="empty-state" role="status">
+        <mat-icon aria-hidden="true">assignment_late</mat-icon>
         <p>
           No active projects found. Start by adding one in the Projects page.
         </p>
