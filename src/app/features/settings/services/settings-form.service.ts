@@ -62,9 +62,9 @@ export class SettingsFormService {
     if (!saved) return this.form.dirty;
 
     return (
-      current.apiKey !== saved.apiKey ||
-      current.workspaceId !== saved.workspaceId ||
-      current.notificationEmail !== saved.notificationEmail ||
+      current.apiKey !== (saved.apiKey ?? '') ||
+      current.workspaceId !== (saved.workspaceId ?? '') ||
+      current.notificationEmail !== (saved.notificationEmail ?? '') ||
       this.normalizeBoolean(current.enableEmailNotifications) !==
         this.normalizeBoolean(saved.enableEmailNotifications) ||
       this.normalizeBoolean(current.enablePacingAlerts) !==
