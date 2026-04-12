@@ -56,7 +56,7 @@ export class WeeklySummariesService {
         chunk.map(async ([userId, user]) => {
           if (targetUserId && userId !== targetUserId) return;
           if (!user.notificationEmail) return;
-          if (!targetUserId && user.enableEmailNotifications !== 'true') return;
+          if (!targetUserId && String(user.enableEmailNotifications) !== 'true') return;
 
           if (
             !user.clockifyApiKey ||
