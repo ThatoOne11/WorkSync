@@ -46,7 +46,7 @@ export class PacingAlertService {
 
       await Promise.all(
         chunk.map(async ([userId, user]) => {
-          if (user.enablePacingAlerts !== 'true' || !user.notificationEmail)
+          if (String(user.enablePacingAlerts) !== 'true' || !user.notificationEmail)
             return;
 
           if (
