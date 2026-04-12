@@ -16,6 +16,7 @@ import { SummariesAIConfig } from '../configs/prompts.ts';
 
 export class WeeklySummariesService {
   private readonly geminiService: GeminiService;
+  private readonly CHUNK_SIZE = 5;
 
   constructor(
     private readonly settingsRepo: SettingsRepository,
@@ -45,89 +46,96 @@ export class WeeklySummariesService {
     );
     const currentWeekNumber = getWeekOfMonth(endOfLastWeek);
 
-    for (const [userId, user] of Object.entries(usersSettings)) {
-      // Skip all other users if this is a manual test run
-      if (targetUserId && userId !== targetUserId) continue;
+    const userEntries = Object.entries(usersSettings);
 
-      // Ensure they have an email address configured
-      if (!user.notificationEmail) continue;
+    // Chunking Loop: Process chunks sequentially, but users within a chunk concurrently
+    for (let i = 0; i < userEntries.length; i += this.CHUNK_SIZE) {
+      const chunk = userEntries.slice(i, i + this.CHUNK_SIZE);
 
-      // Only strictly enforce the weekly summary toggle if it's an automated background cron run.
-      // If it's a manual test run from the UI, allow it to send the test email to prove the connection.
-      if (!targetUserId && user.enableEmailNotifications !== 'true') continue;
+      await Promise.all(
+        chunk.map(async ([userId, user]) => {
+          if (targetUserId && userId !== targetUserId) return;
+          if (!user.notificationEmail) return;
+          if (!targetUserId && String(user.enableEmailNotifications) !== 'true') return;
 
-      if (
-        !user.clockifyApiKey ||
-        !user.clockifyWorkspaceId ||
-        !user.clockifyUserId
-      )
-        continue;
+          if (
+            !user.clockifyApiKey ||
+            !user.clockifyWorkspaceId ||
+            !user.clockifyUserId
+          ) {
+            return;
+          }
 
-      try {
-        const projects = await this.projectsRepo.getActiveProjects(userId);
-        if (projects.length === 0) continue;
+          try {
+            const projects = await this.projectsRepo.getActiveProjects(userId);
+            if (projects.length === 0) return;
 
-        const clockify = new ClockifyService(
-          user.clockifyApiKey,
-          user.clockifyWorkspaceId,
-        );
-        const { allMonthlyData, summariesToUpsert, thisWeeksTimeEntries } =
-          await ClockifyAggregator.fetchAndAggregate(
-            clockify,
-            projects,
-            userId,
-            user.clockifyUserId,
-            today,
-            currentWeekNumber,
-            workdaysInMonth,
-          );
+            const clockify = new ClockifyService(
+              user.clockifyApiKey,
+              user.clockifyWorkspaceId,
+            );
 
-        await this.summariesRepo.upsertSummaries(summariesToUpsert);
+            const { allMonthlyData, summariesToUpsert, thisWeeksTimeEntries } =
+              await ClockifyAggregator.fetchAndAggregate(
+                clockify,
+                projects,
+                userId,
+                user.clockifyUserId,
+                today,
+                currentWeekNumber,
+                workdaysInMonth,
+              );
 
-        const thisWeekData = allMonthlyData.filter(
-          (d) => d.week_ending_on === endOfLastWeek.toISOString().split('T')[0],
-        );
-        const weeklyStats = WeeklyStatsHelper.calculateWeeklyStats(
-          thisWeekData,
-          projects,
-          thisWeeksTimeEntries,
-          allMonthlyData,
-        );
+            await this.summariesRepo.upsertSummaries(summariesToUpsert);
 
-        let insightText: string;
-        try {
-          const prompt = SummariesAIConfig.buildPrompt(
-            weeklyStats,
-            thisWeekData,
-          );
-          const aiResponse =
-            await this.geminiService.generateStructuredContent<{
-              insightHtml: string;
-            }>(prompt, SummariesAIConfig.schema, 0.7);
-          insightText = aiResponse.insightHtml;
-        } catch (_e) {
-          insightText = `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(2)} hours</span> this week. Keep up the great work keeping your projects synced!`;
-        }
+            const thisWeekData = allMonthlyData.filter(
+              (d) =>
+                d.week_ending_on === endOfLastWeek.toISOString().split('T')[0],
+            );
+            const weeklyStats = WeeklyStatsHelper.calculateWeeklyStats(
+              thisWeekData,
+              projects,
+              thisWeeksTimeEntries,
+              allMonthlyData,
+            );
 
-        await ReportGenerator.generateAndSend(
-          this.emailService,
-          user.notificationEmail,
-          endOfLastWeek,
-          weeklyStats,
-          thisWeekData,
-          allMonthlyData,
-          currentWeekNumber,
-          insightText,
-        );
+            let insightText: string;
+            try {
+              const prompt = SummariesAIConfig.buildPrompt(
+                weeklyStats,
+                thisWeekData,
+              );
+              const aiResponse =
+                await this.geminiService.generateStructuredContent<{
+                  insightHtml: string;
+                }>(prompt, SummariesAIConfig.schema, 0.7);
+              insightText = aiResponse.insightHtml;
+            } catch (_e) {
+              insightText = `You logged <span style="font-weight: 700;">${weeklyStats.weeklyLoggedHours.toFixed(2)} hours</span> this week. Keep up the great work keeping your projects synced!`;
+            }
 
-        globalMessages.push(
-          `Weekly summary sent to ${user.notificationEmail}.`,
-        );
-      } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        globalMessages.push(`Failed to process user ${userId}: ${errMsg}`);
-        console.error(`Error processing user ${userId}:`, errMsg);
-      }
+            await ReportGenerator.generateAndSend(
+              this.emailService,
+              user.notificationEmail!,
+              endOfLastWeek,
+              weeklyStats,
+              thisWeekData,
+              allMonthlyData,
+              currentWeekNumber,
+              insightText,
+            );
+
+            globalMessages.push(
+              `Weekly summary sent to ${user.notificationEmail}.`,
+            );
+          } catch (error: unknown) {
+            const errMsg =
+              error instanceof Error ? error.message : String(error);
+            globalMessages.push(`Failed to process user ${userId}: ${errMsg}`);
+            console.error(`Error processing user ${userId}:`, errMsg);
+          }
+        }),
+      );
     }
 
     return {

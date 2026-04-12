@@ -1,11 +1,6 @@
-import {
-  assertEquals,
-  assertRejects,
-  assertStringIncludes,
-} from 'jsr:@std/assert';
+import { assertEquals, assertStringIncludes } from 'jsr:@std/assert';
 import { SyncSettingsOrchestrator } from '../orchestrator.ts';
 import { SyncSettingsService } from '../services/sync-settings.service.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 
 Deno.test('SyncSettingsOrchestrator Suite', async (t) => {
   const mockService = {
@@ -29,11 +24,12 @@ Deno.test('SyncSettingsOrchestrator Suite', async (t) => {
     const body = await res.json();
 
     assertEquals(res.status, 200);
-    assertEquals(body.message, 'Settings synced successfully.');
+    assertEquals(body.success, true);
+    assertEquals(body.data.message, 'Settings synced successfully.');
   });
 
   await t.step(
-    'execute - throws ValidationError (400) if browserId is missing',
+    'execute - returns 400 JSON error if browserId is missing',
     async () => {
       const invalidPayload = { settings: { apiKey: 'clockify_key' } };
       const req = new Request('https://mock.com', {
@@ -41,11 +37,12 @@ Deno.test('SyncSettingsOrchestrator Suite', async (t) => {
         body: JSON.stringify(invalidPayload),
       });
 
-      const error = await assertRejects(
-        () => orchestrator.execute(req),
-        ValidationError,
-      );
-      assertStringIncludes(error.message, 'invalid_type');
+      const res = await orchestrator.execute(req);
+      const body = await res.json();
+
+      assertEquals(res.status, 400);
+      assertEquals(body.success, false);
+      assertStringIncludes(body.error, 'invalid_type');
     },
   );
 });

@@ -6,10 +6,25 @@ export class DeleteUserDataOrchestrator {
   constructor(private readonly service: DeleteUserDataService) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, DeleteUserDataSchema);
+    try {
+      const body = await parseRequest(req, DeleteUserDataSchema);
 
-    await this.service.deleteData(body.browserId);
+      await this.service.deleteData(body.browserId);
 
-    return jsonResponse({ message: 'User data deleted successfully.' });
+      return jsonResponse({
+        success: true,
+        data: { message: 'User data deleted successfully.' },
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }

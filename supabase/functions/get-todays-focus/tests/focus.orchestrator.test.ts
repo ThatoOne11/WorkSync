@@ -1,12 +1,7 @@
-import {
-  assertEquals,
-  assertRejects,
-  assertStringIncludes,
-} from 'jsr:@std/assert';
+import { assertEquals, assertStringIncludes } from 'jsr:@std/assert';
 import { FocusOrchestrator } from '../orchestrator.ts';
 import { FocusService } from '../services/focus.service.ts';
 import { SettingsRepository } from '../../_shared/repo/settings.repo.ts';
-import { ValidationError } from '../../_shared/exceptions/custom.exceptions.ts';
 
 Deno.test('FocusOrchestrator Suite', async (t) => {
   const mockService = {
@@ -38,13 +33,14 @@ Deno.test('FocusOrchestrator Suite', async (t) => {
       const body = await res.json();
 
       assertEquals(res.status, 200);
-      assertEquals(body.focusList.length, 1);
-      assertEquals(body.focusList[0].requiredHoursToday, 2.5);
+      assertEquals(body.success, true);
+      assertEquals(body.data.focusList.length, 1);
+      assertEquals(body.data.focusList[0].requiredHoursToday, 2.5);
     },
   );
 
   await t.step(
-    'execute - throws ValidationError if browserId is missing',
+    'execute - returns 400 JSON error if browserId is missing',
     async () => {
       const invalidPayload = { settings: { apiKey: 'api' } }; // Missing browserId
       const req = new Request('https://mock.com', {
@@ -52,11 +48,12 @@ Deno.test('FocusOrchestrator Suite', async (t) => {
         body: JSON.stringify(invalidPayload),
       });
 
-      const error = await assertRejects(
-        () => orchestrator.execute(req),
-        ValidationError,
-      );
-      assertStringIncludes(error.message, 'invalid_type');
+      const res = await orchestrator.execute(req);
+      const body = await res.json();
+
+      assertEquals(res.status, 400);
+      assertEquals(body.success, false);
+      assertStringIncludes(body.error, 'invalid_type');
     },
   );
 });

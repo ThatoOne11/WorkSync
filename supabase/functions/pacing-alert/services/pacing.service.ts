@@ -14,6 +14,8 @@ import { PacingHelper } from '../helpers/pacing.helper.ts';
 import { buildPacingDigestTemplate } from '../templates/pacing-digest.template.ts';
 
 export class PacingAlertService {
+  private readonly CHUNK_SIZE = 5;
+
   constructor(
     private readonly settingsRepo: SettingsRepository,
     private readonly projectsRepo: ProjectsRepository,
@@ -37,78 +39,90 @@ export class PacingAlertService {
     );
     const passedWorkdays = getPassedWorkdays(today);
 
-    for (const [userId, user] of Object.entries(usersSettings)) {
-      if (user.enablePacingAlerts !== 'true' || !user.notificationEmail)
-        continue;
+    const userEntries = Object.entries(usersSettings);
 
-      if (
-        !user.clockifyApiKey ||
-        !user.clockifyWorkspaceId ||
-        !user.clockifyUserId
-      ) {
-        messages.push(`Skipped user ${userId}: Missing Clockify credentials.`);
-        continue;
-      }
+    for (let i = 0; i < userEntries.length; i += this.CHUNK_SIZE) {
+      const chunk = userEntries.slice(i, i + this.CHUNK_SIZE);
 
-      try {
-        const projects = await this.projectsRepo.getActiveProjects(userId);
-        if (projects.length === 0) continue;
+      await Promise.all(
+        chunk.map(async ([userId, user]) => {
+          if (String(user.enablePacingAlerts) !== 'true' || !user.notificationEmail)
+            return;
 
-        const clockify = new ClockifyService(
-          user.clockifyApiKey,
-          user.clockifyWorkspaceId,
-        );
-        const timeEntries = await clockify.fetchUserTimeEntries(
-          user.clockifyUserId,
-          startOfMonth,
-          today.toISOString(),
-        );
+          if (
+            !user.clockifyApiKey ||
+            !user.clockifyWorkspaceId ||
+            !user.clockifyUserId
+          ) {
+            messages.push(
+              `Skipped user ${userId}: Missing Clockify credentials.`,
+            );
+            return;
+          }
 
-        const projectAnalysis: ProjectAnalysis[] = projects.map((p) => {
-          const loggedSeconds = timeEntries
-            .filter((te) => te.projectId === p.clockify_project_id)
-            .reduce(
-              (sum, te) => sum + parseISO8601Duration(te.timeInterval.duration),
-              0,
+          try {
+            const projects = await this.projectsRepo.getActiveProjects(userId);
+            if (projects.length === 0) return;
+
+            const clockify = new ClockifyService(
+              user.clockifyApiKey,
+              user.clockifyWorkspaceId,
+            );
+            const timeEntries = await clockify.fetchUserTimeEntries(
+              user.clockifyUserId,
+              startOfMonth,
+              today.toISOString(),
             );
 
-          const loggedHours = loggedSeconds / 3600;
-          const projectedHours = (loggedHours / passedWorkdays) * totalWorkdays;
-          return {
-            id: p.id,
-            name: p.name,
-            variance: projectedHours - p.target_hours,
-          };
-        });
+            const projectAnalysis: ProjectAnalysis[] = projects.map((p) => {
+              const loggedSeconds = timeEntries
+                .filter((te) => te.projectId === p.clockify_project_id)
+                .reduce(
+                  (sum, te) =>
+                    sum + parseISO8601Duration(te.timeInterval.duration),
+                  0,
+                );
 
-        const projectsToAlert = projectAnalysis.filter(
-          (p) => Math.abs(p.variance) > 2,
-        );
+              const loggedHours = loggedSeconds / 3600;
+              const projectedHours =
+                (loggedHours / passedWorkdays) * totalWorkdays;
+              return {
+                id: p.id,
+                name: p.name,
+                variance: projectedHours - p.target_hours,
+              };
+            });
 
-        if (projectsToAlert.length > 0) {
-          // Construct the email locally
-          const rowsHtml = PacingHelper.buildProjectRows(projectsToAlert);
-          const emailHtml = buildPacingDigestTemplate(rowsHtml);
+            const projectsToAlert = projectAnalysis.filter(
+              (p) => Math.abs(p.variance) > 2,
+            );
 
-          await this.emailService.sendEmail(
-            user.notificationEmail,
-            'Your Daily Pacing Digest',
-            emailHtml,
-          );
-          messages.push(`Pacing digest sent to ${user.notificationEmail}.`);
+            if (projectsToAlert.length > 0) {
+              const rowsHtml = PacingHelper.buildProjectRows(projectsToAlert);
+              const emailHtml = buildPacingDigestTemplate(rowsHtml);
 
-          const alertsToUpsert = projectsToAlert.map((p) => ({
-            project_id: p.id,
-            user_id: userId,
-            alert_sent_at: new Date().toISOString(),
-          }));
-          await this.alertsRepo.upsertAlerts(alertsToUpsert);
-        }
-      } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        messages.push(`Failed to process user ${userId}: ${errMsg}`);
-        console.error(`Error processing user ${userId}:`, errMsg);
-      }
+              await this.emailService.sendEmail(
+                user.notificationEmail!,
+                'Your Daily Pacing Digest',
+                emailHtml,
+              );
+              messages.push(`Pacing digest sent to ${user.notificationEmail}.`);
+
+              const alertsToUpsert = projectsToAlert.map((p) => ({
+                project_id: p.id,
+                user_id: userId,
+                alert_sent_at: new Date().toISOString(),
+              }));
+              await this.alertsRepo.upsertAlerts(alertsToUpsert);
+            }
+          } catch (error: unknown) {
+            const errMsg =
+              error instanceof Error ? error.message : String(error);
+            messages.push(`Failed to process user ${userId}: ${errMsg}`);
+            console.error(`Error processing user ${userId}:`, errMsg);
+          }
+        }),
+      );
     }
 
     return { message: 'Pacing analysis complete.', details: messages };

@@ -11,21 +11,29 @@ export class FocusOrchestrator {
   ) {}
 
   async execute(req: Request): Promise<Response> {
-    // 1. Parse and validate the request instantly
-    const body = await parseRequest(req, GetTodaysFocusSchema);
+    try {
+      const body = await parseRequest(req, GetTodaysFocusSchema);
 
-    // 2. Safely get the authenticated third-party service
-    const { clockifyService, clockifyUserId } =
-      await createAuthenticatedClockify(body.browserId, this.settingsRepo);
+      const { clockifyService, clockifyUserId } =
+        await createAuthenticatedClockify(body.browserId, this.settingsRepo);
 
-    // 3. Execute business logic
-    const focusList = await this.service.calculateTodaysFocus(
-      body.browserId,
-      clockifyService,
-      clockifyUserId,
-    );
+      const focusList = await this.service.calculateTodaysFocus(
+        body.browserId,
+        clockifyService,
+        clockifyUserId,
+      );
 
-    // 4. Return clean response
-    return jsonResponse({ focusList });
+      return jsonResponse({ success: true, data: { focusList } });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }

@@ -6,10 +6,25 @@ export class SyncSettingsOrchestrator {
   constructor(private readonly service: SyncSettingsService) {}
 
   async execute(req: Request): Promise<Response> {
-    const body = await parseRequest(req, SyncSettingsRequestSchema);
+    try {
+      const body = await parseRequest(req, SyncSettingsRequestSchema);
 
-    await this.service.sync(body.browserId, body.settings);
+      await this.service.sync(body.browserId, body.settings);
 
-    return jsonResponse({ message: 'Settings synced successfully.' });
+      return jsonResponse({
+        success: true,
+        data: { message: 'Settings synced successfully.' },
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown exception occurred.';
+      console.error(
+        `[${this.constructor.name}] Critical Failure:`,
+        errorMessage,
+      );
+      return jsonResponse({ success: false, error: errorMessage }, 400);
+    }
   }
 }

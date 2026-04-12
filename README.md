@@ -1,10 +1,10 @@
+# ⏰ WorkSync: Smart Project Pacing & Time Management
+
 [![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
-[![Deno](https://img.shields.io/badge/Deno-000000?style=for-the-badge&logo=deno&logoColor=white)](https://deno.land/)
+![Google Gemini](https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)
 [![Clockify](https://img.shields.io/badge/Clockify-03A9F4?style=for-the-badge&logo=clockify&logoColor=white)](https://clockify.me/)
 [![Cloudflare Pages](https://img.shields.io/badge/Deployed_on_Cloudflare-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
-
-# ⏰ WorkSync: Smart Project Pacing & Time Management
 
 WorkSync is an intelligent, multi-tenant dashboard application designed to help freelancers and teams maintain optimal work-life balance and meet project deadlines. It connects directly to your Clockify account to provide daily focus recommendations and monthly pacing alerts based on your allocated hours.
 
